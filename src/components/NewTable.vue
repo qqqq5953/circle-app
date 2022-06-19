@@ -115,7 +115,7 @@
         <tbody>
           <tr
             class="flex flex-col sm:table-row mx-2 mb-3 rounded"
-            v-for="item in quote"
+            v-for="item in holdingsTotalInfo"
             :key="item"
           >
             <!-- Stocks -->
@@ -263,7 +263,26 @@
 </template>
 
 <script>
+// export default {
+//   props: ["quote", "test"],
+// };
+import { ref, watch } from "vue";
+
 export default {
-  props: ["quote"],
+  props: ["holdingsTotalInfo"],
+  setup(props) {
+    const holdingsTotalInfo = ref(null);
+
+    watch(props, (newValue, old) => {
+      console.log("newValue", newValue);
+      console.log("old", old);
+
+      holdingsTotalInfo.value = newValue.holdingsTotalInfo;
+    });
+
+    return {
+      holdingsTotalInfo,
+    };
+  },
 };
 </script>

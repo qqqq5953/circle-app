@@ -3,7 +3,7 @@
     <section class="px-4 md:px-0 lg:px-4">
       <h2 class="mb-4 font-semibold text-lg">Top 3 Performance</h2>
       <div class="lg:flex lg:justify-between gap-3">
-        <Card></Card>
+        <Card :holdingsTotalInfo="holdingsTotalInfo"></Card>
       </div>
     </section>
     <section class="mt-5 px-4 md:px-0 lg:px-4">

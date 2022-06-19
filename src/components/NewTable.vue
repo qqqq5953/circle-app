@@ -263,9 +263,6 @@
 </template>
 
 <script>
-// export default {
-//   props: ["quote", "test"],
-// };
 import { ref, watch } from "vue";
 
 export default {
@@ -273,10 +270,7 @@ export default {
   setup(props) {
     const holdingsTotalInfo = ref(null);
 
-    watch(props, (newValue, old) => {
-      console.log("newValue", newValue);
-      console.log("old", old);
-
+    watch(props, (newValue) => {
       holdingsTotalInfo.value = newValue.holdingsTotalInfo;
     });
 

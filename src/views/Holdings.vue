@@ -133,30 +133,35 @@
       </button>
       <br />
 
-      <input
-        type="text"
-        class="form-input px-4 py-3 rounded-full"
-        placeholder="ticker"
-        v-model="stock.ticker"
-      />
-      <input
-        type="text"
-        class="form-input px-4 py-3 rounded-full"
-        placeholder="cost"
-        v-model="stock.cost"
-      />
-      <input
-        type="text"
-        class="form-input px-4 py-3 rounded-full"
-        placeholder="shares"
-        v-model="stock.shares"
-      />
-      <input
-        type="submit"
-        class="form-input px-4 py-3 rounded-full"
-        value="submit"
-        @click="setHoldings"
-      />
+      <form @submit.prevent="setHoldings">
+        <input
+          type="text"
+          class="form-input px-4 py-3 rounded-full"
+          placeholder="ticker"
+          pattern="^\w{1,4}$"
+          v-model.trim="stock.ticker"
+        />
+        <small :class="message?.success ? 'text-green-500' : 'text-red-500'">{{
+          message?.content
+        }}</small>
+        <input
+          type="text"
+          class="form-input px-4 py-3 rounded-full"
+          placeholder="cost"
+          v-model.trim="stock.cost"
+        />
+        <input
+          type="text"
+          class="form-input px-4 py-3 rounded-full"
+          placeholder="shares"
+          v-model.trim="stock.shares"
+        />
+        <input
+          type="submit"
+          class="form-input px-4 py-3 rounded-full"
+          value="submit"
+        />
+      </form>
     </div>
 
     <!-- <div class="w-full xl:w-6/12 px-4 bg-gray-300">
@@ -192,23 +197,27 @@ export default {
     const regularMarketPrice = ref(null);
     const stock = ref({
       ticker: null,
-      cost: null,
-      shares: null,
+      cost: 300,
+      shares: 20,
       date: Date.now(),
     });
+    const message = ref(null);
 
     const getHoldings = async () => {
       const response = await axios.get(`/api/getHoldings`);
       holdingsTotalInfo.value = response.data;
       console.log("getHoldings= ", response.data);
-      // return response.data;
+      return response.data;
     };
     getHoldings();
 
     const setHoldings = async () => {
+      stock.value.ticker = stock.value.ticker.toUpperCase();
       const response = await axios.post("/api/setHoldings", stock.value);
+      if (response.data.success) await getHoldings();
+
+      message.value = response.data;
       console.log("setHoldings= ", response.data);
-      await getHoldings();
     };
 
     const historicalQutoes = ref(null);
@@ -221,16 +230,16 @@ export default {
       );
       console.log("getHistorical= ", response.data);
       historicalQutoes.value = response.data;
-      // return response.data;
+      return response.data;
     };
 
-    // const execute = async () => {
-    //   Promise.all([getHoldings(), getHistorical()]).then((res) => {
-    //     console.log("res", res);
-    //     holdingsTotalInfo.value = res[0];
-    //     historicalQutoes.value = res[1];
-    //   });
-    // };
+    const execute = async () => {
+      Promise.all([getHoldings(), getHistorical()]).then((res) => {
+        console.log("res", res);
+        holdingsTotalInfo.value = res[0];
+        historicalQutoes.value = res[1];
+      });
+    };
     // execute();
 
     return {
@@ -238,6 +247,7 @@ export default {
       historicalQutoes,
       regularMarketPrice,
       stock,
+      message,
       getHoldings,
       setHoldings,
       getHistorical,

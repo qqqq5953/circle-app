@@ -8,9 +8,6 @@ const getHoldingsTradeInfo = require('../actions/getHoldingsTradeInfo')
 const getHoldingsTotalInfo = require('../actions/getHoldingsTotalInfo')
 const getFormattedDate = require('../tools/getFormattedDate')
 
-const now = new Date()
-const yesterday = new Date(new Date().setDate(now.getDate() - 1))
-
 /* GET home page. */
 router.get('/', function (req, res, next) {
   res.render('index', { title: 'Express' })
@@ -39,10 +36,10 @@ router.get('/quote', async (req, res) => {
 
 router.get('/historical/:period/:from/:to', async (req, res) => {
   const tickerRef = await holdingRef.once('value')
-  const holdings = tickerRef.val()
-  if (!holdings) return res.send('invalid ticker name')
+  const currentHoldings = tickerRef.val()
+  if (!currentHoldings) return res.send('invalid ticker name')
 
-  const tickers = Object.keys(holdings)
+  const tickers = Object.keys(currentHoldings)
   const from = req.params.from
   const to = req.params.to
   const period = req.params.period
@@ -55,20 +52,22 @@ router.get('/historical/:period/:from/:to', async (req, res) => {
   }
 
   try {
-    // const historicalQuote = await yahooFinance.historical(quoteOptions)
-
     const historicalQuote = await yahooFinance.historical(quoteOptions)
+    // console.log('historicalQuote', historicalQuote)
 
-    const holdingsTradeInfo = getHoldingsTradeInfo(holdings)
+    // const obj = {}
+    // Object.entries(historicalQuote).forEach((item) => {
+    //   const [ticker, quote] = item
+    //   console.log('ticker', ticker)
+    //   console.log('quote', quote)
 
-    const holdingsTotalInfo = getHoldingsTotalInfo(
-      tickers,
-      historicalQuote,
-      holdingsTradeInfo
-    )
-
-    console.log('holdingsTotalInfo', holdingsTotalInfo)
-    res.send(holdingsTotalInfo)
+    //   obj[ticker] = {
+    //     ticker,
+    //     date: quote[0].date,
+    //     close: quote[0].close
+    //   }
+    // })
+    res.send(historicalQuote)
   } catch (err) {
     console.log('err', err.message)
   }
@@ -88,7 +87,7 @@ router.get('/getHoldings', async (req, res) => {
     period: 'd'
   }
   const yesterdayQuote = await yahooFinance.historical(quoteOptions)
-  console.log('yesterdayQuote', yesterdayQuote)
+  // console.log('yesterdayQuote', yesterdayQuote)
 
   const holdingsTradeInfo = getHoldingsTradeInfo(holdings)
 
@@ -117,22 +116,30 @@ router.get('/getHolding/:ticker', async (req, res) => {
   }
 })
 router.post('/setHoldings', async (req, res) => {
+  let message = {}
   const { ticker, cost, shares, date } = req.body
-  const stockInfo = holdingRef.child(ticker).push()
-  stockInfo
-    .set({ cost, shares, date })
-    .then((res) => {
-      console.log('res', res)
-    })
-    .catch((err) => {
-      console.log(err)
-    })
+  const checkTickerValid = yahooFinance.quote(ticker, ['summaryProfile'])
 
-  const message = {
-    content: '標的新增成功'
-  }
-
-  res.send(message)
+  checkTickerValid
+    .then(() => {
+      const stockInfo = holdingRef.child(ticker).push()
+      stockInfo.set({ cost, shares, date })
+      message = {
+        success: true,
+        content: '標的新增成功',
+        errorMessage: null
+      }
+      res.send(message)
+    })
+    .catch((error) => {
+      console.log('error', error)
+      message = {
+        success: false,
+        content: '無此標的',
+        errorMessage: error.message
+      }
+      res.send(message)
+    })
 })
 
 module.exports = router

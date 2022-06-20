@@ -42,9 +42,23 @@
       </div>
     </div>
     <!-- card-body -->
-    <p class="flex text-sm text-blueGray-400 mt-4 bg-red-200">
-      <span class="flex-shrink-0 text-emerald-500 mr-2">
-        <i class="fas fa-arrow-up"></i> {{ item.monthlyGrowth }} %
+    <p class="flex text-sm mt-4">
+      <span
+        class="flex-shrink-0 inline-block px-2 py-1 mr-4 rounded"
+        :class="
+          item.monthlyGrowth > 0
+            ? 'text-green-700 bg-green-100'
+            : 'text-red-700 bg-red-100'
+        "
+      >
+        <span v-if="item.monthlyGrowth !== 0">
+          <i
+            class="fas fa-arrow-up mr-1 text-green-700"
+            v-if="item.monthlyGrowth > 0"
+          ></i>
+          <i class="fas fa-arrow-down mr-1 text-red-700" v-else></i>
+        </span>
+        {{ item.monthlyGrowth }} %
       </span>
       <span> Since last month</span>
     </p>
@@ -101,9 +115,9 @@ export default {
 //           const pastQuote = pastHoldings[ticker];
 
 //           const lastMonthClose = pastQuote.close;
-//           const close = quote.close;
+//           const averageCost = quote.averageCost;
 //           const monthlyGrowth = parseFloat(
-//             (((close - lastMonthClose) * 100) / lastMonthClose).toFixed(2)
+//             (((lastMonthClose - averageCost) * 100) / averageCost).toFixed(2)
 //           );
 
 //           const obj = {

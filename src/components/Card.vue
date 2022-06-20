@@ -44,7 +44,7 @@
     <!-- card-body -->
     <p class="flex text-sm text-blueGray-400 mt-4 bg-red-200">
       <span class="flex-shrink-0 text-emerald-500 mr-2">
-        <i class="fas fa-arrow-up"></i> 3.48%
+        <i class="fas fa-arrow-up"></i> {{ item.monthlyGrowth }} %
       </span>
       <span> Since last month</span>
     </p>
@@ -52,16 +52,15 @@
 </template>
 
 <script>
-import { ref, watch } from "vue";
-
+import { ref, watch, toRef } from "vue";
 export default {
   props: ["holdingsTotalInfo"],
   setup(props) {
-    const holdingsTotalInfo = ref(null);
     const topThreePerformance = ref(null);
+    const holdingsTotalInfo = toRef(props, "holdingsTotalInfo");
 
     const calculatePerformance = (holdings) => {
-      const result = Object.values(holdings)
+      const performance = Object.values(holdings)
         .map((item) => {
           const obj = {};
           obj.ticker = item.symbol;
@@ -72,14 +71,13 @@ export default {
           return b.profitOrLossPercentage - a.profitOrLossPercentage;
         })
         .slice(0, 3);
-      return result;
+      return performance;
     };
 
     watch(props, (newValue) => {
-      holdingsTotalInfo.value = newValue.holdingsTotalInfo;
-      console.log("holdingsTotalInfo", holdingsTotalInfo.value);
-      console.log(calculatePerformance(holdingsTotalInfo.value));
-      topThreePerformance.value = calculatePerformance(holdingsTotalInfo.value);
+      topThreePerformance.value = calculatePerformance(
+        newValue.holdingsTotalInfo
+      );
     });
 
     return {
@@ -88,4 +86,61 @@ export default {
     };
   },
 };
+
+// export default {
+//   props: ["holdingsTotalInfo", "historicalQutoes"],
+//   setup(props) {
+//     const calculateTopPerformance = (nowHoldings, pastHoldings, topNumber) => {
+//       console.log("nowHoldings", nowHoldings);
+//       console.log("pastHoldings", pastHoldings);
+//       if (nowHoldings == null || pastHoldings == null) return;
+
+//       const performance = Object.entries(nowHoldings)
+//         .map((holding) => {
+//           const [ticker, quote] = holding;
+//           const pastQuote = pastHoldings[ticker];
+
+//           const lastMonthClose = pastQuote.close;
+//           const close = quote.close;
+//           const monthlyGrowth = parseFloat(
+//             (((close - lastMonthClose) * 100) / lastMonthClose).toFixed(2)
+//           );
+
+//           const obj = {
+//             ticker,
+//             monthlyGrowth,
+//             profitOrLossPercentage: quote.profitOrLossPercentage,
+//           };
+
+//           return obj;
+//         })
+//         .sort((a, b) => {
+//           return b.profitOrLossPercentage - a.profitOrLossPercentage;
+//         })
+//         .slice(0, topNumber);
+//       return performance;
+//     };
+
+//     const holdingsTotalInfo = toRef(props, "holdingsTotalInfo");
+//     const topThreePerformance = ref(null);
+
+//     watch(
+//       () => props.historicalQutoes,
+//       (newValue) => {
+//         const holdingsTotalInfoLastMonth = newValue;
+
+//         topThreePerformance.value = calculateTopPerformance(
+//           holdingsTotalInfo.value,
+//           holdingsTotalInfoLastMonth,
+//           3
+//         );
+//       }
+//     );
+
+//     return {
+//       holdingsTotalInfo,
+//       topThreePerformance,
+//     };
+//   },
+// };
 </script>

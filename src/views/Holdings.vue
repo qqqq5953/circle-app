@@ -201,7 +201,9 @@ export default {
       const response = await axios.get(`/api/getHoldings`);
       holdingsTotalInfo.value = response.data;
       console.log("getHoldings= ", response.data);
+      // return response.data;
     };
+    getHoldings();
 
     const setHoldings = async () => {
       const response = await axios.post("/api/setHoldings", stock.value);
@@ -209,14 +211,36 @@ export default {
       await getHoldings();
     };
 
-    getHoldings();
+    const historicalQutoes = ref(null);
+    const getHistorical = async () => {
+      const period = "d"; // 月資料都是從第一天開始
+      const dateStart = 30;
+      const dateEnd = 29;
+      const response = await axios.get(
+        `/api/historical/${period}/${dateStart}/${dateEnd}`
+      );
+      console.log("getHistorical= ", response.data);
+      historicalQutoes.value = response.data;
+      // return response.data;
+    };
+
+    // const execute = async () => {
+    //   Promise.all([getHoldings(), getHistorical()]).then((res) => {
+    //     console.log("res", res);
+    //     holdingsTotalInfo.value = res[0];
+    //     historicalQutoes.value = res[1];
+    //   });
+    // };
+    // execute();
 
     return {
       holdingsTotalInfo,
+      historicalQutoes,
       regularMarketPrice,
       stock,
       getHoldings,
       setHoldings,
+      getHistorical,
     };
   },
 };

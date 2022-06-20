@@ -1,13 +1,13 @@
 const parseFloatByDecimal = require('../tools/parseFloatByDecimal')
 
-const getHoldingsTotalInfo = (tickers, historicalData, holdingsTradeInfo) => {
+const getHoldingsTotalInfo = (tickers, yesterdayQuote, holdingsTradeInfo) => {
   const holdingsTotalInfo = {}
 
   tickers.forEach((ticker) => {
-    const stockHistoricalData = historicalData[ticker][0]
+    const stockYesterdayQuote = yesterdayQuote[ticker][0]
     const stockTradeInfo = holdingsTradeInfo[ticker]
 
-    const { close } = stockHistoricalData
+    const { close } = stockYesterdayQuote
     const { averageCost, totalShares } = stockTradeInfo
 
     const profitOrLossPercentage = parseFloatByDecimal(
@@ -19,10 +19,10 @@ const getHoldingsTotalInfo = (tickers, historicalData, holdingsTradeInfo) => {
       2
     )
 
-    stockHistoricalData.close = parseFloatByDecimal(close, 2)
+    stockYesterdayQuote.close = parseFloatByDecimal(close, 2)
 
     holdingsTotalInfo[ticker] = {
-      ...stockHistoricalData,
+      ...stockYesterdayQuote,
       ...stockTradeInfo,
       profitOrLossPercentage,
       profitOrLossValue

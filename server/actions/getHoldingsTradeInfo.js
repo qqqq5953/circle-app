@@ -17,7 +17,7 @@ const getHoldingsTradeInfo = (holdings) => {
     holdingsTradeInfo[ticker] = {
       totalCost,
       totalShares,
-      averageCost: parseFloat((totalCost / totalShares).toFixed(2))
+      averageCost: parseFloatByDecimal(totalCost / totalShares, 2)
     }
   })
   return holdingsTradeInfo

@@ -79,7 +79,7 @@ router.get('/getHoldings', async (req, res) => {
   if (!holdings) return res.send('invalid ticker name')
 
   const tickers = Object.keys(holdings)
-
+  let yesterdayQuote = null
   let isMarketOpen = false
   let backward = 0
   while (!isMarketOpen) {
@@ -91,6 +91,7 @@ router.get('/getHoldings', async (req, res) => {
     }
 
     yesterdayQuote = await yahooFinance.historical(quoteOptions)
+
     isMarketOpen = Object.values(yesterdayQuote).every(
       (quote) => quote.length !== 0
     )
@@ -99,7 +100,6 @@ router.get('/getHoldings', async (req, res) => {
   }
 
   const holdingsTradeInfo = getHoldingsTradeInfo(holdings)
-
   const holdingsTotalInfo = getHoldingsTotalInfo(
     tickers,
     yesterdayQuote,
@@ -107,12 +107,6 @@ router.get('/getHoldings', async (req, res) => {
   )
 
   res.send(holdingsTotalInfo)
-
-  // if (!holdings) {
-  //   res.send('invalid ticker name')
-  // } else {
-  //   res.send(holdingsTotalInfo)
-  // }
 })
 router.get('/getHolding/:ticker', async (req, res) => {
   const ticker = req.params.ticker

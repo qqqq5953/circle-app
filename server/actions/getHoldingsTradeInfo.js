@@ -1,4 +1,4 @@
-const parseFloatByDecimal = require('../tools/parseFloatByDecimal')
+// const parseFloatByDecimal = require('../tools/parseFloatByDecimal')
 
 const getHoldingsTradeInfo = (holdings) => {
   let holdingsTradeInfo = {}
@@ -19,7 +19,7 @@ const getHoldingsTradeInfo = (holdings) => {
     holdingsTradeInfo[ticker] = {
       totalCost,
       totalShares,
-      averageCost: parseFloatByDecimal(totalCost / totalShares, 2)
+      averageCost: parseFloat((totalCost / totalShares).toFixed(2))
     }
   }
 

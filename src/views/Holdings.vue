@@ -148,21 +148,23 @@
           message?.content
         }}</small>
         <input
-          type="text"
+          type="number"
           class="form-input px-4 py-3 rounded-full"
           placeholder="cost"
+          min="0"
           v-model.trim="stock.cost"
         />
         <input
-          type="text"
+          type="number"
           class="form-input px-4 py-3 rounded-full"
           placeholder="shares"
+          min="0"
           v-model.trim="stock.shares"
         />
         <input
           type="submit"
           class="form-input px-4 py-3 rounded-full"
-          value="submit"
+          value="add"
         />
       </form>
     </div>

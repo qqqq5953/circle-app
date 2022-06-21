@@ -1,18 +1,19 @@
 <template>
   <main class="px-4 md:p-10 mx-auto w-full">
     <section class="px-4 md:px-0 lg:px-4">
-      <h2 class="mb-4 font-semibold text-lg">Top 3 Performance</h2>
-      <div class="lg:flex lg:justify-between gap-3">
-        <Card :holdingsTotalInfo="holdingsTotalInfo"></Card>
-      </div>
-    </section>
-    <section class="mt-5 px-4 md:px-0 lg:px-4">
       <div class="flex items-center mb-4">
-        <h2 class="font-semibold text-lg">Holdings</h2>
+        <h2 class="font-semibold text-lg">Top 3 Performance</h2>
         <span class="text-xs ml-auto">
           {{ lastMarketOpenDate }}
         </span>
       </div>
+      <div class="lg:flex lg:justify-between gap-3">
+        <CardSkeleton v-if="holdingsTotalInfo == null" />
+        <Card :holdingsTotalInfo="holdingsTotalInfo"></Card>
+      </div>
+    </section>
+    <section class="mt-5 px-4 md:px-0 lg:px-4">
+      <h2 class="font-semibold text-lg mb-4">Holdings</h2>
       <!-- <HoldingTable>
         <template #holding-table-btn>
           <button
@@ -102,7 +103,12 @@
         </template>
       </HoldingTable> -->
 
-      <NewTable :holdingsTotalInfo="holdingsTotalInfo" @trade="tradeInputFocus">
+      <TableSkeleton v-if="holdingsTotalInfo == null" />
+      <NewTable
+        :holdingsTotalInfo="holdingsTotalInfo"
+        @trade="tradeInputFocus"
+        v-else
+      >
         <template #holding-table-btn>
           <button
             type="button"
@@ -189,6 +195,8 @@ import HoldingTable from "@/components/HoldingTable.vue";
 import NewTable from "@/components/NewTable.vue";
 // import TopThreePerformace from '@/components/TopThreePerformace.vue';
 import Card from "@/components/Card.vue";
+import CardSkeleton from "@/components/skeleton/CardSkeleton.vue";
+import TableSkeleton from "@/components/skeleton/TableSkeleton.vue";
 import { ref } from "vue";
 import axios from "axios";
 
@@ -197,6 +205,8 @@ export default {
     HoldingTable,
     NewTable,
     Card,
+    CardSkeleton,
+    TableSkeleton,
   },
   setup() {
     const tickerRef = ref(null);

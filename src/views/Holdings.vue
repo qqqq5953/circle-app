@@ -96,6 +96,9 @@
           </td>
         </template>
       </HoldingTable> -->
+      <div class="text-right">
+        {{ holdingsTotalInfo?.AAPL.date.slice(0, 10) }}
+      </div>
       <NewTable :holdingsTotalInfo="holdingsTotalInfo">
         <template #holding-table-btn>
           <button

@@ -80,14 +80,23 @@ router.get('/getHoldings', async (req, res) => {
 
   const tickers = Object.keys(holdings)
 
-  const quoteOptions = {
-    symbols: tickers,
-    from: getFormattedDate(1),
-    to: getFormattedDate(0),
-    period: 'd'
+  let isMarketOpen = false
+  let backward = 0
+  while (!isMarketOpen) {
+    const quoteOptions = {
+      symbols: tickers,
+      from: getFormattedDate(backward + 1),
+      to: getFormattedDate(backward),
+      period: 'd'
+    }
+
+    yesterdayQuote = await yahooFinance.historical(quoteOptions)
+    isMarketOpen = Object.values(yesterdayQuote).every(
+      (quote) => quote.length !== 0
+    )
+
+    backward++
   }
-  const yesterdayQuote = await yahooFinance.historical(quoteOptions)
-  // console.log('yesterdayQuote', yesterdayQuote)
 
   const holdingsTradeInfo = getHoldingsTradeInfo(holdings)
 
@@ -96,6 +105,7 @@ router.get('/getHoldings', async (req, res) => {
     yesterdayQuote,
     holdingsTradeInfo
   )
+
   res.send(holdingsTotalInfo)
 
   // if (!holdings) {

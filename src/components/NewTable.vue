@@ -263,16 +263,12 @@
 </template>
 
 <script>
-import { ref, watch } from "vue";
+import { toRef } from "vue";
 
 export default {
   props: ["holdingsTotalInfo"],
   setup(props) {
-    const holdingsTotalInfo = ref(null);
-
-    watch(props, (newValue) => {
-      holdingsTotalInfo.value = newValue.holdingsTotalInfo;
-    });
+    const holdingsTotalInfo = toRef(props, "holdingsTotalInfo");
 
     return {
       holdingsTotalInfo,

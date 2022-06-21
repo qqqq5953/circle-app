@@ -1,5 +1,5 @@
 <template>
-  <main class="px-4 md:p-10 mx-auto w-full">
+  <main class="px-4 md:p-10 mx-auto w-full relative">
     <section class="px-4 md:px-0 lg:px-4">
       <div class="flex items-center mb-4">
         <h2 class="font-semibold text-lg">Top 3 Performance</h2>
@@ -106,7 +106,7 @@
       <TableSkeleton v-if="holdingsTotalInfo == null" />
       <NewTable
         :holdingsTotalInfo="holdingsTotalInfo"
-        @trade="tradeInputFocus"
+        @fromTableToHoldings="openTradeModal"
         v-else
       >
         <template #holding-table-btn>
@@ -126,6 +126,14 @@
         </template>
       </NewTable>
     </section>
+
+    <Transition name="modal">
+      <TradeModal
+        v-if="isModalOpen"
+        :stockToBeTraded="stockToBeTraded"
+        @fromTradeModalToHoldings="closeTradeModal"
+      />
+    </Transition>
 
     <div class="px-4 md:px-0 lg:px-4">
       <button type="button" class="border px-2 py-1" @click="getQuote">
@@ -175,28 +183,16 @@
         />
       </form>
     </div>
-
-    <!-- <div class="w-full xl:w-6/12 px-4 bg-gray-300">
-      <TopThreePerformace></TopThreePerformace>
-    </div> -->
-    <!-- <HoldingTable></HoldingTable>
-    <TopThreePerformace></TopThreePerformace>
-    <HoldingTable></HoldingTable>
-    <TopThreePerformace></TopThreePerformace>
-    <HoldingTable></HoldingTable>
-    <TopThreePerformace></TopThreePerformace>
-    <HoldingTable></HoldingTable>
-    <TopThreePerformace></TopThreePerformace> -->
   </main>
 </template>
 
 <script>
 import HoldingTable from "@/components/HoldingTable.vue";
 import NewTable from "@/components/NewTable.vue";
-// import TopThreePerformace from '@/components/TopThreePerformace.vue';
 import Card from "@/components/Card.vue";
 import CardSkeleton from "@/components/skeleton/CardSkeleton.vue";
 import TableSkeleton from "@/components/skeleton/TableSkeleton.vue";
+import TradeModal from "@/components/TradeModal.vue";
 import { ref } from "vue";
 import axios from "axios";
 
@@ -207,12 +203,24 @@ export default {
     Card,
     CardSkeleton,
     TableSkeleton,
+    TradeModal,
   },
   setup() {
     const tickerRef = ref(null);
-    const tradeInputFocus = (ticker) => {
-      stock.value.ticker = ticker;
-      tickerRef.value.focus();
+    const isModalOpen = ref(false);
+    const stockToBeTraded = ref("");
+
+    const openTradeModal = (obj) => {
+      const { open, ticker } = obj;
+      isModalOpen.value = open;
+      stockToBeTraded.value = ticker;
+      // tickerRef.value.focus();
+    };
+
+    const closeTradeModal = async (obj) => {
+      const { open, success } = obj;
+      isModalOpen.value = open;
+      if (success) await getHoldings();
     };
 
     const holdingsTotalInfo = ref(null);
@@ -249,10 +257,9 @@ export default {
       };
       const response = await axios.post("/api/addStock", stockObj);
       message.value = response.data;
+      console.log("addStock= ", response.data);
 
       if (response.data.success) await getHoldings();
-
-      console.log("addStock= ", response.data);
     };
 
     const historicalQutoes = ref(null);
@@ -286,10 +293,13 @@ export default {
       stock,
       message,
       getHoldings,
-      addStock,
       getHistorical,
-      tradeInputFocus,
+      addStock,
       tickerRef,
+      openTradeModal,
+      closeTradeModal,
+      isModalOpen,
+      stockToBeTraded,
     };
   },
 };
@@ -354,3 +364,20 @@ export default {
 //   },
 // };
 </script>
+
+<style scoped>
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.5s ease-in-out;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-to,
+.modal-leave-from {
+  opacity: 1;
+}
+</style>

@@ -263,7 +263,7 @@
                   ml-auto
                   block
                 "
-                @click="trade(item.symbol)"
+                @click="openTradeModal(item.symbol)"
               >
                 Trade
               </button>
@@ -276,20 +276,24 @@
 </template>
 
 <script>
-import { toRef } from "vue";
+import { toRef, ref } from "vue";
 
 export default {
   props: ["holdingsTotalInfo"],
   setup(props, { emit }) {
     const holdingsTotalInfo = toRef(props, "holdingsTotalInfo");
 
-    const trade = (ticker) => {
-      emit("trade", ticker);
+    const openTradeModal = (ticker) => {
+      const obj = {
+        open: true,
+        ticker,
+      };
+      emit("fromTableToHoldings", obj);
     };
 
     return {
       holdingsTotalInfo,
-      trade,
+      openTradeModal,
     };
   },
 };

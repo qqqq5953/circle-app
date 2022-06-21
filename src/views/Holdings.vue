@@ -97,7 +97,7 @@
         </template>
       </HoldingTable> -->
       <div class="text-right">
-        {{ holdingsTotalInfo?.AAPL.date.slice(0, 10) }}
+        {{ lastMarketOpenDate }}
       </div>
       <NewTable :holdingsTotalInfo="holdingsTotalInfo">
         <template #holding-table-btn>
@@ -212,7 +212,18 @@ export default {
       console.log("getHoldings= ", response.data);
       return response.data;
     };
-    getHoldings();
+
+    const lastMarketOpenDate = ref("");
+    const getLastMarketOpenDate = () => {
+      const tickers = [];
+      for (let ticker in holdingsTotalInfo.value) {
+        tickers.push(ticker);
+      }
+      lastMarketOpenDate.value = holdingsTotalInfo.value[tickers[0]].date.slice(
+        0,
+        10
+      );
+    };
 
     const setHoldings = async () => {
       stock.value.ticker = stock.value.ticker.toUpperCase();
@@ -237,18 +248,21 @@ export default {
     };
 
     const execute = async () => {
-      Promise.all([getHoldings(), getHistorical()]).then((res) => {
-        console.log("res", res);
-        holdingsTotalInfo.value = res[0];
-        historicalQutoes.value = res[1];
-      });
+      // Promise.all([getHoldings(), getHistorical()]).then((res) => {
+      //   console.log("res", res);
+      //   holdingsTotalInfo.value = res[0];
+      //   historicalQutoes.value = res[1];
+      // });
+      await getHoldings();
+      getLastMarketOpenDate();
     };
-    // execute();
+    execute();
 
     return {
       holdingsTotalInfo,
       historicalQutoes,
       regularMarketPrice,
+      lastMarketOpenDate,
       stock,
       message,
       getHoldings,

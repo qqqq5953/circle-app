@@ -7,7 +7,12 @@
       </div>
     </section>
     <section class="mt-5 px-4 md:px-0 lg:px-4">
-      <h2 class="mb-4 font-semibold text-lg">Holdings</h2>
+      <div class="flex items-center mb-4">
+        <h2 class="font-semibold text-lg">Holdings</h2>
+        <span class="text-xs ml-auto">
+          {{ lastMarketOpenDate }}
+        </span>
+      </div>
       <!-- <HoldingTable>
         <template #holding-table-btn>
           <button
@@ -96,10 +101,8 @@
           </td>
         </template>
       </HoldingTable> -->
-      <div class="text-right">
-        {{ lastMarketOpenDate }}
-      </div>
-      <NewTable :holdingsTotalInfo="holdingsTotalInfo">
+
+      <NewTable :holdingsTotalInfo="holdingsTotalInfo" @trade="tradeInputFocus">
         <template #holding-table-btn>
           <button
             type="button"
@@ -110,9 +113,6 @@
               px-2
               py-1
               hover:bg-blue-900 hover:text-white
-              hidden
-              md:block
-              lg:hidden
             "
           >
             Trade
@@ -136,12 +136,13 @@
       </button>
       <br />
 
-      <form @submit.prevent="setHoldings">
+      <form @submit.prevent="addStock">
         <input
           type="text"
           class="form-input px-4 py-3 rounded-full"
           placeholder="ticker"
-          pattern="^\w{1,4}$"
+          pattern="^\w{1,5}$"
+          ref="tickerRef"
           v-model.trim="stock.ticker"
         />
         <small :class="message?.success ? 'text-green-500' : 'text-red-500'">{{
@@ -198,16 +199,13 @@ export default {
     Card,
   },
   setup() {
-    const holdingsTotalInfo = ref(null);
-    const regularMarketPrice = ref(null);
-    const stock = ref({
-      ticker: null,
-      cost: 300,
-      shares: 20,
-      date: Date.now(),
-    });
-    const message = ref(null);
+    const tickerRef = ref(null);
+    const tradeInputFocus = (ticker) => {
+      stock.value.ticker = ticker;
+      tickerRef.value.focus();
+    };
 
+    const holdingsTotalInfo = ref(null);
     const getHoldings = async () => {
       const response = await axios.get(`/api/getHoldings`);
       holdingsTotalInfo.value = response.data;
@@ -227,13 +225,24 @@ export default {
       );
     };
 
-    const setHoldings = async () => {
-      stock.value.ticker = stock.value.ticker.toUpperCase();
-      const response = await axios.post("/api/setHoldings", stock.value);
+    const message = ref(null);
+    const stock = ref({
+      ticker: null,
+      cost: 300,
+      shares: 20,
+      date: Date.now(),
+    });
+    const addStock = async () => {
+      const stockObj = {
+        ...stock.value,
+        ticker: stock.value.ticker.toUpperCase(),
+      };
+      const response = await axios.post("/api/addStock", stockObj);
+      message.value = response.data;
+
       if (response.data.success) await getHoldings();
 
-      message.value = response.data;
-      console.log("setHoldings= ", response.data);
+      console.log("addStock= ", response.data);
     };
 
     const historicalQutoes = ref(null);
@@ -263,13 +272,14 @@ export default {
     return {
       holdingsTotalInfo,
       historicalQutoes,
-      regularMarketPrice,
       lastMarketOpenDate,
       stock,
       message,
       getHoldings,
-      setHoldings,
+      addStock,
       getHistorical,
+      tradeInputFocus,
+      tickerRef,
     };
   },
 };
@@ -316,9 +326,9 @@ export default {
 //       console.log("getHoldings= ", response.data);
 //       this.holdingsTotalInfo = response.data;
 //     },
-//     setHoldings() {
-//       this.axios.post("/api/setHoldings", this.stock).then((res) => {
-//         console.log("setHoldings= ", res);
+//     addStock() {
+//       this.axios.post("/api/addStock", this.stock).then((res) => {
+//         console.log("addStock= ", res);
 //         // this.msg = res;
 //       });
 //     },

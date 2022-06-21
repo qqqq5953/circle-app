@@ -15,9 +15,9 @@
     :key="item.ticker"
   >
     <!-- card-header -->
-    <div class="flex flex-wrap bg-blue-200">
-      <div class="w-full pr-4 max-w-full flex-1 bg-green-100">
-        <h5 class="text-blueGray-400 uppercase font-bold text-xs">
+    <div class="flex flex-wrap">
+      <div class="flex-1">
+        <h5 class="uppercase font-bold text-sm">
           {{ item.ticker }}
         </h5>
         <span class="font-semibold text-xl text-blueGray-700">

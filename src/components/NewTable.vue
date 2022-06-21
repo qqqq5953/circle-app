@@ -13,7 +13,19 @@
     "
   >
     <!-- head -->
-    <div class="rounded-t px-4 py-3 border-0 flex flex-wrap items-center">
+    <div
+      class="
+        rounded-t
+        px-4
+        py-3
+        border-0
+        flex flex-wrap
+        items-center
+        hidden
+        md:flex
+        lg:hidden
+      "
+    >
       <div class="w-full px-1 max-w-full flex-1">
         <slot name="table-title"></slot>
       </div>
@@ -251,6 +263,7 @@
                   ml-auto
                   block
                 "
+                @click="trade(item.symbol)"
               >
                 Trade
               </button>
@@ -267,11 +280,16 @@ import { toRef } from "vue";
 
 export default {
   props: ["holdingsTotalInfo"],
-  setup(props) {
+  setup(props, { emit }) {
     const holdingsTotalInfo = toRef(props, "holdingsTotalInfo");
+
+    const trade = (ticker) => {
+      emit("trade", ticker);
+    };
 
     return {
       holdingsTotalInfo,
+      trade,
     };
   },
 };

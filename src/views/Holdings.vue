@@ -195,6 +195,7 @@ import TableSkeleton from "@/components/skeleton/TableSkeleton.vue";
 import TradeModal from "@/components/TradeModal.vue";
 import { ref } from "vue";
 import axios from "axios";
+import HoldingsApi from "@/api/modules/HoldingsApi";
 
 export default {
   components: {
@@ -206,6 +207,7 @@ export default {
     TradeModal,
   },
   setup() {
+    const message = ref(null);
     const tickerRef = ref(null);
     const isModalOpen = ref(false);
     const stockToBeTraded = ref("");
@@ -220,7 +222,8 @@ export default {
     const closeTradeModal = async (obj) => {
       const { open, success } = obj;
       isModalOpen.value = open;
-      if (success) await getHoldings();
+      // if (success) await getHoldings();
+      await updateData(success);
     };
 
     const holdingsTotalInfo = ref(null);
@@ -243,13 +246,15 @@ export default {
       );
     };
 
-    const message = ref(null);
     const stock = ref({
       ticker: null,
       cost: 300,
       shares: 20,
       date: Date.now(),
     });
+    const updateData = async (isSuccess) => {
+      if (isSuccess) await getHoldings();
+    };
     const addStock = async () => {
       const stockObj = {
         ...stock.value,
@@ -259,7 +264,8 @@ export default {
       message.value = response.data;
       console.log("addStock= ", response.data);
 
-      if (response.data.success) await getHoldings();
+      // if (response.data.success) await getHoldings();
+      await updateData(message.value.success);
     };
 
     const historicalQutoes = ref(null);

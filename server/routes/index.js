@@ -74,6 +74,8 @@ router.get('/historical/:period/:from/:to', async (req, res) => {
 })
 
 router.get('/getHoldings', async (req, res) => {
+  console.log(req.protocol + '://' + req.get('host') + req.originalUrl)
+
   const tickerRef = await holdingRef.once('value')
   const holdings = tickerRef.val()
   if (!holdings) return res.send('invalid ticker name')

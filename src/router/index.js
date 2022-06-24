@@ -20,7 +20,7 @@ const routes = [
       {
         path: 'holdings',
         name: 'Holdings',
-        component: () => import('../views/Holdings.vue')
+        component: () => import('../views/Holdings1.vue')
       },
       {
         path: 'history',

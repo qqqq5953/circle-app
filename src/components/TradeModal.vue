@@ -43,31 +43,21 @@
 
 
 <script>
-import { onMounted, ref, toRef, watch } from "vue";
+import { onMounted, ref, toRef, watch, watchEffect } from "vue";
 import axios from "axios";
 
 export default {
   props: ["stockToBeTraded"],
   setup(props, { emit }) {
+    const tickerRef = ref(null);
+    const message = ref(null);
     const stock = ref({
       ticker: null,
       cost: 300,
       shares: 20,
       date: Date.now(),
     });
-    const tickerRef = ref(null);
-    const stockToBeTraded = toRef(props, "stockToBeTraded");
-    stock.value.ticker = stockToBeTraded.value;
 
-    watch(props, (newValue) => {
-      stock.value.ticker = newValue.stockToBeTraded;
-      tickerRef.value.focus();
-    });
-    onMounted(() => {
-      tickerRef.value.focus();
-    });
-
-    const message = ref(null);
     const addStock = async () => {
       const stockObj = {
         ...stock.value,
@@ -91,7 +81,18 @@ export default {
       emit("fromTradeModalToHoldings", obj);
     };
 
-    return { stock, message, tickerRef, stockToBeTraded, addStock };
+    watchEffect(() => {
+      stock.value.ticker = props.stockToBeTraded;
+      if (!tickerRef.value) return;
+      tickerRef.value.focus();
+    });
+
+    return {
+      stock,
+      message,
+      tickerRef,
+      addStock,
+    };
   },
 };
 </script>

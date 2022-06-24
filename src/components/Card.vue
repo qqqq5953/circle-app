@@ -66,13 +66,10 @@
 </template>
 
 <script>
-import { ref, watch, toRef } from "vue";
+import { computed } from "vue";
 export default {
   props: ["holdingsTotalInfo"],
   setup(props) {
-    const topThreePerformance = ref(null);
-    const holdingsTotalInfo = toRef(props, "holdingsTotalInfo");
-
     const calculatePerformance = (holdings) => {
       const performance = Object.values(holdings)
         .map((item) => {
@@ -88,14 +85,12 @@ export default {
       return performance;
     };
 
-    watch(props, (newValue) => {
-      topThreePerformance.value = calculatePerformance(
-        newValue.holdingsTotalInfo
-      );
+    const topThreePerformance = computed(() => {
+      if (!props.holdingsTotalInfo) return null;
+      return calculatePerformance(props.holdingsTotalInfo);
     });
 
     return {
-      holdingsTotalInfo,
       topThreePerformance,
     };
   },

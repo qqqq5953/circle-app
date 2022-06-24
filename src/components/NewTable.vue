@@ -276,19 +276,21 @@
 </template>
 
 <script>
-import { toRef, ref } from "vue";
+import { computed } from "vue";
 
 export default {
   props: ["holdingsTotalInfo"],
   setup(props, { emit }) {
-    const holdingsTotalInfo = toRef(props, "holdingsTotalInfo");
+    const holdingsTotalInfo = computed(() => {
+      return props.holdingsTotalInfo;
+    });
 
     const openTradeModal = (ticker) => {
       const obj = {
         open: true,
         ticker,
       };
-      emit("fromTableToHoldings", obj);
+      emit("openTradeModal", obj);
     };
 
     return {

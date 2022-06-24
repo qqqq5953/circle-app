@@ -9,7 +9,7 @@
       </div>
       <div class="lg:flex lg:justify-between gap-3">
         <CardSkeleton v-if="holdingsTotalInfo == null" />
-        <Card :holdingsTotalInfo="holdingsTotalInfo"></Card>
+        <Card :holdingsTotalInfo="holdingsTotalInfo" v-else></Card>
       </div>
     </section>
     <section class="mt-5 px-4 md:px-0 lg:px-4">
@@ -106,7 +106,7 @@
       <TableSkeleton v-if="holdingsTotalInfo == null" />
       <NewTable
         :holdingsTotalInfo="holdingsTotalInfo"
-        @fromTableToHoldings="openTradeModal"
+        @openTradeModal="openTradeModal"
         v-else
       >
         <template #holding-table-btn>
@@ -131,7 +131,7 @@
       <TradeModal
         v-if="isModalOpen"
         :stockToBeTraded="stockToBeTraded"
-        @fromTradeModalToHoldings="closeTradeModal"
+        @closeTradeModal="closeTradeModal"
       />
     </Transition>
 
@@ -145,7 +145,7 @@
       <button type="button" class="border px-2 py-1" @click="getHolding">
         getHolding
       </button>
-      <button type="button" class="border px-2 py-1" @click="getHoldings">
+      <button type="button" class="border px-2 py-1" @click="execute">
         getHoldings
       </button>
       <br />
@@ -192,10 +192,9 @@ import NewTable from "@/components/NewTable.vue";
 import Card from "@/components/Card.vue";
 import CardSkeleton from "@/components/skeleton/CardSkeleton.vue";
 import TableSkeleton from "@/components/skeleton/TableSkeleton.vue";
-import TradeModal from "@/components/TradeModal.vue";
-import { ref } from "vue";
+import { ref, defineAsyncComponent } from "vue";
 import axios from "axios";
-import HoldingsApi from "@/api/modules/HoldingsApi";
+import useAxios from "@/composables/useAxios.js";
 
 export default {
   components: {
@@ -204,7 +203,9 @@ export default {
     Card,
     CardSkeleton,
     TableSkeleton,
-    TradeModal,
+    TradeModal: defineAsyncComponent(() =>
+      import("@/components/TradeModal.vue")
+    ),
   },
   setup() {
     const message = ref(null);
@@ -232,6 +233,11 @@ export default {
       holdingsTotalInfo.value = response.data;
       console.log("getHoldings= ", response.data);
       return response.data;
+    };
+
+    const getHoldings1 = () => {
+      const { data, error, loading } = useAxios("/api/getHoldings", "get", {});
+      holdingsTotalInfo.value = data;
     };
 
     const lastMarketOpenDate = ref("");
@@ -306,6 +312,7 @@ export default {
       closeTradeModal,
       isModalOpen,
       stockToBeTraded,
+      execute,
     };
   },
 };

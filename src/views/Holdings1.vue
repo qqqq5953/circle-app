@@ -28,9 +28,9 @@
             ref="tickerRef"
             v-model.trim="stock.ticker"
           />
-          <small :class="message?.success ? 'text-green-500' : 'text-red-500'">
+          <!-- <small :class="message?.success ? 'text-green-500' : 'text-red-500'">
             {{ message?.content || "無此標的" }}
-          </small>
+          </small> -->
         </div>
 
         <div>
@@ -61,6 +61,12 @@
           value="add"
         />
       </form>
+      <hr class="my-4" />
+      <p>AddStock component</p>
+      <AddStock
+        @isLoading="toggleSkeleton"
+        @updateHoldings="newUpdateHoldings"
+      />
       <TableSkeleton v-if="loading" />
       <NewTable1
         :holdingsTotalInfo="data"
@@ -117,13 +123,16 @@ import NewTable1 from "@/components/NewTable1.vue";
 import Card1 from "@/components/Card1.vue";
 import CardSkeleton from "@/components/skeleton/CardSkeleton.vue";
 import TableSkeleton from "@/components/skeleton/TableSkeleton.vue";
-import { ref, toRef, defineAsyncComponent, computed, watch } from "vue";
+import AddStock from "@/components/AddStock.vue";
+
+import { ref, defineAsyncComponent, computed, watch, watchEffect } from "vue";
 import axios from "axios";
 import useAxios from "@/composables/useAxios.js";
 
 export default {
   components: {
     HoldingTable,
+    AddStock,
     NewTable1,
     Card1,
     CardSkeleton,
@@ -168,7 +177,7 @@ export default {
     const lastMarketOpenDate = computed(() => {
       // console.log("data.value", data.value);
       // console.log("error.value", error.value);
-      console.log("loading.value", loading.value);
+      // console.log("loading.value", loading.value);
 
       if (!data.value) return;
 
@@ -180,10 +189,14 @@ export default {
       return data.value[tickers[0]].date.slice(0, 10);
     });
 
-    const updateHoldings = async (isSuccess, updateResponse) => {
+    const newUpdateHoldings = (val) => {
+      data.value = val;
+    };
+
+    const updateHoldings = async (updateResponse, updateLoading) => {
       message.value = updateResponse;
 
-      if (!isSuccess) {
+      if (!message.value.success) {
         error.value = updateResponse.errorMessage
           .split(" ")
           .splice(0, 4)
@@ -192,13 +205,18 @@ export default {
         const response = await axios.get(`/api/getHoldings`);
         data.value = response.data;
       }
+
+      toggleSkeleton(updateLoading);
     };
 
-    const toggleSkeleton = (val) => {
-      loading.value = val;
+    const toggleSkeleton = (isLoading) => {
+      console.log("toggleSkeleton", isLoading);
+      loading.value = isLoading;
     };
 
     const addStock = async () => {
+      if (!stock.value.ticker) return;
+
       const stockObj = {
         ...stock.value,
         ticker: stock.value.ticker.toUpperCase(),
@@ -212,12 +230,8 @@ export default {
 
       toggleSkeleton(isLoading.value);
 
-      watch(res, (newResponse) => {
-        updateHoldings(message?.value?.success, newResponse);
-      });
-
-      watch(isLoading, (newValue) => {
-        toggleSkeleton(newValue);
+      watch([res, isLoading], ([newRes, newIsLoading]) => {
+        updateHoldings(newRes, newIsLoading);
       });
     };
 
@@ -239,7 +253,8 @@ export default {
       loading,
       error,
       lastMarketOpenDate,
-
+      toggleSkeleton,
+      newUpdateHoldings,
       // computedData,
 
       historicalQutoes,

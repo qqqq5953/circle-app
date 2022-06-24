@@ -230,6 +230,24 @@
           </li>
           <li class="items-center">
             <router-link
+              :to="{ name: 'Holdings1' }"
+              @click="toggleCollapseShow('hidden')"
+              class="
+                text-blueGray-700
+                hover:text-pink-600
+                text-xs
+                uppercase
+                py-3
+                font-bold
+                block
+              "
+              href="#/dashboard"
+              ><i class="fas fa-tv opacity-75 mr-2 text-sm"></i>
+              Holdings1</router-link
+            >
+          </li>
+          <li class="items-center">
+            <router-link
               :to="{ name: 'History' }"
               @click="toggleCollapseShow('hidden')"
               class="

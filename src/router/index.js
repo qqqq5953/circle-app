@@ -20,6 +20,11 @@ const routes = [
       {
         path: 'holdings',
         name: 'Holdings',
+        component: () => import('../views/Holdings.vue')
+      },
+      {
+        path: 'holdings1',
+        name: 'Holdings1',
         component: () => import('../views/Holdings1.vue')
       },
       {

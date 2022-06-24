@@ -11,15 +11,35 @@ export default function useAxios(url, method, options) {
   const executeAxios = async () => {
     state.loading = true
 
-    try {
-      const response = await axios[method](url, options)
-      data.value = response.data
-      console.log('=========data 賦值完成==========')
-    } catch (error) {
-      console.log('error', error)
-      state.error = error
-    } finally {
-      state.loading = false
+    if (method.toLowerCase() === 'get') {
+      console.log('get method')
+      try {
+        const response = await axios[method](url, options)
+        data.value = response.data
+        console.log('data.value post', data.value)
+        console.log('=========data 賦值完成==========')
+      } catch (error) {
+        state.error = error
+      } finally {
+        state.loading = false
+      }
+    } else if (method.toLowerCase() === 'post') {
+      console.log('post method')
+
+      try {
+        const response = await axios[method](url, options)
+        const { success, content, errorMessage } = response.data
+        data.value = { success, content }
+
+        state.error = errorMessage
+
+        // data.value = response.data
+        console.log('=========data 賦值完成==========')
+      } catch (error) {
+        state.error = error
+      } finally {
+        state.loading = false
+      }
     }
   }
 

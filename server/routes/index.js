@@ -122,15 +122,26 @@ router.get('/getHolding/:ticker', async (req, res) => {
   }
 })
 router.post('/checkTicker/:ticker', (req, res) => {
-  const { ticker } = req.body
+  const { ticker } = req.params
   const checkTickerValid = yahooFinance.quote(ticker, ['summaryProfile'])
 
   checkTickerValid
-    .then((res) => {
-      res.send('Ticker exists')
+    .then((response) => {
+      res.send({
+        success: true,
+        content: 'Ticker exists',
+        errorMessage: null,
+        ticker
+      })
     })
     .catch((error) => {
-      res.send('Ticker does not exists')
+      console.log('error', error)
+      res.send({
+        success: false,
+        content: 'Ticker does not exists',
+        errorMessage: error.message,
+        ticker
+      })
     })
 })
 

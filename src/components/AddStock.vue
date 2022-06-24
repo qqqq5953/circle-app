@@ -90,7 +90,7 @@ export default {
         updateMessage.value = errorMesssage.split(" ").splice(0, 4).join(" ");
       } else {
         const response = await axios.get(`/api/getHoldings`);
-        emit("updateHoldings", response.data);
+        emit("updateHoldings", response.data.data);
         updateMessage.value = updateResponse.content;
       }
 

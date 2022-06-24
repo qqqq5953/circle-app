@@ -203,7 +203,7 @@ export default {
           .join(" ");
       } else {
         const response = await axios.get(`/api/getHoldings`);
-        data.value = response.data;
+        data.value = response.data.data;
       }
 
       toggleSkeleton(updateLoading);

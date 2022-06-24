@@ -78,7 +78,7 @@ router.get('/getHoldings', async (req, res) => {
 
   const tickerRef = await holdingRef.once('value')
   const holdings = tickerRef.val()
-  if (!holdings) return res.send('invalid ticker name')
+  if (!holdings) return res.send('no holdings in DB')
 
   const tickers = Object.keys(holdings)
   let yesterdayQuote = null
@@ -92,11 +92,18 @@ router.get('/getHoldings', async (req, res) => {
       period: 'd'
     }
 
-    yesterdayQuote = await yahooFinance.historical(quoteOptions)
-
-    isMarketOpen = Object.values(yesterdayQuote).every(
-      (quote) => quote.length !== 0
-    )
+    try {
+      yesterdayQuote = await yahooFinance.historical(quoteOptions)
+      isMarketOpen = Object.values(yesterdayQuote).every(
+        (quote) => quote.length !== 0
+      )
+    } catch (error) {
+      res.send({
+        content: '資料庫含有無效標的',
+        success: false,
+        errorMessage: error.message
+      })
+    }
 
     backward++
   }
@@ -108,7 +115,14 @@ router.get('/getHoldings', async (req, res) => {
     holdingsTradeInfo
   )
 
-  res.send(holdingsTotalInfo)
+  const msg = {
+    success: true,
+    content: '成功獲得所有標的',
+    errorMessage: null,
+    data: holdingsTotalInfo
+  }
+
+  res.send(msg)
 })
 router.get('/getHolding/:ticker', async (req, res) => {
   const ticker = req.params.ticker
@@ -148,28 +162,38 @@ router.post('/checkTicker/:ticker', (req, res) => {
 router.post('/addStock', async (req, res) => {
   let message = {}
   const { ticker, cost, shares, date } = req.body
-  const checkTickerValid = yahooFinance.quote(ticker, ['summaryProfile'])
 
-  checkTickerValid
-    .then(() => {
-      const stockInfo = holdingRef.child(ticker).push()
-      stockInfo.set({ cost, shares, date })
-      message = {
-        success: true,
-        content: '標的新增成功',
-        errorMessage: null
-      }
-      res.send(message)
-    })
-    .catch((error) => {
-      console.log('error', error)
-      message = {
-        success: false,
-        content: '無此標的',
-        errorMessage: error.message
-      }
-      res.send(message)
-    })
+  const stockInfo = holdingRef.child(ticker).push()
+  stockInfo.set({ cost, shares, date })
+  message = {
+    success: true,
+    content: '標的新增成功',
+    errorMessage: null
+  }
+  res.send(message)
+
+  // const checkTickerValid = yahooFinance.quote(ticker, ['summaryProfile'])
+
+  // checkTickerValid
+  //   .then(() => {
+  //     const stockInfo = holdingRef.child(ticker).push()
+  //     stockInfo.set({ cost, shares, date })
+  //     message = {
+  //       success: true,
+  //       content: '標的新增成功',
+  //       errorMessage: null
+  //     }
+  //     res.send(message)
+  //   })
+  //   .catch((error) => {
+  //     console.log('error', error)
+  //     message = {
+  //       success: false,
+  //       content: '無此標的',
+  //       errorMessage: error.message
+  //     }
+  //     res.send(message)
+  //   })
 })
 
 module.exports = router

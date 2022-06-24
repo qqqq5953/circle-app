@@ -15,10 +15,12 @@ export default function useAxios(url, method, options) {
       console.log('get method')
       try {
         const response = await axios[method](url, options)
-        data.value = response.data
-        console.log('data.value post', data.value)
+        data.value = response.data.data
+        console.log('get method data.value ', data.value)
+
         console.log('=========data 賦值完成==========')
       } catch (error) {
+        console.log('get method error', error)
         state.error = error
       } finally {
         state.loading = false
@@ -30,12 +32,11 @@ export default function useAxios(url, method, options) {
         const response = await axios[method](url, options)
         const { success, content, errorMessage } = response.data
         data.value = { success, content }
-
         state.error = errorMessage
 
-        // data.value = response.data
         console.log('=========data 賦值完成==========')
       } catch (error) {
+        console.log('post method error', error)
         state.error = error
       } finally {
         state.loading = false

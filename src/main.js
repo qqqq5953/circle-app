@@ -9,7 +9,7 @@ import './assets/tailwind.css'
 import '@fortawesome/fontawesome-free/css/all.min.css'
 
 // components
-import Footer from '@/components/Footer.vue'
+import Footer from '@/components/Global/Footer.vue'
 
 const app = createApp(App)
 app.component('Footer', Footer)

@@ -7,8 +7,8 @@
   </div>
 </template>
 <script>
-import Sidebar from "@/components/Sidebar.vue";
-import NavbarDashboard from "@/components/NavbarDashboard.vue";
+import Sidebar from "@/components/Global/Sidebar.vue";
+import NavbarDashboard from "@/components/Global/NavbarDashboard.vue";
 export default {
   components: {
     NavbarDashboard,

@@ -1,9 +1,21 @@
 <template>
-  <form @submit.prevent="addStock" class="flex items-start gap-4">
+  <form
+    @submit.prevent="addStock"
+    class="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-4"
+  >
     <div>
       <input
         type="text"
-        class="form-input block px-4 py-3 rounded-full"
+        class="
+          form-input
+          block
+          px-4
+          py-3
+          rounded-full
+          w-full
+          text-center
+          lg:text-left
+        "
         placeholder="ticker"
         pattern="^\w{1,5}$"
         ref="tickerRef"
@@ -20,7 +32,16 @@
     <div>
       <input
         type="number"
-        class="form-input block px-4 py-3 rounded-full"
+        class="
+          form-input
+          block
+          px-4
+          py-3
+          rounded-full
+          w-full
+          text-center
+          lg:text-left
+        "
         placeholder="cost"
         min="0"
         v-model.trim="stock.cost"
@@ -31,7 +52,16 @@
     <div>
       <input
         type="number"
-        class="form-input block px-4 py-3 rounded-full"
+        class="
+          form-input
+          block
+          px-4
+          py-3
+          rounded-full
+          w-full
+          text-center
+          lg:text-left
+        "
         placeholder="shares"
         min="0"
         v-model.trim="stock.shares"
@@ -47,10 +77,12 @@
         rounded-full
         flex
         items-center
+        justify-center
+        gap-2
         disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed
       "
+      :disabled="!stock.ticker || !validateMessage?.success || isValidating"
     >
-      <!-- :disabled="!stock.ticker || !validateMessage?.success || isValidating" -->
       <span
         class="
           w-4

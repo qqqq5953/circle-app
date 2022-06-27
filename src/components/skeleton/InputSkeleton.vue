@@ -1,5 +1,12 @@
 <template>
-  <div class="flex items-start gap-4 animate-pulse">
+  <div
+    class="
+      flex flex-col
+      gap-6
+      lg:flex-row lg:items-start lg:gap-4
+      animate-pulse
+    "
+  >
     <div v-for="item in placeholders" :key="item" class="">
       <input
         class="

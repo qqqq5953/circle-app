@@ -7,12 +7,12 @@
   </div>
 </template>
 <script>
-import Sidebar from '@/components/Sidebar.vue';
-import NavbarDashboard from '@/components/NavbarDashboard.vue';
+import Sidebar from "@/components/Sidebar.vue";
+import NavbarDashboard from "@/components/NavbarDashboard.vue";
 export default {
   components: {
     NavbarDashboard,
-    Sidebar
-  }
+    Sidebar,
+  },
 };
 </script>

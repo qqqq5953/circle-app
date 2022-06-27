@@ -49,20 +49,8 @@
         items-center
         disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed
       "
+      :disabled="!stock.ticker"
     >
-      <!-- :disabled="!stock.ticker || !validateMessage?.success || isValidating" -->
-      <span
-        class="
-          w-4
-          h-4
-          m-0.5
-          rounded-full
-          border-red-500 border-2 border-x-transparent
-        "
-        :class="{ 'animate-spin': isValidating }"
-        v-if="isValidating"
-      >
-      </span>
       <span>add</span>
     </button>
     <div>toastMessage: {{ toastMessage }}</div>
@@ -71,44 +59,53 @@
 
 <script>
 import { ref, watch } from "vue";
-import axios from "axios";
 import useAxios from "@/composables/useAxios.js";
 
 export default {
   setup(props, { emit }) {
     const toastMessage = ref(null);
     const validateMessage = ref(null);
-    const isValidating = ref(null);
-    const allPromises = [];
     const stock = ref({
-      ticker: null,
+      ticker: "ALLL",
       cost: 200,
       shares: 1,
       date: Date.now(),
     });
 
-    const addStock = async () => {
-      if (!stock.value.ticker || !validateMessage.value?.success) return;
+    function addStock() {
+      if (!stock.value.ticker) return;
 
       const stockObj = {
         ...stock.value,
         ticker: stock.value.ticker.toUpperCase(),
       };
 
-      const { data, error, loading } = useAxios(
-        "/api/addStock",
-        "post",
-        stockObj
-      );
+      const { data, ...rest } = useAxios("/api/checkTicker", "post", stockObj);
 
-      emit("isLoading", loading.value);
+      emit("isLoading", rest.loading.value);
+
+      watch([data, ref(rest)], ([checkResponse, checkRest]) => {
+        validateMessage.value = checkResponse;
+
+        if (!validateMessage.value?.success) {
+          toastMessage.value = "標的新增失敗";
+          emit("isLoading", checkRest.loading);
+          return;
+        }
+
+        tickerConfirmed(stockObj);
+      });
+    }
+
+    function tickerConfirmed(stockObj) {
+      const { data, error } = useAxios("/api/addStock", "post", stockObj);
 
       watch([data, error], ([updateData, updateError]) => {
         updateHoldings(updateData, updateError);
       });
-    };
+    }
 
-    const updateHoldings = async (updateData, updateError) => {
+    function updateHoldings(updateData, updateError) {
       if (updateData.success) {
         const { data, ...rest } = useAxios("/api/getHoldings", "get", {});
 
@@ -120,46 +117,13 @@ export default {
       } else {
         toastMessage.value = updateError.split(" ").splice(0, 4).join(" ");
       }
-    };
-
-    // ticker validation
-    watch(
-      () => stock.value.ticker,
-      (newInput, oldInput) => {
-        const oldLen = oldInput?.length || 0;
-        const newLen = newInput?.length;
-
-        isValidating.value = true;
-
-        if (newLen > oldLen) {
-          allPromises.push(axios.post(`/api/checkTicker`, stock.value));
-        } else {
-          allPromises.pop();
-        }
-
-        Promise.all(allPromises)
-          .then((response) => {
-            const promiseSize = allPromises.length - 1;
-            const stock = response[promiseSize];
-            validateMessage.value = stock?.data;
-          })
-          .catch((error) => {
-            validateMessage.value = error;
-          })
-          .finally(() => {
-            isValidating.value = false;
-          });
-
-        console.log("allPromises", allPromises);
-      }
-    );
+    }
 
     return {
       addStock,
       stock,
-      validateMessage,
-      isValidating,
       toastMessage,
+      validateMessage,
     };
   },
 };

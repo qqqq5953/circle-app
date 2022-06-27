@@ -78,6 +78,7 @@ router.get('/getHoldings', async (req, res) => {
 
   const tickerRef = await holdingRef.once('value')
   const holdings = tickerRef.val()
+  // console.log('holdings', holdings)
   if (!holdings) return res.send('no holdings in DB')
 
   const tickers = Object.keys(holdings)
@@ -94,7 +95,9 @@ router.get('/getHoldings', async (req, res) => {
 
     try {
       yesterdayQuote = await yahooFinance.historical(quoteOptions)
-      isMarketOpen = Object.values(yesterdayQuote).every(
+      // console.log('yesterdayQuote', yesterdayQuote)
+
+      isMarketOpen = Object.values(yesterdayQuote).some(
         (quote) => quote.length !== 0
       )
     } catch (error) {
@@ -119,11 +122,12 @@ router.get('/getHoldings', async (req, res) => {
     success: true,
     content: '成功獲得所有標的',
     errorMessage: null,
-    data: holdingsTotalInfo
+    result: holdingsTotalInfo || {}
   }
 
   res.send(msg)
 })
+
 router.get('/getHolding/:ticker', async (req, res) => {
   const ticker = req.params.ticker
   const tickerRef = await holdingRef.child(ticker).once('value')
@@ -135,8 +139,9 @@ router.get('/getHolding/:ticker', async (req, res) => {
     res.send(tickerInfo)
   }
 })
-router.post('/checkTicker/:ticker', (req, res) => {
-  const { ticker } = req.params
+
+router.post('/checkTicker', (req, res) => {
+  const { ticker } = req.body
   const checkTickerValid = yahooFinance.quote(ticker, ['summaryProfile'])
 
   checkTickerValid

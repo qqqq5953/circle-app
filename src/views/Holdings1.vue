@@ -1,9 +1,9 @@
 <template>
   <main class="px-4 md:p-10 mx-auto w-full relative">
+    error:
     <div v-if="error" class="text-center text-2xl text-red-500">
       {{ error }}
     </div>
-    <!-- <div>computedData:{{ computedData }}</div> -->
     <section class="px-4 md:px-0 lg:px-4">
       <div class="flex items-center mb-4">
         <h2 class="font-semibold text-lg">Top 3 Performance</h2>
@@ -13,63 +13,35 @@
       </div>
       <div class="lg:flex lg:justify-between gap-3">
         <CardSkeleton v-if="loading" />
-        <Card1 :holdingsTotalInfo="data" v-else></Card1>
+        <Card1 :holdingsTotalInfo="data.result" v-else></Card1>
       </div>
     </section>
     <section class="mt-5 px-4 md:px-0 lg:px-4">
       <h2 class="font-semibold text-lg mb-4">Holdings</h2>
-      <form @submit.prevent="addStock" class="flex items-start gap-4">
-        <div>
-          <input
-            type="text"
-            class="form-input block px-4 py-3 rounded-full"
-            placeholder="ticker"
-            pattern="^\w{1,5}$"
-            ref="tickerRef"
-            v-model.trim="stock.ticker"
-          />
-          <!-- <small :class="message?.success ? 'text-green-500' : 'text-red-500'">
-            {{ message?.content || "無此標的" }}
-          </small> -->
-        </div>
 
-        <div>
-          <input
-            type="number"
-            class="form-input block px-4 py-3 rounded-full"
-            placeholder="cost"
-            min="0"
-            v-model.trim="stock.cost"
-          />
-          <small> 測試用 </small>
-        </div>
+      <hr class="my-4" />
+      <p>AddStockWithoutValidation</p>
+      <InputSkeleton v-show="loading" />
+      <AddStockWithoutValidation
+        @isLoading="toggleSkeleton"
+        @updateHoldings="updateHoldings"
+        v-show="!loading"
+      />
 
-        <div>
-          <input
-            type="number"
-            class="form-input block px-4 py-3 rounded-full"
-            placeholder="shares"
-            min="0"
-            v-model.trim="stock.shares"
-          />
-          <small> 測試用 </small>
-        </div>
-
-        <input
-          type="submit"
-          class="form-input px-4 py-3 rounded-full"
-          value="add"
-        />
-      </form>
       <hr class="my-4" />
       <p>AddStock component</p>
-      <AddStock
-        @isLoading="toggleSkeleton"
-        @updateHoldings="newUpdateHoldings"
-      />
+      <div>
+        <InputSkeleton v-show="loading" />
+        <AddStock
+          @isLoading="toggleSkeleton"
+          @updateHoldings="updateHoldings"
+          v-show="!loading"
+        />
+      </div>
+
       <TableSkeleton v-if="loading" />
       <NewTable1
-        :holdingsTotalInfo="data"
+        :holdingsTotalInfo="data.result"
         @openTradeModal="openTradeModal"
         v-else
       >
@@ -123,9 +95,12 @@ import NewTable1 from "@/components/NewTable1.vue";
 import Card1 from "@/components/Card1.vue";
 import CardSkeleton from "@/components/skeleton/CardSkeleton.vue";
 import TableSkeleton from "@/components/skeleton/TableSkeleton.vue";
-import AddStock from "@/components/AddStock.vue";
+import InputSkeleton from "@/components/skeleton/InputSkeleton.vue";
 
-import { ref, defineAsyncComponent, computed, watch, watchEffect } from "vue";
+import AddStock from "@/components/AddStock.vue";
+import AddStockWithoutValidation from "@/components/AddStockWithoutValidation.vue";
+
+import { ref, defineAsyncComponent, computed } from "vue";
 import axios from "axios";
 import useAxios from "@/composables/useAxios.js";
 
@@ -133,24 +108,42 @@ export default {
   components: {
     HoldingTable,
     AddStock,
+    AddStockWithoutValidation,
     NewTable1,
     Card1,
     CardSkeleton,
     TableSkeleton,
+    InputSkeleton,
     TradeModal: defineAsyncComponent(() =>
       import("@/components/TradeModal.vue")
     ),
   },
   setup() {
-    const message = ref(null);
     const tickerRef = ref(null);
     const isModalOpen = ref(false);
     const stockToBeTraded = ref("");
     const stock = ref({
       ticker: "AAPL",
       cost: 100,
-      shares: 5,
+      shares: 1,
       date: Date.now(),
+    });
+
+    const { data, error, loading } = useAxios("/api/getHoldings", "get");
+
+    const lastMarketOpenDate = computed(() => {
+      // console.log("data.value", data.value);
+      // console.log("error.value", error.value);
+      // console.log("loading.value", loading.value);
+
+      if (!data.value?.result) return;
+
+      const tickers = [];
+      for (let ticker in data.value?.result) {
+        tickers.push(ticker);
+      }
+
+      return data.value?.result[tickers[0]].date.slice(0, 10);
     });
 
     const openTradeModal = (obj) => {
@@ -167,73 +160,9 @@ export default {
       // await updateData(success);
     };
 
-    const { data, error, loading } = useAxios("/api/getHoldings", "get", {});
+    const updateHoldings = (val) => (data.value = val);
 
-    // const computedData = computed(() => {
-    //   console.log("computedData", data.value);
-    //   return data.value;
-    // });
-
-    const lastMarketOpenDate = computed(() => {
-      // console.log("data.value", data.value);
-      // console.log("error.value", error.value);
-      // console.log("loading.value", loading.value);
-
-      if (!data.value) return;
-
-      const tickers = [];
-      for (let ticker in data.value) {
-        tickers.push(ticker);
-      }
-
-      return data.value[tickers[0]].date.slice(0, 10);
-    });
-
-    const newUpdateHoldings = (val) => {
-      data.value = val;
-    };
-
-    const updateHoldings = async (updateResponse, updateLoading) => {
-      message.value = updateResponse;
-
-      if (!message.value.success) {
-        error.value = updateResponse.errorMessage
-          .split(" ")
-          .splice(0, 4)
-          .join(" ");
-      } else {
-        const response = await axios.get(`/api/getHoldings`);
-        data.value = response.data.data;
-      }
-
-      toggleSkeleton(updateLoading);
-    };
-
-    const toggleSkeleton = (isLoading) => {
-      console.log("toggleSkeleton", isLoading);
-      loading.value = isLoading;
-    };
-
-    const addStock = async () => {
-      if (!stock.value.ticker) return;
-
-      const stockObj = {
-        ...stock.value,
-        ticker: stock.value.ticker.toUpperCase(),
-      };
-
-      const {
-        data: res,
-        error: errorMesssage,
-        loading: isLoading,
-      } = useAxios("/api/addStock", "post", stockObj);
-
-      toggleSkeleton(isLoading.value);
-
-      watch([res, isLoading], ([newRes, newIsLoading]) => {
-        updateHoldings(newRes, newIsLoading);
-      });
-    };
+    const toggleSkeleton = (isLoading) => (loading.value = isLoading);
 
     const historicalQutoes = ref(null);
     const getHistorical = async () => {
@@ -254,14 +183,11 @@ export default {
       error,
       lastMarketOpenDate,
       toggleSkeleton,
-      newUpdateHoldings,
-      // computedData,
+      updateHoldings,
 
       historicalQutoes,
       stock,
-      message,
       getHistorical,
-      addStock,
       tickerRef,
       openTradeModal,
       closeTradeModal,

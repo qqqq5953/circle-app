@@ -82,7 +82,6 @@
     >
       add
     </button>
-    <div>toastMessage: {{ toastMessage }}</div>
   </form>
 </template>
 
@@ -92,7 +91,6 @@ import useAxios from "@/composables/useAxios.js";
 
 export default {
   setup(props, { emit }) {
-    const toastMessage = ref(null);
     const validateMessage = ref(null);
     const stock = ref({
       ticker: "ALLL",
@@ -116,8 +114,8 @@ export default {
       watch([data, ref(rest)], ([checkResponse, checkRest]) => {
         validateMessage.value = checkResponse;
 
-        if (!validateMessage.value?.success) {
-          toastMessage.value = "標的新增失敗";
+        if (!checkResponse.success) {
+          emit("toastMessage", checkResponse);
           emit("isLoading", checkRest.loading);
           return;
         }
@@ -130,6 +128,7 @@ export default {
       const { data, error } = useAxios("/api/addStock", "post", stockObj);
 
       watch([data, error], ([updateData, updateError]) => {
+        console.log("updateData", updateData);
         updateHoldings(updateData, updateError);
       });
     }
@@ -141,17 +140,17 @@ export default {
         watch([data, ref(rest)], ([newData, newRest]) => {
           emit("updateHoldings", newData);
           emit("isLoading", newRest.loading);
-          toastMessage.value = updateData.content;
+          emit("toastMessage", updateData);
         });
       } else {
-        toastMessage.value = updateError.split(" ").splice(0, 4).join(" ");
+        const error = updateError.split(" ").splice(0, 4).join(" ");
+        emit("toastMessage", error);
       }
     }
 
     return {
       addStock,
       stock,
-      toastMessage,
       validateMessage,
     };
   },

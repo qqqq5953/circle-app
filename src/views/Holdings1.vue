@@ -1,9 +1,23 @@
 <template>
   <main class="px-4 md:p-10 mx-auto w-full relative">
-    error:
-    <div v-if="error" class="text-center text-2xl text-red-500">
-      {{ error }}
-    </div>
+    <Teleport to="body">
+      <Toast class="fixed right-6 top-6 z-10" :toastMessage="toastMessage" />
+    </Teleport>
+
+    <!-- <button
+      type="button"
+      class="border px-2 py-1"
+      @click="
+        activateToast({
+          success: true,
+          content: '標的新增成功',
+          result: { cost: 200, ticker: 'AAPL', shares: 20 },
+        })
+      "
+    >
+      activateToast
+    </button> -->
+
     <section class="px-4 md:px-0 lg:px-4">
       <div class="flex items-center mb-4">
         <h2 class="font-semibold text-lg">Top 3 Performance</h2>
@@ -16,6 +30,12 @@
         <Card1 :holdingsTotalInfo="data.result" v-else></Card1>
       </div>
     </section>
+
+    error:
+    <div v-if="error" class="text-center text-2xl text-red-500">
+      {{ error }}
+    </div>
+
     <section class="mt-5 px-4 md:px-0 lg:px-4">
       <h2 class="font-semibold text-lg mb-4">Holdings</h2>
 
@@ -25,6 +45,7 @@
       <AddStockWithoutValidation
         @isLoading="toggleSkeleton"
         @updateHoldings="updateHoldings"
+        @toastMessage="activateToast"
         v-show="!loading"
       />
 
@@ -35,6 +56,7 @@
         <AddStock
           @isLoading="toggleSkeleton"
           @updateHoldings="updateHoldings"
+          @toastMessage="activateToast"
           v-show="!loading"
         />
       </div>
@@ -72,9 +94,6 @@
     </Transition>
 
     <div class="px-4 md:px-0 lg:px-4">
-      <button type="button" class="border px-2 py-1" @click="getQuote">
-        getQuote
-      </button>
       <button type="button" class="border px-2 py-1" @click="getHistorical">
         getHistorical
       </button>
@@ -93,6 +112,7 @@
 import HoldingTable from "@/components/HoldingTable.vue";
 import NewTable1 from "@/components/NewTable1.vue";
 import Card1 from "@/components/Card1.vue";
+import Toast from "@/components/Toast.vue";
 import CardSkeleton from "@/components/skeleton/CardSkeleton.vue";
 import TableSkeleton from "@/components/skeleton/TableSkeleton.vue";
 import InputSkeleton from "@/components/skeleton/InputSkeleton.vue";
@@ -114,11 +134,13 @@ export default {
     CardSkeleton,
     TableSkeleton,
     InputSkeleton,
+    Toast,
     TradeModal: defineAsyncComponent(() =>
       import("@/components/TradeModal.vue")
     ),
   },
   setup() {
+    const toastMessage = ref(null);
     const tickerRef = ref(null);
     const isModalOpen = ref(false);
     const stockToBeTraded = ref("");
@@ -145,6 +167,8 @@ export default {
 
       return data.value?.result[tickers[0]].date.slice(0, 10);
     });
+
+    const activateToast = (val) => (toastMessage.value = val);
 
     const openTradeModal = (obj) => {
       const { open, ticker } = obj;
@@ -184,6 +208,8 @@ export default {
       lastMarketOpenDate,
       toggleSkeleton,
       updateHoldings,
+      activateToast,
+      toastMessage,
 
       historicalQutoes,
       stock,

@@ -97,7 +97,6 @@
       </span>
       <span>add</span>
     </button>
-    <div>toastMessage: {{ toastMessage }}</div>
   </form>
 </template>
 
@@ -108,7 +107,6 @@ import useAxios from "@/composables/useAxios.js";
 
 export default {
   setup(props, { emit }) {
-    const toastMessage = ref(null);
     const validateMessage = ref(null);
     const isValidating = ref(null);
     const allPromises = [];
@@ -147,10 +145,11 @@ export default {
         watch([data, ref(rest)], ([newData, newRest]) => {
           emit("updateHoldings", newData);
           emit("isLoading", newRest.loading);
-          toastMessage.value = updateData.content;
+          emit("toastMessage", updateData);
         });
       } else {
-        toastMessage.value = updateError.split(" ").splice(0, 4).join(" ");
+        const error = updateError.split(" ").splice(0, 4).join(" ");
+        emit("toastMessage", error);
       }
     };
 
@@ -191,7 +190,6 @@ export default {
       stock,
       validateMessage,
       isValidating,
-      toastMessage,
     };
   },
 };

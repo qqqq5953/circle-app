@@ -13,7 +13,7 @@ export default function useAxios(url, method, options = {}) {
 
     try {
       const response = await axios[method](url, options)
-      const { success, content, errorMessage, result } = response.data
+      const { success, content, errorMessage, result = null } = response.data
       data.value = { success, content, result }
       state.error = errorMessage
 

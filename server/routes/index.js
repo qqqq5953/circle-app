@@ -95,7 +95,7 @@ router.get('/getHoldings', async (req, res) => {
 
     try {
       yesterdayQuote = await yahooFinance.historical(quoteOptions)
-      // console.log('yesterdayQuote', yesterdayQuote)
+      console.log('yesterdayQuote', yesterdayQuote)
 
       isMarketOpen = Object.values(yesterdayQuote).some(
         (quote) => quote.length !== 0
@@ -146,6 +146,7 @@ router.post('/checkTicker', (req, res) => {
 
   checkTickerValid
     .then((response) => {
+      console.log('Ticker exists')
       res.send({
         success: true,
         content: 'Ticker exists',
@@ -154,6 +155,8 @@ router.post('/checkTicker', (req, res) => {
       })
     })
     .catch((error) => {
+      console.log('Ticker does not exists')
+
       console.log('error', error)
       res.send({
         success: false,
@@ -173,7 +176,8 @@ router.post('/addStock', async (req, res) => {
   message = {
     success: true,
     content: '標的新增成功',
-    errorMessage: null
+    errorMessage: null,
+    result: { ticker, cost, shares }
   }
   res.send(message)
 

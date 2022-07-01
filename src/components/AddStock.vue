@@ -7,14 +7,15 @@
       <input
         type="text"
         class="
-          form-input
           block
+          border
           px-4
           py-3
           rounded-full
           w-full
           text-center
           lg:text-left
+          invalid:outline-red-400
         "
         placeholder="ticker"
         pattern="^\w{1,5}$"
@@ -33,14 +34,15 @@
       <input
         type="number"
         class="
-          form-input
           block
+          border
           px-4
           py-3
           rounded-full
           w-full
           text-center
           lg:text-left
+          invalid:outline-red-400
         "
         placeholder="cost"
         min="0"
@@ -53,14 +55,15 @@
       <input
         type="number"
         class="
-          form-input
           block
+          border
           px-4
           py-3
           rounded-full
           w-full
           text-center
           lg:text-left
+          invalid:outline-red-400
         "
         placeholder="shares"
         min="0"

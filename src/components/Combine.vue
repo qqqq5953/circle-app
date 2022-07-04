@@ -4,29 +4,26 @@
     novalidate
     class="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-4"
   >
-    <NewInputTicker
+    <InputTicker
+      ref="inputTickerRef"
+      :validateMessage="validateMessage"
       :modelValue="stock.ticker"
       @input="stock.ticker = $event.target.value"
       @getInputValidity="getInputValidity"
-      ref="inputTickerRef"
     />
-    <!-- <InputTicker
-      v-model.trim="stock.ticker"
-      :validateMessage="validateMessage"
-      @getInputValidity="getInputValidity"
-      ref="inputTickerRef"
-    /> -->
 
     <InputCost
-      v-model.trim="stock.cost"
-      @getInputValidity="getInputValidity"
       ref="inputCostRef"
+      :modelValue="stock.cost"
+      @input="stock.cost = $event.target.value"
+      @getInputValidity="getInputValidity"
     />
 
     <InputShares
-      v-model.trim="stock.shares"
-      @getInputValidity="getInputValidity"
       ref="inputSharesRef"
+      :modelValue="stock.shares"
+      @input="stock.shares = $event.target.value"
+      @getInputValidity="getInputValidity"
     />
 
     <button
@@ -51,14 +48,12 @@ import { ref, watch, computed } from "vue";
 import useAxios from "@/composables/useAxios.js";
 import ErrorDisplay from "@/components/ErrorDisplay.vue";
 import InputTicker from "@/components/forms/InputTicker.vue";
-import NewInputTicker from "@/components/forms/NewInputTicker.vue";
 import InputCost from "@/components/forms/InputCost.vue";
 import InputShares from "@/components/forms/InputShares.vue";
 
 export default {
   components: {
     ErrorDisplay,
-    NewInputTicker,
     InputTicker,
     InputCost,
     InputShares,
@@ -67,12 +62,8 @@ export default {
     const inputTickerRef = ref(null);
     const inputCostRef = ref(null);
     const inputSharesRef = ref(null);
-
-    const tickerError = ref(null);
-    const costError = ref(null);
-    const sharesError = ref(null);
-
     const validateMessage = ref(null);
+
     const stock = ref({
       ticker: null,
       cost: null,
@@ -86,9 +77,6 @@ export default {
       shares: null,
     });
 
-    const getInputValidity = (obj) =>
-      (inputValidity.value[obj.name] = obj.validity);
-
     const checkFormValidity = computed(() => {
       console.log("inputValidity", inputValidity.value);
       for (let i in inputValidity.value) {
@@ -97,9 +85,10 @@ export default {
       return true;
     });
 
-    function addStock() {
-      console.log("stock", stock);
+    const getInputValidity = (obj) =>
+      (inputValidity.value[obj.name] = obj.validity);
 
+    function addStock() {
       if (!checkFormValidity.value) return;
 
       const stockObj = {
@@ -129,7 +118,7 @@ export default {
       watch([data, error], ([newData, newError]) => {
         console.log("newData", newData);
         console.log("newError", newError);
-        // updateHoldings(newData, newError);
+        updateHoldings(newData, newError);
       });
     }
 
@@ -159,10 +148,6 @@ export default {
       inputTickerRef,
       inputCostRef,
       inputSharesRef,
-
-      tickerError,
-      costError,
-      sharesError,
     };
   },
 };

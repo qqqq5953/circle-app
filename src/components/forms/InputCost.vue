@@ -18,10 +18,9 @@
       placeholder="cost"
       min="0"
       step="0.01"
-      :value="modelValue"
-      @input="$emit('update:modelValue', $event.target.value)"
+      v-model="inputValue"
     />
-    <ErrorDisplay :errors="costError" />
+    <ErrorDisplay :errors="inputError" />
   </div>
 </template>
 
@@ -29,40 +28,38 @@
 import ErrorDisplay from "@/components/ErrorDisplay.vue";
 import { ref, watch } from "vue";
 import { twoDecimal, isEmpty } from "@/modules/validators";
+import useInputValidator from "@/composables/useInputValidator";
 
 export default {
   components: { ErrorDisplay },
-  props: ["modelValue"],
+  props: {
+    modelValue: String,
+  },
   setup(props, { emit }) {
     const costRef = ref(null);
-    const costError = ref(null);
+    const regex =
+      /^[0](\.[0-9][1-9])?$|^[1-9](\.\d{1,2})?$|^[1-9]\d*(\.\d{1,2})?$/;
+    const replaceCharacter = /^0\d$|^\D$|^\d\w$/;
+
+    const { inputError, inputValue, inputValidity } = useInputValidator(
+      props.modelValue,
+      costRef,
+      regex,
+      replaceCharacter,
+      [twoDecimal, isEmpty]
+    );
 
     watch(
       () => props.modelValue,
-      (newValue) => {
-        const regex =
-          /^[0](\.\d{1,2})?$|^[1-9](\.\d{1,2})?$|^[1-9]\d*(\.\d{1,2})?$/;
-        const replaceCharacter = /^0\d$|^\D$|^\d\w$/;
-        const isPatternMatch = regex.test(newValue);
-
-        if (!isPatternMatch) {
-          emit("update:modelValue", newValue.replace(replaceCharacter, ""));
-        }
-
-        costError.value = [twoDecimal, isEmpty].map((validator) =>
-          validator(isPatternMatch, costRef.value, newValue)
-        );
-
-        emit("getInputValidity", {
-          name: costRef.value.name,
-          validity: costRef.value.checkValidity(),
-        });
+      () => {
+        emit("getInputValidity", inputValidity.value);
       }
     );
 
     return {
       costRef,
-      costError,
+      inputError,
+      inputValue,
     };
   },
 };

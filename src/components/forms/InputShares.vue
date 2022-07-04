@@ -18,55 +18,48 @@
       placeholder="shares"
       min="0"
       step="0.01"
-      :value="modelValue"
-      @input="$emit('update:modelValue', $event.target.value)"
+      v-model="inputValue"
     />
-    <ErrorDisplay :errors="sharesError" />
+    <ErrorDisplay :errors="inputError" />
   </div>
 </template>
 
 <script>
 import ErrorDisplay from "@/components/ErrorDisplay.vue";
+import useInputValidator from "@/composables/useInputValidator";
 import { ref, watch } from "vue";
 import { twoDecimal, isEmpty } from "@/modules/validators";
 
 export default {
   components: { ErrorDisplay },
-  props: ["modelValue"],
-
+  props: {
+    modelValue: String,
+  },
   setup(props, { emit }) {
     const sharesRef = ref(null);
-    const sharesError = ref(null);
+    const regex =
+      /^[0](\.[0-9][1-9])?$|^[1-9](\.\d{1,2})?$|^[1-9]\d*(\.\d{1,2})?$/;
+    const replaceCharacter = /^0\d$|^\D$|^\d\w$/;
+
+    const { inputError, inputValue, inputValidity } = useInputValidator(
+      props.modelValue,
+      sharesRef,
+      regex,
+      replaceCharacter,
+      [twoDecimal, isEmpty]
+    );
 
     watch(
       () => props.modelValue,
-      (newValue) => {
-        const regex =
-          /^[0](\.\d{1,2})?$|^[1-9](\.\d{1,2})?$|^[1-9]\d*(\.\d{1,2})?$/;
-        const replaceCharacter = /^0\d$|^\D$|^\d\w$/;
-        const isPatternMatch = regex.test(newValue);
-
-        if (!isPatternMatch) {
-          emit(
-            "update:modelValue",
-            newValue.toString().replace(replaceCharacter, "")
-          );
-        }
-
-        sharesError.value = [twoDecimal, isEmpty].map((validator) =>
-          validator(isPatternMatch, sharesRef.value, newValue)
-        );
-
-        emit("getInputValidity", {
-          name: sharesRef?.value.name,
-          validity: sharesRef?.value.checkValidity(),
-        });
+      () => {
+        emit("getInputValidity", inputValidity.value);
       }
     );
 
     return {
       sharesRef,
-      sharesError,
+      inputError,
+      inputValue,
     };
   },
 };

@@ -40,15 +40,6 @@
       <h2 class="font-semibold text-lg mb-4">Holdings</h2>
 
       <hr class="my-4" />
-      <p>AddStockWithoutValidation</p>
-      <InputSkeleton v-show="loading" />
-      <AddStockWithoutValidation
-        @isLoading="toggleSkeleton"
-        @updateHoldings="updateHoldings"
-        @toastMessage="activateToast"
-        v-show="!loading"
-      />
-      <hr class="my-4" />
 
       <h2>Combine</h2>
       <InputSkeleton v-show="loading" />
@@ -128,19 +119,17 @@ import TableSkeleton from "@/components/skeleton/TableSkeleton.vue";
 import InputSkeleton from "@/components/skeleton/InputSkeleton.vue";
 
 import AddStock from "@/components/AddStock.vue";
-import AddStockWithoutValidation from "@/components/AddStockWithoutValidation.vue";
+import Combine from "@/components/Combine.vue";
 
 import { ref, defineAsyncComponent, computed } from "vue";
 import axios from "axios";
 import useAxios from "@/composables/useAxios.js";
 
-import Combine from "@/components/Combine.vue";
-
 export default {
   components: {
     HoldingTable,
     AddStock,
-    AddStockWithoutValidation,
+    Combine,
     NewTable1,
     Card1,
     CardSkeleton,
@@ -150,7 +139,6 @@ export default {
     TradeModal: defineAsyncComponent(() =>
       import("@/components/TradeModal.vue")
     ),
-    Combine,
   },
   setup() {
     const toastMessage = ref(null);

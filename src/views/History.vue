@@ -47,6 +47,7 @@
     >
       <div>
         <input
+          name="ticker"
           type="text"
           class="
             block
@@ -69,6 +70,7 @@
 
       <div>
         <input
+          name="cost"
           type="text"
           class="
             block
@@ -92,6 +94,7 @@
 
       <div>
         <input
+          name="shares"
           type="number"
           class="
             block
@@ -135,6 +138,7 @@
 <script>
 import HoldingTable from "@/components/HoldingTable.vue";
 import ErrorDisplay from "@/components/ErrorDisplay.vue";
+
 // import Card from '@/components/Card.vue';
 import {
   tickerValidation,
@@ -142,7 +146,7 @@ import {
   isEmpty,
   twoDecimal,
 } from "@/modules/validators";
-import { onMounted, ref, watch, watchEffect } from "vue";
+import { onMounted, ref, watch } from "vue";
 export default {
   components: {
     HoldingTable,
@@ -161,19 +165,22 @@ export default {
     const costError = ref(null);
     const sharesError = ref(null);
 
-    function add() {
-      console.log("tickerRef", tickerRef?.value.checkValidity());
-      console.log("costRef", costRef?.value.checkValidity());
-      console.log("sharesRef", sharesRef?.value.checkValidity());
-
-      console.log(
-        tickerRef?.value.checkValidity() &&
-          costRef?.value.checkValidity() &&
-          sharesRef?.value.checkValidity() &&
-          inputTicker.value !== null &&
-          inputCost.value !== null &&
-          inputShares.value !== null
-      );
+    function add(e) {
+      // console.log("tickerRef", tickerRef?.value.checkValidity());
+      // console.log("costRef", costRef?.value.checkValidity());
+      // console.log("sharesRef", sharesRef?.value.checkValidity());
+      // console.log(
+      //   tickerRef?.value.checkValidity() &&
+      //     costRef?.value.checkValidity() &&
+      //     sharesRef?.value.checkValidity() &&
+      //     inputTicker.value !== null &&
+      //     inputCost.value !== null &&
+      //     inputShares.value !== null
+      // );
+      // const test = Object.fromEntries(new FormData(e.target));
+      // console.log("test", test);
+      // console.log("e.target", e.target);
+      // console.log("new FormData(e.target)", new FormData(e.target));
     }
 
     onMounted(() => {

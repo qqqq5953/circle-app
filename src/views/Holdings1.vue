@@ -48,6 +48,16 @@
         @toastMessage="activateToast"
         v-show="!loading"
       />
+      <hr class="my-4" />
+
+      <h2>Combine</h2>
+      <InputSkeleton v-show="loading" />
+      <Combine
+        @isLoading="toggleSkeleton"
+        @updateHoldings="updateHoldings"
+        @toastMessage="activateToast"
+        v-show="!loading"
+      />
 
       <hr class="my-4" />
       <p>AddStock component</p>
@@ -124,6 +134,8 @@ import { ref, defineAsyncComponent, computed } from "vue";
 import axios from "axios";
 import useAxios from "@/composables/useAxios.js";
 
+import Combine from "@/components/Combine.vue";
+
 export default {
   components: {
     HoldingTable,
@@ -138,6 +150,7 @@ export default {
     TradeModal: defineAsyncComponent(() =>
       import("@/components/TradeModal.vue")
     ),
+    Combine,
   },
   setup() {
     const toastMessage = ref(null);

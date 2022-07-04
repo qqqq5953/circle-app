@@ -4,12 +4,18 @@
     novalidate
     class="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-4"
   >
-    <InputTicker
+    <NewInputTicker
+      :modelValue="stock.ticker"
+      @input="stock.ticker = $event.target.value"
+      @getInputValidity="getInputValidity"
+      ref="inputTickerRef"
+    />
+    <!-- <InputTicker
       v-model.trim="stock.ticker"
       :validateMessage="validateMessage"
       @getInputValidity="getInputValidity"
       ref="inputTickerRef"
-    />
+    /> -->
 
     <InputCost
       v-model.trim="stock.cost"
@@ -45,12 +51,14 @@ import { ref, watch, computed } from "vue";
 import useAxios from "@/composables/useAxios.js";
 import ErrorDisplay from "@/components/ErrorDisplay.vue";
 import InputTicker from "@/components/forms/InputTicker.vue";
+import NewInputTicker from "@/components/forms/NewInputTicker.vue";
 import InputCost from "@/components/forms/InputCost.vue";
 import InputShares from "@/components/forms/InputShares.vue";
 
 export default {
   components: {
     ErrorDisplay,
+    NewInputTicker,
     InputTicker,
     InputCost,
     InputShares,
@@ -90,6 +98,8 @@ export default {
     });
 
     function addStock() {
+      console.log("stock", stock);
+
       if (!checkFormValidity.value) return;
 
       const stockObj = {
@@ -119,7 +129,7 @@ export default {
       watch([data, error], ([newData, newError]) => {
         console.log("newData", newData);
         console.log("newError", newError);
-        updateHoldings(newData, newError);
+        // updateHoldings(newData, newError);
       });
     }
 

@@ -1,5 +1,6 @@
 <template>
   <div>
+    inside:{{ inputTicker }}
     <input
       name="ticker"
       type="text"
@@ -15,17 +16,18 @@
         invalid:outline-red-400 invalid:border-red-400 invalid:border
       "
       ref="tickerRef"
-      maxlength="5"
       placeholder="ticker"
-      :value="modelValue"
-      @input="$emit('update:modelValue', $event.target.value)"
+      v-model="inputTicker"
     />
-    <ErrorDisplay :errors="tickerError" />
+    <!-- <ErrorDisplay :errors="tickerError" /> -->
+    <ErrorDisplay :errors="inputError" />
+    <br />
   </div>
 </template>
 
 <script>
 import ErrorDisplay from "@/components/ErrorDisplay.vue";
+import useInputValidator from "@/composables/useInputValidator";
 import { nextTick, ref, watch } from "vue";
 import { tickerValidation, isEmpty } from "@/modules/validators";
 
@@ -35,37 +37,27 @@ export default {
   setup(props, { emit }) {
     const tickerError = ref(null);
     const tickerRef = ref(null);
-    const inputTicker = ref(null);
+    const regex = /^[a-zA-Z\-?]{1,5}$/;
+    const replaceCharacter = /^[a-z]+[^a-z]+$|^[^a-z]+$|^[\-+]$/i;
 
-    watch(
-      () => props.modelValue,
-      (newValue) => {
-        const regex = /^[a-zA-Z\-?]{1,5}$/;
-        const replaceCharacter = /^[a-z]+[^a-z]+$|^[^a-z]+$|^[\-+]$/i;
-        const isPatternMatch = regex.test(newValue);
-
-        if (!isPatternMatch) {
-          emit("update:modelValue", newValue.replace(replaceCharacter, ""));
-        }
-
-        tickerError.value = [tickerValidation, isEmpty].map((validator) =>
-          validator(isPatternMatch, tickerRef.value, newValue)
-        );
-
-        emit("getInputValidity", {
-          name: tickerRef.value.name,
-          validity: tickerRef.value.checkValidity(),
-        });
-
-        // console.log("tickerError.value", tickerError.value);
-      }
+    const { inputError, inputTicker, emitObj } = useInputValidator(
+      props.modelValue,
+      tickerRef,
+      regex,
+      replaceCharacter,
+      [tickerValidation, isEmpty]
     );
+
+    watch(inputTicker, () => {
+      emit("getInputValidity", emitObj.value);
+    });
 
     watch(
       () => props.validateMessage,
       (newObject) => {
         tickerRef.value.setCustomValidity(newObject.content);
-        tickerError.value = newObject.content;
+        inputError.value = newObject.content;
+        // tickerError.value = newObject.content;
         nextTick(() => tickerRef.value.focus());
       }
     );
@@ -73,6 +65,7 @@ export default {
     return {
       tickerRef,
       tickerError,
+      inputError,
       inputTicker,
     };
   },

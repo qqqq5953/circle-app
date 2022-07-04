@@ -485,6 +485,20 @@
       class="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-4"
       novalidate
     >
+      outside: {{ inputTicker1 }}
+      <!-- <NewInputTicker
+        v-model="inputTicker1"
+        @getInputValidity="getInputValidity"
+        ref="inputTickerRef1"
+      /> -->
+      <NewInputTicker
+        :modelValue="inputTicker1"
+        @input="inputTicker1 = $event.target.value"
+        @getInputValidity="getInputValidity"
+        ref="inputTickerRef1"
+      />
+
+      <!-- Vue3 文件寫法 -->
       <InputTicker
         v-model="inputTicker"
         @getInputValidity="getInputValidity"
@@ -526,16 +540,19 @@
 
 <script>
 import InputTicker from "@/components/forms/InputTicker.vue";
+import NewInputTicker from "@/components/forms/NewInputTicker.vue";
 import InputCost from "@/components/forms/InputCost.vue";
 import InputShares from "@/components/forms/InputShares.vue";
 import { ref, computed } from "vue";
 export default {
-  components: { InputTicker, InputCost, InputShares },
+  components: { NewInputTicker, InputTicker, InputCost, InputShares },
   setup() {
+    const inputTicker1 = ref(null);
     const inputTicker = ref(null);
     const inputCost = ref(null);
     const inputShares = ref(null);
 
+    const inputTickerRef1 = ref(null);
     const inputTickerRef = ref(null);
     const inputCostRef = ref(null);
     const inputSharesRef = ref(null);
@@ -584,10 +601,12 @@ export default {
       getInputValidity,
       checkFormValidity,
 
+      inputTickerRef1,
       inputTickerRef,
       inputCostRef,
       inputSharesRef,
 
+      inputTicker1,
       inputTicker,
       inputCost,
       inputShares,

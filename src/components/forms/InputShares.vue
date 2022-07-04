@@ -36,7 +36,6 @@ export default {
 
   setup(props, { emit }) {
     const sharesRef = ref(null);
-    const inputShares = ref(1);
     const sharesError = ref(null);
 
     watch(
@@ -67,7 +66,6 @@ export default {
 
     return {
       sharesRef,
-      inputShares,
       sharesError,
     };
   },

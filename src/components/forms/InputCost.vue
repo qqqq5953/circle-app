@@ -35,7 +35,6 @@ export default {
   props: ["modelValue"],
   setup(props, { emit }) {
     const costRef = ref(null);
-    const inputCost = ref(null);
     const costError = ref(null);
 
     watch(
@@ -47,10 +46,7 @@ export default {
         const isPatternMatch = regex.test(newValue);
 
         if (!isPatternMatch) {
-          emit(
-            "update:modelValue",
-            newValue.toString().replace(replaceCharacter, "")
-          );
+          emit("update:modelValue", newValue.replace(replaceCharacter, ""));
         }
 
         costError.value = [twoDecimal, isEmpty].map((validator) =>
@@ -66,7 +62,6 @@ export default {
 
     return {
       costRef,
-      inputCost,
       costError,
     };
   },

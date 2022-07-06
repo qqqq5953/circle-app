@@ -29,7 +29,6 @@
     <button
       type="submit"
       class="
-        form-input
         px-4
         py-3
         rounded-full

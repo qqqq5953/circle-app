@@ -10,7 +10,6 @@
     <div v-for="item in placeholders" :key="item" class="">
       <input
         class="
-          form-input
           block
           px-4
           py-6
@@ -19,11 +18,13 @@
           w-full
           h-8
           mb-3
+          focus:outline-0
         "
+        disabled
         :placeholder="item"
       />
     </div>
-    <button type="submit" class="form-input rounded-full px-4 py-3 bg-gray-300">
+    <button type="submit" class="rounded-full px-4 py-3 bg-gray-300" disabled>
       add
     </button>
   </div>

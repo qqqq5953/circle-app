@@ -19,19 +19,22 @@
       placeholder="ticker"
       v-model="inputValue"
     />
-    <ErrorDisplay :errors="inputError" />
+    <ErrorDisplay :errors="inputError" v-if="inputError.length" />
     <slot></slot>
   </div>
 </template>
 
 <script>
-import { nextTick, ref, watch } from "vue";
-import ErrorDisplay from "@/components/ErrorDisplay.vue";
+import { nextTick, ref, watch, defineAsyncComponent } from "vue";
 import useInputValidator from "@/composables/useInputValidator";
 import { tickerValidation, isEmpty } from "@/modules/validators";
 
 export default {
-  components: { ErrorDisplay },
+  components: {
+    ErrorDisplay: defineAsyncComponent(() =>
+      import("@/components/ErrorDisplay.vue")
+    ),
+  },
   props: {
     modelValue: String,
     validateMessage: Object,

@@ -20,18 +20,21 @@
       step="0.01"
       v-model="inputValue"
     />
-    <ErrorDisplay :errors="inputError" />
+    <ErrorDisplay :errors="inputError" v-if="inputError.length" />
   </div>
 </template>
 
 <script>
-import ErrorDisplay from "@/components/ErrorDisplay.vue";
-import { ref, watch } from "vue";
+import { ref, watch, defineAsyncComponent } from "vue";
 import { twoDecimal, isEmpty } from "@/modules/validators";
 import useInputValidator from "@/composables/useInputValidator";
 
 export default {
-  components: { ErrorDisplay },
+  components: {
+    ErrorDisplay: defineAsyncComponent(() =>
+      import("@/components/ErrorDisplay.vue")
+    ),
+  },
   props: {
     modelValue: String,
   },

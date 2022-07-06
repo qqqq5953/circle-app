@@ -9,10 +9,7 @@
       @input="stock.ticker = $event.target.value"
       @getInputValidity="getInputValidity"
     >
-      <small
-        v-if="isValidating"
-        class="px-4 py-3 rounded-full flex items-center gap-2"
-      >
+      <small v-if="isValidating" class="flex items-center gap-2 py-1">
         <span
           class="
             w-4
@@ -143,54 +140,55 @@ export default {
     // instant ticker check
     const allPromises = [];
     const validateMessage = ref(null);
+
+    function instantTickerCheck(newInput, oldInput) {
+      isValidating.value = true;
+
+      const oldLen = oldInput?.length || 0;
+      const newLen = newInput?.length;
+
+      if (newLen > oldLen) {
+        allPromises.push(axios.post(`/api/checkTicker`, stock.value));
+      } else {
+        allPromises.pop();
+      }
+
+      Promise.all(allPromises)
+        .then((response) => {
+          isTickerExist.value = null;
+
+          const promiseSize = allPromises.length - 1;
+          const stock = response[promiseSize];
+
+          if (!stock?.data) return;
+
+          if (stock?.data.success === true) {
+            isTickerExist.value = true;
+          } else {
+            validateMessage.value = stock?.data;
+            isTickerExist.value = false;
+          }
+
+          isValidating.value = false;
+        })
+        .catch((error) => {
+          validateMessage.value = error;
+          isValidating.value = false;
+        });
+    }
+
     watch(
       () => stock.value.ticker,
       (newInput, oldInput) => {
-        const oldLen = oldInput?.length || 0;
-        const newLen = newInput?.length;
-        const checkEnglish = /[a-z\-?]/i;
-        console.log("checkEnglish", checkEnglish.test(newInput));
+        const tickerRule = /[a-z\-?]/i;
 
-        console.log("非數字", isNaN(parseInt(newInput)));
+        // clear allPromises when no input
+        if (newInput === "") allPromises.length = 0;
 
-        // 防止輸入非英文
-        if (isNaN(parseInt(newInput)) && !checkEnglish.test(newInput)) {
-          console.log("擋住");
-          return;
-        }
+        // prevent non-eng input
+        if (!tickerRule.test(newInput)) return;
 
-        isValidating.value = true;
-
-        if (newLen > oldLen) {
-          allPromises.push(axios.post(`/api/checkTicker`, stock.value));
-        } else {
-          allPromises.pop();
-        }
-
-        Promise.all(allPromises)
-          .then((response) => {
-            isTickerExist.value = null;
-
-            const promiseSize = allPromises.length - 1;
-            const stock = response[promiseSize];
-
-            if (!stock?.data) return;
-
-            if (stock?.data.success === true) {
-              isTickerExist.value = true;
-              console.log("true");
-            } else {
-              validateMessage.value = stock?.data;
-              isTickerExist.value = false;
-              console.log("false");
-            }
-
-            isValidating.value = false;
-          })
-          .catch((error) => {
-            validateMessage.value = error;
-            isValidating.value = false;
-          });
+        instantTickerCheck(newInput, oldInput);
 
         console.log("allPromises", allPromises);
       }

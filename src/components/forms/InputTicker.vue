@@ -20,6 +20,7 @@
       v-model="inputValue"
     />
     <ErrorDisplay :errors="inputError" />
+    <slot></slot>
   </div>
 </template>
 
@@ -37,7 +38,7 @@ export default {
   },
   setup(props, { emit }) {
     const tickerRef = ref(null);
-    const regex = /^[a-zA-Z\-?]{1,5}$/;
+    const regex = /^[a-z\-?]{1,5}$/i;
     const replaceCharacter = /^[a-z]+[^a-z]+$|^[^a-z]+$|^[\-+]$/i;
 
     const { inputError, inputValue, inputValidity } = useInputValidator(
@@ -58,8 +59,12 @@ export default {
     watch(
       () => props.validateMessage,
       (newObject) => {
+        // console.log("validity: false");
+
+        // emit("getInputValidity", { name: "ticker", validity: false });
         tickerRef.value.setCustomValidity(newObject.content);
         inputError.value = newObject.content;
+
         nextTick(() => tickerRef.value.focus());
       }
     );

@@ -5,7 +5,6 @@
     class="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-4"
   >
     <InputTicker
-      ref="inputTickerRef"
       :validateMessage="validateMessage"
       :modelValue="stock.ticker"
       @input="stock.ticker = $event.target.value"
@@ -13,14 +12,12 @@
     />
 
     <InputCost
-      ref="inputCostRef"
       :modelValue="stock.cost"
       @input="stock.cost = $event.target.value"
       @getInputValidity="getInputValidity"
     />
 
     <InputShares
-      ref="inputSharesRef"
       :modelValue="stock.shares"
       @input="stock.shares = $event.target.value"
       @getInputValidity="getInputValidity"
@@ -45,22 +42,17 @@
 <script>
 import { ref, watch, computed } from "vue";
 import useAxios from "@/composables/useAxios.js";
-import ErrorDisplay from "@/components/ErrorDisplay.vue";
 import InputTicker from "@/components/forms/InputTicker.vue";
 import InputCost from "@/components/forms/InputCost.vue";
 import InputShares from "@/components/forms/InputShares.vue";
 
 export default {
   components: {
-    ErrorDisplay,
     InputTicker,
     InputCost,
     InputShares,
   },
   setup(props, { emit }) {
-    const inputTickerRef = ref(null);
-    const inputCostRef = ref(null);
-    const inputSharesRef = ref(null);
     const validateMessage = ref(null);
 
     const stock = ref({
@@ -142,10 +134,6 @@ export default {
 
       getInputValidity,
       checkFormValidity,
-
-      inputTickerRef,
-      inputCostRef,
-      inputSharesRef,
     };
   },
 };

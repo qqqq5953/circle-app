@@ -5,11 +5,12 @@ export default function (modelValue, DOM, regex, replaceCharacter, validators) {
   const inputValue = ref(modelValue)
   const inputValidity = ref({ name: null, validity: null })
 
-  watch(inputValue, (newValue) => {
+  watch(inputValue, (newValue, oldValue) => {
     const isPatternMatch = regex.test(newValue)
+    const newSubstr = oldValue || ''
 
     if (!isPatternMatch) {
-      inputValue.value = newValue.replace(replaceCharacter, '')
+      inputValue.value = newValue.replace(replaceCharacter, newSubstr)
     }
 
     inputError.value = validators.map((validator) =>

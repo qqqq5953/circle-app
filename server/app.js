@@ -21,12 +21,12 @@ app.use('/users', usersRouter)
 const cors = require('cors')
 app.use(
   cors({
-    origin: ['http://localhost:8084'],
+    origin: ['http://localhost:8080'],
     methods: ['GET', 'POST']
   })
 )
 app.all('*', function (req, res, next) {
-  res.header('Access-Control-Allow-Origin', 'http://localhost:8084')
+  res.header('Access-Control-Allow-Origin', 'http://localhost:8080')
   res.header('Access-Control-Allow-Headers', 'Content-Type')
   res.header('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, OPTIONS')
   next()

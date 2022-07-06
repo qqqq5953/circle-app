@@ -25,12 +25,23 @@ const tickerValidation = (isPatternMatch, ref, inputValue) => {
 const twoDecimal = (isPatternMatch, ref, inputValue) => {
   ref.setCustomValidity('')
 
-  // 超過小數點兩位且不為空
-  if (!isPatternMatch && inputValue !== '') {
-    console.log('超過小數點兩位且不為空')
+  if (isPatternMatch) return
+
+  if (!isPatternMatch && inputValue[inputValue.length - 1] === '.') {
+    // 最後一位為小數點
+    ref.setCustomValidity('input incomplete')
+  } else if (
+    !isPatternMatch &&
+    (inputValue === '0' || inputValue === '0.0' || inputValue === '0.00')
+  ) {
+    // 輸入為 0
+    ref.setCustomValidity('must greater than 0')
+  } else if (!isPatternMatch && inputValue !== '') {
+    // 輸入超過兩位小數
     ref.setCustomValidity('only accept 2 decimal places at most')
-    return ref.validationMessage
   }
+
+  return ref.validationMessage
 }
 
 const isEmpty = (isPatternMatch, ref, inputValue) => {

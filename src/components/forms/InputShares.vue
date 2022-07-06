@@ -37,9 +37,8 @@ export default {
   },
   setup(props, { emit }) {
     const sharesRef = ref(null);
-    const regex =
-      /^[0](\.[0-9][1-9])?$|^[1-9](\.\d{1,2})?$|^[1-9]\d*(\.\d{1,2})?$/;
-    const replaceCharacter = /^0\d$|^\D$|^\d\w$/;
+    const regex = /^0\.0[1-9]$|^0\.[1-9]\d?$|^[1-9]\d*(\.\d{1,2})?$/;
+    const replaceCharacter = /^\d*[^\d^\.]$|^\d*\.\d*\D+$|^0\d$/;
 
     const { inputError, inputValue, inputValidity } = useInputValidator(
       props.modelValue,

@@ -78,7 +78,6 @@ export default {
     });
 
     const checkFormValidity = computed(() => {
-      console.log("inputValidity", inputValidity.value);
       for (let i in inputValidity.value) {
         if (!inputValidity.value[i]) return false;
       }

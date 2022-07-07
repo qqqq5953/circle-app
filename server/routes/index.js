@@ -4,6 +4,7 @@ const yahooFinance = require('yahoo-finance')
 const firebaseDb = require('../firebase/index.js')
 
 const holdingRef = firebaseDb.ref('/holding/')
+const watchlistRef = firebaseDb.ref('/watchlist/')
 const getHoldingsTradeInfo = require('../actions/getHoldingsTradeInfo')
 const getHoldingsTotalInfo = require('../actions/getHoldingsTotalInfo')
 const getFormattedDate = require('../tools/getFormattedDate')
@@ -231,6 +232,62 @@ router.post('/addStock', async (req, res) => {
   //     }
   //     res.send(message)
   //   })
+})
+
+router.post('/addToWatchlist', async (req, res) => {
+  const {
+    name,
+    price,
+    ticker,
+    previousCloseChange,
+    previousCloseChangePercent
+  } = req.body
+
+  const obj = {
+    name,
+    price,
+    ticker,
+    previousCloseChange,
+    previousCloseChangePercent
+  }
+
+  await watchlistRef.child(ticker).set(obj)
+
+  message = {
+    success: true,
+    content: '標的新增成功',
+    errorMessage: null,
+    result: obj
+  }
+  res.send(message)
+})
+
+router.post('/deleteFromWatchlist', async (req, res) => {
+  const { ticker } = req.body
+  console.log('ticker', ticker)
+
+  await watchlistRef.child(ticker).remove()
+
+  message = {
+    success: true,
+    content: '刪除成功',
+    errorMessage: null,
+    result: { ticker }
+  }
+  res.send(message)
+})
+
+router.get('/getWatchlist', async (req, res) => {
+  const watchlistChildRef = await watchlistRef.once('value')
+  const watchlist = watchlistChildRef.val()
+
+  message = {
+    success: true,
+    content: '獲得 watchlist',
+    errorMessage: null,
+    result: watchlist
+  }
+  res.send(message)
 })
 
 module.exports = router

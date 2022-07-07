@@ -13,22 +13,50 @@ router.get('/', function (req, res, next) {
   res.render('index', { title: 'Express' })
 })
 
-router.get('/quote', async (req, res) => {
+router.get('/quote/:ticker', async (req, res) => {
   const quoteOptions = {
-    symbol: 'AAPL',
+    symbol: req.params.ticker,
     modules: ['price']
   }
 
   try {
-    const { price } = await yahooFinance.quote(quoteOptions)
+    const { price: priceObj } = await yahooFinance.quote(quoteOptions)
+
+    const {
+      shortName: name,
+      regularMarketPrice: price,
+      symbol: ticker,
+      regularMarketPreviousClose: previousClose,
+      regularMarketTime
+    } = priceObj
+
+    const previousCloseChange =
+      parseFloat(price - previousClose).toFixed(2) > 0
+        ? '+' + parseFloat(price - previousClose).toFixed(2)
+        : parseFloat(price - previousClose).toFixed(2)
+
+    const previousCloseChangePercent = parseFloat(
+      ((price - previousClose) / previousClose) * 100
+    ).toFixed(2)
+
     const obj = {
-      price: price.regularMarketPrice,
-      symbol: price.symbol,
-      regularMarketTime: price.regularMarketTime,
-      currency: price.currency,
-      currencySymbol: price.currencySymbol
+      name,
+      price,
+      ticker,
+      regularMarketTime,
+      previousClose,
+      previousCloseChange,
+      previousCloseChangePercent
     }
-    res.send(obj)
+
+    const msg = {
+      success: true,
+      content: '成功獲得標的',
+      errorMessage: null,
+      result: obj
+    }
+
+    res.send(msg)
   } catch (err) {
     console.log('err', err.message)
   }

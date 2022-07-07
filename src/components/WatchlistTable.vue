@@ -39,7 +39,7 @@
             >
               Stocks
             </th>
-            <th
+            <td
               class="
                 px-6
                 py-3
@@ -53,9 +53,8 @@
               "
             >
               Price
-            </th>
-
-            <th
+            </td>
+            <td
               class="
                 px-6
                 py-3
@@ -69,8 +68,8 @@
               "
             >
               Change %
-            </th>
-            <th
+            </td>
+            <td
               class="
                 px-6
                 py-3
@@ -84,8 +83,8 @@
               "
             >
               Change
-            </th>
-            <th class="w-1/12"></th>
+            </td>
+            <td class="w-1/12"></td>
           </tr>
         </thead>
         <tbody>

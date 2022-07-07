@@ -264,8 +264,6 @@ router.post('/addToWatchlist', async (req, res) => {
 
 router.post('/deleteFromWatchlist', async (req, res) => {
   const { ticker } = req.body
-  console.log('ticker', ticker)
-
   await watchlistRef.child(ticker).remove()
 
   message = {

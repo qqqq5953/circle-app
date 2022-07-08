@@ -60,6 +60,13 @@ router.get('/quote/:ticker', async (req, res) => {
     res.send(msg)
   } catch (err) {
     console.log('err', err.message)
+    const msg = {
+      success: true,
+      content: '獲得標的失敗',
+      errorMessage: err.message,
+      result: null
+    }
+    res.send(msg)
   }
 })
 

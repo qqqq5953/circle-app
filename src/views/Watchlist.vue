@@ -33,7 +33,7 @@
             focus:outline-none focus:ring
             w-full
           "
-          v-model="search"
+          v-model="searchTicker"
         />
       </div>
     </form>
@@ -104,7 +104,7 @@ export default {
     });
     const allPromises = [];
     const searchList = ref([]);
-    const search = ref(null);
+    const searchTicker = ref(null);
     const watchlist = ref(null);
     const isWatchlistLoading = ref(null);
     const isSearchListLoading = ref(null);
@@ -112,41 +112,57 @@ export default {
     function getWatchlist() {
       const { data, error, loading } = useAxios("/api/getWatchlist", "get");
 
-      isWatchlistLoading.value = loading.value;
+      toggleWatchlistSkeleton(loading.value);
 
       watch([data, loading], ([newData, newLoading]) => {
         console.log("result", newData.result);
-        console.log("newLoading", newLoading);
         watchlist.value = newData.result;
-        isWatchlistLoading.value = newLoading;
+        toggleWatchlistSkeleton(newLoading);
       });
     }
 
     getWatchlist();
 
-    watch(search, (newInput, oldInput) => {
-      isSearchListLoading.value = true;
+    function toggleWatchlistSkeleton(isLoading) {
+      isWatchlistLoading.value = isLoading;
+    }
 
-      const oldLen = oldInput?.length || 0;
-      const newLen = newInput?.length;
+    function toggleSearchListSkeleton(isLoading) {
+      isSearchListLoading.value = isLoading;
+    }
 
-      if (newLen > oldLen) {
-        allPromises.push(axios.get(`/api/quote/${newInput}`));
+    function checkInputStatus(isTyping, ticker) {
+      const tickerRule = /[a-z\-?]/i;
+
+      if (isTyping && tickerRule.test(ticker)) {
+        allPromises.push(axios.get(`/api/quote/${ticker}`));
       } else {
         allPromises.pop();
       }
 
-      if (!allPromises.length) {
+      console.log("allPromises", allPromises);
+    }
+
+    function checkInputExist(input) {
+      if (input === "") {
         isSearchListLoading.value = false;
-        searchList.value.length = 0;
+        allPromises.length = 0;
+        searchList.value = null;
         return;
       }
+    }
 
-      console.log("allPromises", allPromises);
+    function isTickerExist(item) {
+      return (
+        item != null && item.name != null && item.previousCloseChange !== "NaN"
+      );
+    }
 
-      // 動態增加 skeleton tr 數
+    function addSkeletonTableRow() {
       searchListSkeletonContent.value.tableBody.tr = allPromises.length;
+    }
 
+    function getQuote() {
       Promise.allSettled(allPromises)
         .then((response) => {
           // const promiseSize = allPromises.length - 1;
@@ -162,39 +178,46 @@ export default {
           let deleteCount = 0;
 
           const result = response
+            .reverse()
             .map((item) => item.value.data.result)
             .filter((item) => {
-              if (item.name === null || item.previousCloseChange === "NaN") {
+              if (!isTickerExist(item)) {
                 deleteCount++;
-                return;
+              } else {
+                return isTickerExist(item);
               }
-
-              return item.name !== null && item.previousCloseChange !== "NaN";
-            })
-            .reverse();
+            });
 
           console.log("watch result", result);
-          // console.log("deleteCount", deleteCount);
-          // console.log("check length", result.length === allPromises.length);
 
           // 資料全部 load 完再一次呈現
           if (result.length === allPromises.length - deleteCount) {
             searchList.value = result;
-            isSearchListLoading.value = false;
+            toggleSearchListSkeleton(false);
+
             console.log("-------finish loading------");
           }
         })
         .catch((error) => {
           console.log("error", error);
-          isSearchListLoading.value = false;
+          toggleSearchListSkeleton(false);
         });
-      // .finally(() => {
-      //   isSearchListLoading.value = false;
-      // });
+    }
+
+    watch(searchTicker, (newSearch, oldSearch) => {
+      const oldLen = oldSearch?.length || 0;
+      const newLen = newSearch?.length;
+      const isTyping = newLen > oldLen;
+
+      toggleSearchListSkeleton(true);
+      checkInputStatus(isTyping, newSearch);
+      checkInputExist(newSearch);
+      addSkeletonTableRow();
+      getQuote();
     });
 
     return {
-      search,
+      searchTicker,
       searchList,
       watchlist,
       getWatchlist,

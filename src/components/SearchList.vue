@@ -1,9 +1,9 @@
 <template>
-  <div class="overflow-y-auto shadow-lg rounded" v-if="result?.length">
+  <div class="overflow-y-auto shadow-lg rounded" v-if="serachList?.length">
     <table class="mt-3 w-full border-collapse table-fixed">
       <slot name="thead"></slot>
       <tbody>
-        <tr class="border-b" v-for="item in result" :key="item.ticker">
+        <tr class="border-b" v-for="item in serachList" :key="item.ticker">
           <th
             class="
               border-t-0 border-x-0
@@ -116,7 +116,7 @@
             <a
               href="#"
               class="lg:text-lg text-gray-300"
-              @click.prevent="addToWatchlist(result[0])"
+              @click.prevent="addToWatchlist(item.ticker, item.name)"
             >
               <i class="fas fa-plus"></i>
             </a>
@@ -129,16 +129,30 @@
 
 <script>
 import useAxios from "@/composables/useAxios.js";
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 
 export default {
   props: {
-    result: Array,
+    result: {
+      type: Array,
+      default: null,
+    },
   },
   setup(props, { emit }) {
-    function addToWatchlist(result) {
+    const serachList = computed(() => {
+      if (!props.result?.length) return;
+
+      props.result.reverse();
+      const lastIndex = props.result.length - 1;
+      const final = props.result[lastIndex];
+
+      return [final];
+    });
+
+    function addToWatchlist(ticker, name) {
       const { data, error, loading } = useAxios("/api/addToWatchlist", "post", {
-        ...result,
+        ticker,
+        name,
       });
 
       watch(data, (newData) => {
@@ -150,6 +164,7 @@ export default {
 
     return {
       addToWatchlist,
+      serachList,
     };
   },
 };

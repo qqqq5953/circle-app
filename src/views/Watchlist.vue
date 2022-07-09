@@ -109,19 +109,43 @@ export default {
     const isWatchlistLoading = ref(null);
     const isSearchListLoading = ref(null);
 
-    function getWatchlist() {
+    function getWatchlist(isInitWhenPageLoading = true) {
       const { data, error, loading } = useAxios("/api/getWatchlist", "get");
 
-      toggleWatchlistSkeleton(loading.value);
+      // 刪除到最後一個時不會閃一下（但其他刪除時便不會 loading）
+      if (isInitWhenPageLoading) {
+        console.log("isInitWhenPageLoading", isInitWhenPageLoading);
+        toggleWatchlistSkeleton(loading.value);
+      }
 
-      watch([data, loading], ([newData, newLoading]) => {
-        console.log("result", newData.result);
-        watchlist.value = newData.result;
-        toggleWatchlistSkeleton(newLoading);
+      const temp = loading.value;
+
+      watch([data, loading], async ([newData, newLoading]) => {
+        if (newData.result == null) {
+          watchlist.value = null;
+          toggleWatchlistSkeleton(false);
+          return;
+        }
+
+        const allPromises = [];
+        const tickers = Object.keys(newData.result);
+
+        for (let i = 0; i < tickers.length; i++) {
+          allPromises.push(axios.get(`/api/quote/${tickers[i]}`));
+        }
+
+        Promise.allSettled(allPromises)
+          .then((res) => {
+            watchlist.value = res.map((item) => item.value.data.result);
+            toggleWatchlistSkeleton(newLoading);
+          })
+          .catch((error) => {
+            console.log("error", error);
+          });
       });
     }
 
-    getWatchlist();
+    // getWatchlist();
 
     function toggleWatchlistSkeleton(isLoading) {
       isWatchlistLoading.value = isLoading;
@@ -131,25 +155,99 @@ export default {
       isSearchListLoading.value = isLoading;
     }
 
-    function checkInputStatus(isTyping, ticker) {
-      const tickerRule = /[a-z\-?]/i;
+    let tempArr = [];
+    const oldSearchObj = {};
+    const deletedObj = {};
 
-      if (isTyping && tickerRule.test(ticker)) {
-        allPromises.push(axios.get(`/api/quote/${ticker}`));
-      } else {
-        allPromises.pop();
+    function checkInputStatus(newSearch, oldSearch) {
+      const oldLen = oldSearch?.length || 0;
+      const newLen = newSearch?.length;
+      const isTyping = newLen > oldLen;
+      const tickerRule = /[a-z\-?]/i;
+      console.log("oldSearch", oldSearch);
+      console.log("newSearch", newSearch);
+
+      if (!tickerRule.test(newSearch)) return;
+
+      if (!isTyping) {
+        tempArr = allPromises.slice(0, newLen);
+        // 將刪除的 ticker 加入 deletedObj
+        deletedObj[oldSearch] = oldSearch;
+        return;
       }
 
-      console.log("allPromises", allPromises);
+      const oldSearchTickers = Object.keys(oldSearchObj);
+      const deletedTickers = Object.keys(deletedObj);
+      const isDeletedObjEmpty = deletedTickers.length === 0;
+      const isTickerDeleted = deletedObj.hasOwnProperty(newSearch);
+
+      // 刪除後新增：清空舊陣列
+      if (!isDeletedObjEmpty && !isTickerDeleted) {
+        const deleteIdx = [];
+
+        // 清空 oldSearchObj（被刪掉的 ticker）
+        for (let i = 0; i < oldSearchTickers.length; i++) {
+          const oldTicker = oldSearchTickers[i];
+
+          if (deletedTickers.includes(oldTicker)) {
+            delete oldSearchObj[oldTicker];
+            deleteIdx.push(i);
+          }
+        }
+
+        // clear allPromises
+        const deleteStartIdx = deleteIdx[0];
+        const deleteEndIdx = deleteIdx[deleteIdx.length - 1];
+        allPromises.splice(deleteStartIdx, deleteEndIdx);
+
+        // clear deletedObj
+        for (let ticker in deletedObj) {
+          if (deletedObj.hasOwnProperty(ticker)) {
+            delete deletedObj[ticker];
+          }
+        }
+      }
+
+      if (
+        tempArr.length === allPromises.length ||
+        !oldSearchObj.hasOwnProperty(newSearch)
+      ) {
+        // 輸入尚未存在 ticker
+        console.log("尚未存在---------");
+        allPromises.push(axios.get(`/api/quote/${newSearch}`));
+        tempArr = allPromises;
+      } else {
+        // 輸入已存在 ticker
+        console.log("已存在 ticker-----------");
+        tempArr = allPromises.slice(0, newLen);
+      }
+
+      console.log("hasOwnProperty", oldSearchObj.hasOwnProperty(newSearch));
     }
 
     function checkInputExist(input) {
       if (input === "") {
+        console.log("清空");
         isSearchListLoading.value = false;
-        allPromises.length = 0;
         searchList.value = null;
+        allPromises.length = 0;
+        tempArr.length = 0;
+
+        for (let ticker in oldSearchObj) {
+          if (oldSearchObj.hasOwnProperty(ticker)) {
+            delete oldSearchObj[ticker];
+          }
+        }
+        console.log("allPromises", allPromises);
+        console.log("tempArr", tempArr);
+        console.log("oldSearchObj", oldSearchObj);
+        // console.log("deletedObj", deletedObj);
         return;
       }
+      console.log("allPromises", allPromises);
+      console.log("tempArr", tempArr);
+      console.log("oldSearchObj", oldSearchObj);
+      // console.log("deletedObj", deletedObj);
     }
 
     function isTickerExist(item) {
@@ -163,7 +261,7 @@ export default {
     }
 
     function getQuote() {
-      Promise.allSettled(allPromises)
+      Promise.allSettled(tempArr)
         .then((response) => {
           // const promiseSize = allPromises.length - 1;
           // console.log("promiseSize", promiseSize);
@@ -191,7 +289,7 @@ export default {
           console.log("watch result", result);
 
           // 資料全部 load 完再一次呈現
-          if (result.length === allPromises.length - deleteCount) {
+          if (result.length === tempArr.length - deleteCount) {
             searchList.value = result;
             toggleSearchListSkeleton(false);
 
@@ -205,14 +303,18 @@ export default {
     }
 
     watch(searchTicker, (newSearch, oldSearch) => {
-      const oldLen = oldSearch?.length || 0;
-      const newLen = newSearch?.length;
-      const isTyping = newLen > oldLen;
+      if (oldSearch) {
+        oldSearchObj[oldSearch] = oldSearch;
+      }
+      // deletedObj[newSearch] = newSearch;
+
+      // console.log("oldSearchObj", oldSearchObj);
+      // console.log("deletedObj", deletedObj);
 
       toggleSearchListSkeleton(true);
-      checkInputStatus(isTyping, newSearch);
+      checkInputStatus(newSearch, oldSearch);
       checkInputExist(newSearch);
-      addSkeletonTableRow();
+      // addSkeletonTableRow();
       getQuote();
     });
 

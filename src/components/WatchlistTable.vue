@@ -18,7 +18,7 @@
     </div>
 
     <!-- body -->
-    <div class="block w-full overflow-x-auto">
+    <div class="block w-full overflow-x-auto" v-if="result">
       <table class="w-full border-collapse table-fixed">
         <thead
           class="bg-gray-100 border-t border-b hidden lg:table-header-group"
@@ -223,7 +223,7 @@ import { ref, watch } from "vue";
 
 export default {
   props: {
-    result: Object,
+    result: Array,
   },
   setup(props, { emit }) {
     function deleteTicker(ticker) {

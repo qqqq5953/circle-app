@@ -45,7 +45,6 @@ router.get('/quote/:ticker', async (req, res) => {
       price,
       ticker,
       regularMarketTime,
-      previousClose,
       previousCloseChange,
       previousCloseChangePercent
     }
@@ -242,29 +241,15 @@ router.post('/addStock', async (req, res) => {
 })
 
 router.post('/addToWatchlist', async (req, res) => {
-  const {
-    name,
-    price,
-    ticker,
-    previousCloseChange,
-    previousCloseChangePercent
-  } = req.body
+  const { ticker, name } = req.body
 
-  const obj = {
-    name,
-    price,
-    ticker,
-    previousCloseChange,
-    previousCloseChangePercent
-  }
-
-  await watchlistRef.child(ticker).set(obj)
+  await watchlistRef.child(ticker).set(name)
 
   message = {
     success: true,
     content: '標的新增成功',
     errorMessage: null,
-    result: obj
+    result: { [ticker]: name }
   }
   res.send(message)
 })
@@ -283,16 +268,28 @@ router.post('/deleteFromWatchlist', async (req, res) => {
 })
 
 router.get('/getWatchlist', async (req, res) => {
-  const watchlistChildRef = await watchlistRef.once('value')
-  const watchlist = watchlistChildRef.val()
+  try {
+    const watchlistChildRef = await watchlistRef.once('value')
+    const watchlist = watchlistChildRef.val()
 
-  message = {
-    success: true,
-    content: '獲得 watchlist',
-    errorMessage: null,
-    result: watchlist
+    const msg = {
+      success: true,
+      content: '獲得 watchlist',
+      errorMessage: null,
+      result: watchlist
+    }
+
+    res.send(msg)
+  } catch (error) {
+    console.log('error', error.message)
+    const msg = {
+      success: false,
+      content: '獲得標的失敗',
+      errorMessage: error.message,
+      result: null
+    }
+    res.send(msg)
   }
-  res.send(message)
 })
 
 module.exports = router

@@ -133,7 +133,6 @@ export default {
     const allPromises = [];
     const cacheInput = {};
     const cacheValidTicker = {};
-    const cacheDelete = {};
     const tickerRule = /^[a-z\-?]{1,5}$/i;
     watch(searchTicker, async (newSearch, oldSearch) => {
       const oldLen = oldSearch?.length || 0;
@@ -149,7 +148,6 @@ export default {
       if (!isTickerMatch) {
         console.log("都不符合！！！！");
         toggleSearchListSkeleton(false);
-        clearCache(cacheDelete);
 
         allPromises.length = 0;
         searchList.value = null;
@@ -166,7 +164,6 @@ export default {
 
       console.log("cacheInput", cacheInput);
       console.log("cacheValidTicker", cacheValidTicker);
-      console.log("cacheDelete", cacheDelete);
     });
 
     const typingResponse = async (newSearch) => {
@@ -220,9 +217,6 @@ export default {
 
     const deleteResponse = (newSearch, oldSearch) => {
       console.log("=========刪除=========");
-      const isOldSearchMatch = tickerRule.test(oldSearch);
-
-      if (isOldSearchMatch) cacheDelete[oldSearch] = oldSearch;
 
       return showValidTicker(newSearch);
     };

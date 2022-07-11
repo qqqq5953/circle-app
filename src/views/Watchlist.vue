@@ -170,54 +170,14 @@ export default {
     });
 
     const typingResponse = async (newSearch) => {
-      const hasDeleteRecord = Object.keys(cacheDelete).length !== 0;
-
-      if (!hasDeleteRecord) {
-        // 清空後輸入
-        console.log("=========清空後新增=========");
-        return await typingBeforeDelete(newSearch);
-      } else {
-        // 刪除後輸入
-        return await typingAfterDelete(newSearch);
-      }
-    };
-
-    const typingBeforeDelete = async (newSearch) => {
       const isInputNew = !cacheInput.hasOwnProperty(newSearch);
-      const isInputValidTicker = cacheValidTicker.hasOwnProperty(newSearch);
 
-      if (!isInputNew || isInputValidTicker) {
+      if (!isInputNew) {
         // 曾輸入過
         return showValidTicker(newSearch);
       } else {
         // 第一次輸入
         toggleSearchListSkeleton(true);
-        return await getQuote(newSearch);
-      }
-    };
-
-    const typingAfterDelete = async (newSearch) => {
-      const isInputNew = !cacheInput.hasOwnProperty(newSearch);
-      const newLen = newSearch?.length;
-      const currentIndex = newLen - 1;
-
-      if (!isInputNew) {
-        console.log("=========刪除後相同輸入=========");
-        return showValidTicker(newSearch);
-      } else {
-        console.log("=========刪除後新增=========");
-
-        // allPromises 刪除 cacheDelete 有的 ticker 之相應的 promise
-        allPromises.splice(currentIndex);
-
-        // cacheInput 刪除 cacheDelete 有的屬性
-        // clearCache(cacheInput, cacheDelete);
-
-        // 清空 cacheDelete
-        // clearCache(cacheDelete);
-
-        toggleSearchListSkeleton(true);
-
         return await getQuote(newSearch);
       }
     };

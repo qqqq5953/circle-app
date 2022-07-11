@@ -33,7 +33,7 @@
             focus:outline-none focus:ring
             w-full
           "
-          v-model="searchTicker"
+          v-model.trim="searchTicker"
         />
       </div>
     </form>
@@ -102,221 +102,210 @@ export default {
         td: 3,
       },
     });
-    const allPromises = [];
-    const searchList = ref([]);
-    const searchTicker = ref(null);
     const watchlist = ref(null);
     const isWatchlistLoading = ref(null);
     const isSearchListLoading = ref(null);
 
-    function getWatchlist(isInitWhenPageLoading = true) {
+    function getWatchlist() {
       const { data, error, loading } = useAxios("/api/getWatchlist", "get");
 
-      // 刪除到最後一個時不會閃一下（但其他刪除時便不會 loading）
-      if (isInitWhenPageLoading) {
-        console.log("isInitWhenPageLoading", isInitWhenPageLoading);
-        toggleWatchlistSkeleton(loading.value);
-      }
+      toggleWatchlistSkeleton(loading.value);
 
-      const temp = loading.value;
-
-      watch([data, loading], async ([newData, newLoading]) => {
-        if (newData.result == null) {
-          watchlist.value = null;
-          toggleWatchlistSkeleton(false);
-          return;
-        }
-
-        const allPromises = [];
-        const tickers = Object.keys(newData.result);
-
-        for (let i = 0; i < tickers.length; i++) {
-          allPromises.push(axios.get(`/api/quote/${tickers[i]}`));
-        }
-
-        Promise.allSettled(allPromises)
-          .then((res) => {
-            watchlist.value = res.map((item) => item.value.data.result);
-            toggleWatchlistSkeleton(newLoading);
-          })
-          .catch((error) => {
-            console.log("error", error);
-          });
+      watch([data, loading], ([newData, newLoading]) => {
+        console.log("result", newData.result);
+        watchlist.value = newData.result;
+        toggleWatchlistSkeleton(newLoading);
       });
     }
 
     // getWatchlist();
 
-    function toggleWatchlistSkeleton(isLoading) {
+    const toggleWatchlistSkeleton = (isLoading) => {
       isWatchlistLoading.value = isLoading;
-    }
+    };
 
-    function toggleSearchListSkeleton(isLoading) {
+    const toggleSearchListSkeleton = (isLoading) => {
       isSearchListLoading.value = isLoading;
-    }
+    };
 
-    let tempArr = [];
-    const oldSearchObj = {};
-    const deletedObj = {};
-
-    function checkInputStatus(newSearch, oldSearch) {
+    const searchList = ref([]);
+    const searchTicker = ref(null);
+    const allPromises = [];
+    const cacheInput = {};
+    const cacheValidTicker = {};
+    const cacheDelete = {};
+    const tickerRule = /^[a-z\-?]{1,5}$/i;
+    watch(searchTicker, async (newSearch, oldSearch) => {
       const oldLen = oldSearch?.length || 0;
       const newLen = newSearch?.length;
       const isTyping = newLen > oldLen;
-      const tickerRule = /[a-z\-?]/i;
+      const isTickerMatch = tickerRule.test(newSearch);
+      const isOldSearchMatch = tickerRule.test(oldSearch);
+
+      console.log("***************** start *****************");
       console.log("oldSearch", oldSearch);
       console.log("newSearch", newSearch);
 
-      if (!tickerRule.test(newSearch)) return;
+      if (!isTickerMatch) {
+        console.log("都不符合！！！！");
+        toggleSearchListSkeleton(false);
+        clearCache(cacheDelete);
 
-      if (!isTyping) {
-        tempArr = allPromises.slice(0, newLen);
-        // 將刪除的 ticker 加入 deletedObj
-        deletedObj[oldSearch] = oldSearch;
-        return;
-      }
-
-      const oldSearchTickers = Object.keys(oldSearchObj);
-      const deletedTickers = Object.keys(deletedObj);
-      const isDeletedObjEmpty = deletedTickers.length === 0;
-      const isTickerDeleted = deletedObj.hasOwnProperty(newSearch);
-
-      // 刪除後新增：清空舊陣列
-      if (!isDeletedObjEmpty && !isTickerDeleted) {
-        const deleteIdx = [];
-
-        // 清空 oldSearchObj（被刪掉的 ticker）
-        for (let i = 0; i < oldSearchTickers.length; i++) {
-          const oldTicker = oldSearchTickers[i];
-
-          if (deletedTickers.includes(oldTicker)) {
-            delete oldSearchObj[oldTicker];
-            deleteIdx.push(i);
-          }
-        }
-
-        // clear allPromises
-        const deleteStartIdx = deleteIdx[0];
-        const deleteEndIdx = deleteIdx[deleteIdx.length - 1];
-        allPromises.splice(deleteStartIdx, deleteEndIdx);
-
-        // clear deletedObj
-        for (let ticker in deletedObj) {
-          if (deletedObj.hasOwnProperty(ticker)) {
-            delete deletedObj[ticker];
-          }
-        }
-      }
-
-      if (
-        tempArr.length === allPromises.length ||
-        !oldSearchObj.hasOwnProperty(newSearch)
-      ) {
-        // 輸入尚未存在 ticker
-        console.log("尚未存在---------");
-        allPromises.push(axios.get(`/api/quote/${newSearch}`));
-        tempArr = allPromises;
-      } else {
-        // 輸入已存在 ticker
-        console.log("已存在 ticker-----------");
-        tempArr = allPromises.slice(0, newLen);
-      }
-
-      console.log("hasOwnProperty", oldSearchObj.hasOwnProperty(newSearch));
-    }
-
-    function checkInputExist(input) {
-      if (input === "") {
-        console.log("清空");
-        isSearchListLoading.value = false;
-        searchList.value = null;
         allPromises.length = 0;
-        tempArr.length = 0;
-
-        for (let ticker in oldSearchObj) {
-          if (oldSearchObj.hasOwnProperty(ticker)) {
-            delete oldSearchObj[ticker];
-          }
-        }
-        console.log("allPromises", allPromises);
-        console.log("tempArr", tempArr);
-        console.log("oldSearchObj", oldSearchObj);
-        // console.log("deletedObj", deletedObj);
+        searchList.value = null;
         return;
       }
-      console.log("allPromises", allPromises);
-      console.log("tempArr", tempArr);
-      console.log("oldSearchObj", oldSearchObj);
-      // console.log("deletedObj", deletedObj);
-    }
 
-    function isTickerExist(item) {
+      if (oldSearch && isOldSearchMatch) cacheInput[oldSearch] = oldSearch;
+
+      if (isTyping) {
+        searchList.value = await typingResponse(newSearch);
+      } else {
+        searchList.value = deleteResponse(newSearch, oldSearch);
+      }
+
+      console.log("cacheInput", cacheInput);
+      console.log("cacheValidTicker", cacheValidTicker);
+      console.log("cacheDelete", cacheDelete);
+    });
+
+    const typingResponse = async (newSearch) => {
+      const hasDeleteRecord = Object.keys(cacheDelete).length !== 0;
+
+      if (!hasDeleteRecord) {
+        // 清空後輸入
+        console.log("=========清空後新增=========");
+        return await typingBeforeDelete(newSearch);
+      } else {
+        // 刪除後輸入
+        return await typingAfterDelete(newSearch);
+      }
+    };
+
+    const typingBeforeDelete = async (newSearch) => {
+      const isInputNew = !cacheInput.hasOwnProperty(newSearch);
+      const isInputValidTicker = cacheValidTicker.hasOwnProperty(newSearch);
+
+      if (!isInputNew || isInputValidTicker) {
+        // 曾輸入過
+        return showValidTicker(newSearch);
+      } else {
+        // 第一次輸入
+        toggleSearchListSkeleton(true);
+        return await getQuote(newSearch);
+      }
+    };
+
+    const typingAfterDelete = async (newSearch) => {
+      const isInputNew = !cacheInput.hasOwnProperty(newSearch);
+      const newLen = newSearch?.length;
+      const currentIndex = newLen - 1;
+
+      if (!isInputNew) {
+        console.log("=========刪除後相同輸入=========");
+        return showValidTicker(newSearch);
+      } else {
+        console.log("=========刪除後新增=========");
+
+        // allPromises 刪除 cacheDelete 有的 ticker 之相應的 promise
+        allPromises.splice(currentIndex);
+
+        // cacheInput 刪除 cacheDelete 有的屬性
+        // clearCache(cacheInput, cacheDelete);
+
+        // 清空 cacheDelete
+        // clearCache(cacheDelete);
+
+        toggleSearchListSkeleton(true);
+
+        return await getQuote(newSearch);
+      }
+    };
+
+    const getQuote = async (newSearch) => {
+      allPromises.push(axios.get(`/api/quote/${newSearch}`));
+
+      console.log("allPromises", allPromises);
+
+      try {
+        let deleteCount = 0;
+
+        const response = await Promise.allSettled(allPromises);
+        const result = response
+          .map((item) => item.value.data.result)
+          .filter((item) => {
+            if (isTickerValid(item)) {
+              const ticker = item.ticker.toLowerCase();
+              cacheValidTicker[ticker] = item;
+              return isTickerValid(item);
+            } else {
+              deleteCount++;
+            }
+          });
+
+        console.log("cacheValidTicker", cacheValidTicker);
+        console.log("watch result", result);
+
+        // 資料全部 load 完再一次呈現
+        if (result.length === allPromises.length - deleteCount) {
+          console.log("-------finish loading------");
+          toggleSearchListSkeleton(false);
+          return showValidTicker(newSearch);
+        }
+      } catch (error) {
+        console.log("error", error);
+        toggleSearchListSkeleton(false);
+      }
+    };
+
+    const deleteResponse = (newSearch, oldSearch) => {
+      console.log("=========刪除=========");
+      const isOldSearchMatch = tickerRule.test(oldSearch);
+
+      if (isOldSearchMatch) cacheDelete[oldSearch] = oldSearch;
+
+      return showValidTicker(newSearch);
+    };
+
+    const showValidTicker = (newSearch) => {
+      const isInputValidTicker = cacheValidTicker.hasOwnProperty(newSearch);
+
+      if (isInputValidTicker) {
+        console.log("showValidTicker", cacheValidTicker[newSearch]);
+        toggleSearchListSkeleton(false);
+        return [cacheValidTicker[newSearch]];
+      }
+    };
+
+    const clearCache = (mainObj, compareObj = mainObj) => {
+      for (let tickers in mainObj) {
+        if (compareObj.hasOwnProperty(tickers)) {
+          delete mainObj[tickers];
+        }
+      }
+    };
+
+    const isTickerValid = (item) => {
       return (
         item != null && item.name != null && item.previousCloseChange !== "NaN"
       );
-    }
+    };
 
     function addSkeletonTableRow() {
       searchListSkeletonContent.value.tableBody.tr = allPromises.length;
     }
 
-    function getQuote() {
-      Promise.allSettled(tempArr)
-        .then((response) => {
-          // const promiseSize = allPromises.length - 1;
-          // console.log("promiseSize", promiseSize);
+    function checkInputStatus(isTyping, ticker) {
+      const tickerRule = /[a-z\-?]/i;
 
-          // const stock = response[promiseSize];
-          // if (!stock?.data) return;
-          // searchList.value = [stock.value.data.result];
-
-          // searchList.value = [
-          //   response.map((item) => item.value.data.result).reverse()[0],
-          // ];
-          let deleteCount = 0;
-
-          const result = response
-            .reverse()
-            .map((item) => item.value.data.result)
-            .filter((item) => {
-              if (!isTickerExist(item)) {
-                deleteCount++;
-              } else {
-                return isTickerExist(item);
-              }
-            });
-
-          console.log("watch result", result);
-
-          // 資料全部 load 完再一次呈現
-          if (result.length === tempArr.length - deleteCount) {
-            searchList.value = result;
-            toggleSearchListSkeleton(false);
-
-            console.log("-------finish loading------");
-          }
-        })
-        .catch((error) => {
-          console.log("error", error);
-          toggleSearchListSkeleton(false);
-        });
-    }
-
-    watch(searchTicker, (newSearch, oldSearch) => {
-      if (oldSearch) {
-        oldSearchObj[oldSearch] = oldSearch;
+      if (isTyping && tickerRule.test(ticker)) {
+        allPromises.push(axios.get(`/api/quote/${ticker}`));
+      } else {
+        allPromises.pop();
       }
-      // deletedObj[newSearch] = newSearch;
 
-      // console.log("oldSearchObj", oldSearchObj);
-      // console.log("deletedObj", deletedObj);
-
-      toggleSearchListSkeleton(true);
-      checkInputStatus(newSearch, oldSearch);
-      checkInputExist(newSearch);
-      // addSkeletonTableRow();
-      getQuote();
-    });
+      console.log("allPromises", allPromises);
+    }
 
     return {
       searchTicker,

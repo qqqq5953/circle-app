@@ -141,11 +141,7 @@ export default {
   setup(props, { emit }) {
     const serachList = computed(() => {
       if (!props.result?.length) return;
-
-      const lastIndex = props.result.length - 1;
-      const final = props.result[lastIndex];
-
-      return [final];
+      return props.result;
     });
 
     function addToWatchlist(ticker, name) {

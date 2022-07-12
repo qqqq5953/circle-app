@@ -131,11 +131,10 @@ export default {
     const searchList = ref([]);
     const searchTicker = ref(null);
     const allPromises = [];
-    const cacheInput = new Map();
-    // const cacheInput = {};
-    const cacheValidTicker = new Map();
-    // const cacheValidTicker = {};
+    const cacheInput = ref(new Map());
+    const cacheValidTicker = ref(new Map());
     const tickerRule = /^[a-z\-?]{1,5}$/i;
+
     watch(searchTicker, async (newSearch, oldSearch) => {
       const oldLen = oldSearch?.length || 0;
       const newLen = newSearch?.length;
@@ -143,31 +142,23 @@ export default {
       const isTickerMatch = tickerRule.test(newSearch);
       const isOldSearchMatch = tickerRule.test(oldSearch);
 
-      console.log("***************** start *****************");
-      console.log("oldSearch", oldSearch);
-      console.log("newSearch", newSearch);
-
       if (!isTickerMatch) {
-        console.log("都不符合！！！！");
         allPromises.length = 0;
         searchList.value = null;
         return;
       }
 
-      if (oldSearch && isOldSearchMatch) cacheInput.set(oldSearch, oldSearch);
-      // if (oldSearch && isOldSearchMatch) cacheInput[oldSearch] = oldSearch;
+      if (oldSearch && isOldSearchMatch) {
+        cacheInput.value.set(oldSearch, oldSearch);
+      }
 
       searchList.value = isTyping
         ? await typingResponse(newSearch)
         : deleteResponse(newSearch);
-
-      console.log("cacheInput", cacheInput);
-      console.log("cacheValidTicker", cacheValidTicker);
     });
 
     const typingResponse = async (newSearch) => {
-      // const isInputNew = !cacheInput.hasOwnProperty(newSearch);
-      const isInputNew = !cacheInput.has(newSearch);
+      const isInputNew = !cacheInput.value.has(newSearch);
 
       if (isInputNew) toggleSearchListSkeleton(true);
 
@@ -183,27 +174,22 @@ export default {
         let deleteCount = 0;
 
         const response = await Promise.allSettled(allPromises);
-        const result = response
+        const results = response
           .map((item) => item.value.data.result)
           .filter((item) => {
             if (isTickerValid(item)) {
               const ticker = item.ticker.toLowerCase();
-              // cacheValidTicker[ticker] = item;
-              cacheValidTicker.set(ticker, item);
+              cacheValidTicker.value.set(ticker, item);
               return isTickerValid(item);
             } else {
               deleteCount++;
             }
           });
-
-        console.log("cacheValidTicker", cacheValidTicker);
-        console.log("watch result", result);
+        const isGettingAllResults =
+          results.length === allPromises.length - deleteCount;
 
         // 資料全部 load 完再一次呈現
-        if (result.length === allPromises.length - deleteCount) {
-          console.log("-------finish loading------");
-          return showValidTicker(newSearch);
-        }
+        if (isGettingAllResults) return showValidTicker(newSearch);
       } catch (error) {
         console.log("error", error);
         toggleSearchListSkeleton(false);
@@ -213,43 +199,16 @@ export default {
     const deleteResponse = (newSearch) => showValidTicker(newSearch);
 
     const showValidTicker = (newSearch) => {
-      // const isInputValidTicker = cacheValidTicker.hasOwnProperty(newSearch);
-      const isInputValidTicker = cacheValidTicker.has(newSearch);
+      const isInputValidTicker = cacheValidTicker.value.has(newSearch);
 
       if (isInputValidTicker) {
-        console.log("showValidTicker", cacheValidTicker[newSearch]);
         toggleSearchListSkeleton(false);
-        // return [cacheValidTicker[newSearch]];
-        return [cacheValidTicker.get(newSearch)];
+        return [cacheValidTicker.value.get(newSearch)];
       }
     };
 
     const isTickerValid = (item) =>
       item?.name != null && item?.previousCloseChange !== "NaN";
-
-    const clearCache = (mainObj, compareObj = mainObj) => {
-      for (let tickers in mainObj) {
-        if (compareObj.hasOwnProperty(tickers)) {
-          delete mainObj[tickers];
-        }
-      }
-    };
-
-    function addSkeletonTableRow() {
-      searchListSkeletonContent.value.tableBody.tr = allPromises.length;
-    }
-
-    function checkInputStatus(isTyping, ticker) {
-      const tickerRule = /[a-z\-?]/i;
-
-      if (isTyping && tickerRule.test(ticker)) {
-        allPromises.push(axios.get(`/api/quote/${ticker}`));
-      } else {
-        allPromises.pop();
-      }
-
-      console.log("allPromises", allPromises);
-    }
 
     return {
       searchTicker,

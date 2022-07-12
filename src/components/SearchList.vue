@@ -145,10 +145,6 @@ export default {
       const lastIndex = props.result.length - 1;
       const final = props.result[lastIndex];
 
-      // console.log("props.result", props.result);
-      // console.log("lastIndex", lastIndex);
-      console.log("final", [final]);
-
       return [final];
     });
 

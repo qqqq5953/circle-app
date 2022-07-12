@@ -131,8 +131,10 @@ export default {
     const searchList = ref([]);
     const searchTicker = ref(null);
     const allPromises = [];
-    const cacheInput = {};
-    const cacheValidTicker = {};
+    const cacheInput = new Map();
+    // const cacheInput = {};
+    const cacheValidTicker = new Map();
+    // const cacheValidTicker = {};
     const tickerRule = /^[a-z\-?]{1,5}$/i;
     watch(searchTicker, async (newSearch, oldSearch) => {
       const oldLen = oldSearch?.length || 0;
@@ -147,42 +149,35 @@ export default {
 
       if (!isTickerMatch) {
         console.log("都不符合！！！！");
-        toggleSearchListSkeleton(false);
-
         allPromises.length = 0;
         searchList.value = null;
         return;
       }
 
-      if (oldSearch && isOldSearchMatch) cacheInput[oldSearch] = oldSearch;
+      if (oldSearch && isOldSearchMatch) cacheInput.set(oldSearch, oldSearch);
+      // if (oldSearch && isOldSearchMatch) cacheInput[oldSearch] = oldSearch;
 
-      if (isTyping) {
-        searchList.value = await typingResponse(newSearch);
-      } else {
-        searchList.value = deleteResponse(newSearch, oldSearch);
-      }
+      searchList.value = isTyping
+        ? await typingResponse(newSearch)
+        : deleteResponse(newSearch);
 
       console.log("cacheInput", cacheInput);
       console.log("cacheValidTicker", cacheValidTicker);
     });
 
     const typingResponse = async (newSearch) => {
-      const isInputNew = !cacheInput.hasOwnProperty(newSearch);
+      // const isInputNew = !cacheInput.hasOwnProperty(newSearch);
+      const isInputNew = !cacheInput.has(newSearch);
 
-      if (!isInputNew) {
-        // 曾輸入過
-        return showValidTicker(newSearch);
-      } else {
-        // 第一次輸入
-        toggleSearchListSkeleton(true);
-        return await getQuote(newSearch);
-      }
+      if (isInputNew) toggleSearchListSkeleton(true);
+
+      return isInputNew
+        ? await getQuote(newSearch) // 第一次輸入
+        : showValidTicker(newSearch); // 曾輸入過
     };
 
     const getQuote = async (newSearch) => {
       allPromises.push(axios.get(`/api/quote/${newSearch}`));
-
-      console.log("allPromises", allPromises);
 
       try {
         let deleteCount = 0;
@@ -193,7 +188,8 @@ export default {
           .filter((item) => {
             if (isTickerValid(item)) {
               const ticker = item.ticker.toLowerCase();
-              cacheValidTicker[ticker] = item;
+              // cacheValidTicker[ticker] = item;
+              cacheValidTicker.set(ticker, item);
               return isTickerValid(item);
             } else {
               deleteCount++;
@@ -206,7 +202,6 @@ export default {
         // 資料全部 load 完再一次呈現
         if (result.length === allPromises.length - deleteCount) {
           console.log("-------finish loading------");
-          toggleSearchListSkeleton(false);
           return showValidTicker(newSearch);
         }
       } catch (error) {
@@ -215,21 +210,22 @@ export default {
       }
     };
 
-    const deleteResponse = (newSearch, oldSearch) => {
-      console.log("=========刪除=========");
-
-      return showValidTicker(newSearch);
-    };
+    const deleteResponse = (newSearch) => showValidTicker(newSearch);
 
     const showValidTicker = (newSearch) => {
-      const isInputValidTicker = cacheValidTicker.hasOwnProperty(newSearch);
+      // const isInputValidTicker = cacheValidTicker.hasOwnProperty(newSearch);
+      const isInputValidTicker = cacheValidTicker.has(newSearch);
 
       if (isInputValidTicker) {
         console.log("showValidTicker", cacheValidTicker[newSearch]);
         toggleSearchListSkeleton(false);
-        return [cacheValidTicker[newSearch]];
+        // return [cacheValidTicker[newSearch]];
+        return [cacheValidTicker.get(newSearch)];
       }
     };
+
+    const isTickerValid = (item) =>
+      item?.name != null && item?.previousCloseChange !== "NaN";
 
     const clearCache = (mainObj, compareObj = mainObj) => {
       for (let tickers in mainObj) {
@@ -237,12 +233,6 @@ export default {
           delete mainObj[tickers];
         }
       }
-    };
-
-    const isTickerValid = (item) => {
-      return (
-        item != null && item.name != null && item.previousCloseChange !== "NaN"
-      );
     };
 
     function addSkeletonTableRow() {

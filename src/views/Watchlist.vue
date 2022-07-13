@@ -38,17 +38,17 @@
       </div>
     </form>
 
-    <!-- v-show="isWatchlistLoading"  -->
-    <!-- v-show="!isWatchlistLoading" -->
-
     <!-- 搜尋結果 -->
     <ListSkeleton
       :tableContent="searchListSkeletonContent"
       v-show="isSearchListLoading"
     />
     <SearchList
-      :result="searchList"
+      :searchResult="searchList"
+      :watchlist="watchlist"
+      :isAddingProcess="isAddingProcess"
       @getWatchlist="getWatchlist"
+      @toggleAddButton="toggleAddButton"
       v-show="!isSearchListLoading"
     />
 
@@ -89,19 +89,6 @@ export default {
         td: 3,
       },
     });
-
-    const watchlist = ref(null);
-    const isWatchlistLoading = ref(null);
-    const isSearchListLoading = ref(null);
-
-    const toggleWatchlistSkeleton = (isLoading) => {
-      isWatchlistLoading.value = isLoading;
-    };
-
-    const toggleSearchListSkeleton = (isLoading) => {
-      isSearchListLoading.value = isLoading;
-    };
-
     const watchlistTableSkeletonContent = ref({
       tableHead: {
         hasTableHead: true,
@@ -115,6 +102,22 @@ export default {
         td: 3,
       },
     });
+    const watchlist = ref(null);
+    const isWatchlistLoading = ref(null);
+    const isSearchListLoading = ref(null);
+    const isAddingProcess = ref(false);
+
+    const toggleWatchlistSkeleton = (isLoading) => {
+      isWatchlistLoading.value = isLoading;
+    };
+
+    const toggleSearchListSkeleton = (isLoading) => {
+      isSearchListLoading.value = isLoading;
+    };
+
+    const toggleAddButton = (isLoading) => {
+      isAddingProcess.value = isLoading;
+    };
 
     function getWatchlist() {
       const { data, error, loading } = useAxios("/api/getWatchlist", "get");
@@ -136,7 +139,16 @@ export default {
 
         Promise.allSettled(allPromises)
           .then((res) => {
-            watchlist.value = res.map((item) => item.value.data.result);
+            watchlist.value = res
+              .map((item) => item.value.data.result)
+              .reduce((obj, item) => {
+                return {
+                  ...obj,
+                  [item.ticker]: item,
+                };
+              }, {});
+
+            toggleAddButton(newLoading);
             toggleWatchlistSkeleton(newLoading);
           })
           .catch((error) => {
@@ -241,6 +253,8 @@ export default {
       watchlistTableSkeletonContent,
       isWatchlistLoading,
       isSearchListLoading,
+      isAddingProcess,
+      toggleAddButton,
     };
   },
 };

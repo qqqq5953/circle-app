@@ -223,7 +223,7 @@ import { ref, watch } from "vue";
 
 export default {
   props: {
-    result: Array,
+    result: [Array, Object],
   },
   setup(props, { emit }) {
     function deleteTicker(ticker) {

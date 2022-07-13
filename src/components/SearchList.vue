@@ -113,13 +113,20 @@
               w-1/12
             "
           >
-            <a
-              href="#"
-              class="lg:text-lg text-gray-300"
-              @click.prevent="addToWatchlist(item.ticker, item.name)"
-            >
-              <i class="fas fa-plus"></i>
-            </a>
+            <div v-if="isAddingProcess">
+              <i class="fa-solid fa-spinner animate-spin"></i>
+            </div>
+            <div v-else>
+              <a
+                href="#"
+                class="lg:text-lg text-gray-300"
+                @click.prevent="addToWatchlist(item.ticker, item.name)"
+                v-if="!isTickerInWatchlist"
+              >
+                <i class="fas fa-plus"></i>
+              </a>
+              <i class="fa-solid fa-check" v-else></i>
+            </div>
           </td>
         </tr>
       </tbody>
@@ -133,26 +140,45 @@ import { ref, watch, computed } from "vue";
 
 export default {
   props: {
-    result: {
+    searchResult: {
       type: Array,
       default: null,
     },
+    watchlist: {
+      type: Object,
+    },
+    isAddingProcess: {
+      type: Boolean,
+    },
   },
   setup(props, { emit }) {
+    const isTickerInWatchlist = computed(() => {
+      const watchlist = props.watchlist;
+      const ticker = props.searchResult[0]?.ticker;
+
+      console.log(" watchlist ", watchlist);
+
+      return watchlist.hasOwnProperty(ticker);
+    });
+
     const serachList = computed(() => {
-      if (!props.result?.length) return;
-      return props.result;
+      if (!props.searchResult?.length) return;
+      return props.searchResult;
     });
 
     function addToWatchlist(ticker, name) {
+      if (isTickerInWatchlist.value) return;
+
       const { data, error, loading } = useAxios("/api/addToWatchlist", "post", {
         ticker,
         name,
       });
 
-      watch(data, (newData) => {
-        console.log("addToWatchlist", newData);
+      emit("toggleAddButton", loading.value);
 
+      watch([data, loading], ([newData, newLoading]) => {
+        console.log("addToWatchlist", newData);
+        console.log("newLoading", newLoading);
         emit("getWatchlist");
       });
     }
@@ -160,6 +186,7 @@ export default {
     return {
       addToWatchlist,
       serachList,
+      isTickerInWatchlist,
     };
   },
 };

@@ -106,20 +106,6 @@ export default {
     const isWatchlistLoading = ref(null);
     const isSearchListLoading = ref(null);
 
-    function getWatchlist() {
-      const { data, error, loading } = useAxios("/api/getWatchlist", "get");
-
-      toggleWatchlistSkeleton(loading.value);
-
-      watch([data, loading], ([newData, newLoading]) => {
-        console.log("result", newData.result);
-        watchlist.value = newData.result;
-        toggleWatchlistSkeleton(newLoading);
-      });
-    }
-
-    // getWatchlist();
-
     const toggleWatchlistSkeleton = (isLoading) => {
       isWatchlistLoading.value = isLoading;
     };
@@ -127,6 +113,44 @@ export default {
     const toggleSearchListSkeleton = (isLoading) => {
       isSearchListLoading.value = isLoading;
     };
+
+    function getWatchlist(isInitWhenPageLoading = true) {
+      const { data, error, loading } = useAxios("/api/getWatchlist", "get");
+
+      // 刪除到最後一個時不會閃一下（但其他刪除時便不會 loading）
+      if (isInitWhenPageLoading) {
+        console.log("isInitWhenPageLoading", isInitWhenPageLoading);
+        toggleWatchlistSkeleton(loading.value);
+      }
+
+      const temp = loading.value;
+
+      watch([data, loading], async ([newData, newLoading]) => {
+        if (newData.result == null) {
+          watchlist.value = null;
+          toggleWatchlistSkeleton(false);
+          return;
+        }
+
+        const allPromises = [];
+        const tickers = Object.keys(newData.result);
+
+        for (let i = 0; i < tickers.length; i++) {
+          allPromises.push(axios.get(`/api/quote/${tickers[i]}`));
+        }
+
+        Promise.allSettled(allPromises)
+          .then((res) => {
+            watchlist.value = res.map((item) => item.value.data.result);
+            toggleWatchlistSkeleton(newLoading);
+          })
+          .catch((error) => {
+            console.log("error", error);
+          });
+      });
+    }
+
+    getWatchlist();
 
     const searchList = ref([]);
     const searchTicker = ref(null);

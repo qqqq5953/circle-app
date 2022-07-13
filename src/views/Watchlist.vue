@@ -89,19 +89,7 @@ export default {
         td: 3,
       },
     });
-    const watchlistTableSkeletonContent = ref({
-      tableHead: {
-        hasTableHead: true,
-        th: "Stocks",
-        td: ["Price", "Change %", "Change"],
-      },
-      tableBody: {
-        hasTableBody: true,
-        tr: 4,
-        th: 1,
-        td: 3,
-      },
-    });
+
     const watchlist = ref(null);
     const isWatchlistLoading = ref(null);
     const isSearchListLoading = ref(null);
@@ -114,30 +102,37 @@ export default {
       isSearchListLoading.value = isLoading;
     };
 
-    function getWatchlist(isInitWhenPageLoading = true) {
+    const watchlistTableSkeletonContent = ref({
+      tableHead: {
+        hasTableHead: true,
+        th: "Stocks",
+        td: ["Price", "Change %", "Change"],
+      },
+      tableBody: {
+        hasTableBody: true,
+        tr: 1,
+        th: 1,
+        td: 3,
+      },
+    });
+
+    function getWatchlist() {
       const { data, error, loading } = useAxios("/api/getWatchlist", "get");
+      const allPromises = [];
 
-      // 刪除到最後一個時不會閃一下（但其他刪除時便不會 loading）
-      if (isInitWhenPageLoading) {
-        console.log("isInitWhenPageLoading", isInitWhenPageLoading);
-        toggleWatchlistSkeleton(loading.value);
-      }
+      watch([data, loading], ([newData, newLoading]) => {
+        for (let ticker in newData.result) {
+          allPromises.push(axios.get(`/api/quote/${ticker}`));
+        }
 
-      const temp = loading.value;
-
-      watch([data, loading], async ([newData, newLoading]) => {
-        if (newData.result == null) {
-          watchlist.value = null;
+        // 刪除到最後一個時不會閃一下
+        if (allPromises.length === 0) {
           toggleWatchlistSkeleton(false);
-          return;
+        } else {
+          toggleWatchlistSkeleton(true);
         }
 
-        const allPromises = [];
-        const tickers = Object.keys(newData.result);
-
-        for (let i = 0; i < tickers.length; i++) {
-          allPromises.push(axios.get(`/api/quote/${tickers[i]}`));
-        }
+        watchlistTableSkeletonContent.value.tableBody.tr = allPromises.length;
 
         Promise.allSettled(allPromises)
           .then((res) => {
@@ -146,6 +141,7 @@ export default {
           })
           .catch((error) => {
             console.log("error", error);
+            toggleWatchlistSkeleton(newLoading);
           });
       });
     }
@@ -169,6 +165,7 @@ export default {
       if (!isTickerMatch) {
         allPromises.length = 0;
         searchList.value = null;
+        toggleSearchListSkeleton(false);
         return;
       }
 
@@ -225,8 +222,9 @@ export default {
     const showValidTicker = (newSearch) => {
       const isInputValidTicker = cacheValidTicker.value.has(newSearch);
 
+      toggleSearchListSkeleton(false);
+
       if (isInputValidTicker) {
-        toggleSearchListSkeleton(false);
         return [cacheValidTicker.value.get(newSearch)];
       }
     };

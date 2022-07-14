@@ -5,7 +5,6 @@
       flex flex-col
       break-words
       w-full
-      mb-6
       shadow-lg
       rounded
       bg-white
@@ -13,6 +12,9 @@
       animate-pulse
     "
   >
+    <!-- table title -->
+    <slot name="table-title"></slot>
+
     <!-- body -->
     <div class="block w-full overflow-x-auto">
       <table class="w-full border-collapse">

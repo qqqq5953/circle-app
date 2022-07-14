@@ -4,7 +4,6 @@
       flex flex-col
       break-words
       w-full
-      my-6
       shadow-lg
       rounded
       border border-gray-100

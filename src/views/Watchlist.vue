@@ -1,62 +1,73 @@
 <template>
   <main class="px-4 md:p-10 mx-auto w-full">
-    <form class="flex justify-center mb-3">
-      <div class="relative w-full">
-        <span
-          class="
-            leading-snug
-            font-normal
-            text-blueGray-300
-            absolute
-            bg-transparent
-            rounded
-            px-3
-            py-3
-          "
-          ><i class="fas fa-search"></i
-        ></span>
-        <input
-          type="text"
-          placeholder="Search Ticker..."
-          class="
-            border-0
-            pr-3
-            pl-10
-            py-3
-            placeholder-blueGray-300
-            text-blueGray-600
-            bg-white
-            rounded
-            text-sm
-            shadow
-            outline-none
-            focus:outline-none focus:ring
-            w-full
-          "
-          v-model.trim="searchTicker"
-        />
-      </div>
-    </form>
+    <div class="relative w-full pb-24">
+      <span
+        class="
+          leading-snug
+          font-normal
+          text-blueGray-300
+          absolute
+          bg-transparent
+          rounded
+          px-3
+          py-3
+        "
+        ><i class="fas fa-search"></i
+      ></span>
+      <input
+        type="text"
+        placeholder="Search Ticker..."
+        class="
+          border-0
+          pr-3
+          pl-10
+          py-3
+          placeholder-blueGray-300
+          text-blueGray-600
+          bg-white
+          rounded
+          text-sm
+          shadow
+          outline-none
+          focus:outline-none focus:ring
+          w-full
+        "
+        autofocus
+        v-model.trim="searchTicker"
+        @focus="toggleSearchList(true)"
+      />
 
-    <!-- 搜尋結果 -->
-    <ListSkeleton
-      :tableContent="searchListSkeletonContent"
-      v-show="isSearchListLoading"
-    />
-    <SearchList
-      :searchResult="searchList"
-      :watchlist="watchlist"
-      :isAddingProcess="isAddingProcess"
-      @getWatchlist="getWatchlist"
-      @toggleAddButton="toggleAddButton"
-      v-show="!isSearchListLoading"
-    />
+      <!-- 搜尋結果 v-show="isFocus"-->
+      <Transition>
+        <div v-show="isFocus" class="mt-3 absolute top-12 w-full">
+          <ListSkeleton
+            :tableContent="searchListSkeletonContent"
+            v-show="isSearchListLoading"
+          />
+          <SearchList
+            :searchResult="searchList"
+            :watchlist="watchlist"
+            :isAddingProcess="isAddingProcess"
+            @getWatchlist="getWatchlist"
+            @toggleAddButton="toggleAddButton"
+            v-show="!isSearchListLoading"
+          />
+        </div>
+      </Transition>
+    </div>
 
     <!-- table -->
     <ListSkeleton
       :tableContent="watchlistTableSkeletonContent"
       v-show="isWatchlistLoading"
-    />
+      ><template #table-title>
+        <div class="rounded-t px-4 py-3 border-0 flex flex-wrap items-center">
+          <div class="w-full px-4 max-w-full flex-1">
+            <h3 class="font-semibold text-base text-blueGray-700">Watchlist</h3>
+          </div>
+        </div>
+      </template>
+    </ListSkeleton>
     <WatchlistTable
       :result="watchlist"
       @getWatchlist="getWatchlist"
@@ -106,6 +117,16 @@ export default {
     const isWatchlistLoading = ref(null);
     const isSearchListLoading = ref(null);
     const isAddingProcess = ref(false);
+    const isFocus = ref(null);
+
+    document.addEventListener("click", (e) => {
+      if (e.target.nodeName === "I") return;
+      isFocus.value = e.target.nodeName === "INPUT" ? true : false;
+    });
+
+    const toggleSearchList = (onFocus) => {
+      isFocus.value = onFocus;
+    };
 
     const toggleWatchlistSkeleton = (isLoading) => {
       isWatchlistLoading.value = isLoading;
@@ -168,6 +189,8 @@ export default {
     const tickerRule = /^[a-z\-?]{1,5}$/i;
 
     watch(searchTicker, async (newSearch, oldSearch) => {
+      isFocus.value = true;
+
       const oldLen = oldSearch?.length || 0;
       const newLen = newSearch?.length;
       const isTyping = newLen > oldLen;
@@ -255,7 +278,23 @@ export default {
       isSearchListLoading,
       isAddingProcess,
       toggleAddButton,
+      toggleSearchList,
+      isFocus,
     };
   },
 };
 </script>
+
+<style scoped>
+.v-enter-active,
+.v-leave-active {
+  transform: translateY(0);
+  transition: opacity 0.1s ease, transform 0.1s ease;
+}
+
+.v-enter-from,
+.v-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+</style>

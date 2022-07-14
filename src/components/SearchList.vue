@@ -1,6 +1,6 @@
 <template>
   <div class="overflow-y-auto shadow-lg rounded" v-if="serachList?.length">
-    <table class="mt-3 w-full border-collapse table-fixed">
+    <table class="w-full border-collapse table-fixed">
       <slot name="thead"></slot>
       <tbody>
         <tr class="border-b" v-for="item in serachList" :key="item.ticker">
@@ -113,7 +113,7 @@
               w-1/12
             "
           >
-            <div v-if="isAddingProcess">
+            <div v-if="isAddingProcess" class="lg:text-lg">
               <i class="fa-solid fa-spinner animate-spin"></i>
             </div>
             <div v-else>
@@ -125,7 +125,9 @@
               >
                 <i class="fas fa-plus"></i>
               </a>
-              <i class="fa-solid fa-check" v-else></i>
+              <span v-else class="lg:text-lg">
+                <i class="fa-solid fa-check"></i>
+              </span>
             </div>
           </td>
         </tr>
@@ -156,7 +158,7 @@ export default {
       const watchlist = props.watchlist;
       const ticker = props.searchResult[0]?.ticker;
 
-      console.log(" watchlist ", watchlist);
+      if (!watchlist) return;
 
       return watchlist.hasOwnProperty(ticker);
     });

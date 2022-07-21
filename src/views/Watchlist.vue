@@ -1,40 +1,10 @@
 <template>
   <main class="px-4 md:p-10 mx-auto w-full">
     <div class="relative w-full pb-24">
-      <span
-        class="
-          leading-snug
-          font-normal
-          text-blueGray-300
-          absolute
-          bg-transparent
-          rounded
-          px-3
-          py-3
-        "
-        ><i class="fas fa-search"></i
-      ></span>
-      <input
-        type="text"
-        placeholder="Search Ticker..."
-        class="
-          border-0
-          pr-3
-          pl-10
-          py-3
-          placeholder-blueGray-300
-          text-blueGray-600
-          bg-white
-          rounded
-          text-sm
-          shadow
-          outline-none
-          focus:outline-none focus:ring
-          w-full
-        "
-        autofocus
-        v-model.trim="searchTicker"
-        @focus="toggleSearchList(true)"
+      <SearchBar
+        @toggleSearchList="toggleSearchList"
+        @toggleSearchListSkeleton="toggleSearchListSkeleton"
+        @emitSearchList="getSearchList"
       />
 
       <!-- 搜尋結果 v-show="isFocus"-->
@@ -45,11 +15,12 @@
             v-show="isSearchListLoading"
           />
           <SearchList
-            :searchResult="searchList"
-            :watchlist="watchlist"
+            :searchList="searchList"
+            :watchlistInDB="watchlistInDB"
             :isAddingProcess="isAddingProcess"
-            @getWatchlist="getWatchlist"
-            @toggleAddButton="toggleAddButton"
+            @loadWatchlist="loadWatchlist"
+            @toggleWatchlistSkeleton="toggleWatchlistSkeleton"
+            @toggleAddButtonSpinner="toggleAddButtonSpinner"
             v-show="!isSearchListLoading"
           />
         </div>
@@ -69,10 +40,15 @@
       </template>
     </ListSkeleton>
     <WatchlistTable
-      :result="watchlist"
-      @getWatchlist="getWatchlist"
+      :result="watchlistDisplay"
+      @loadWatchlist="loadWatchlist"
+      @toggleAddButtonSpinner="toggleAddButtonSpinner"
+      @toggleWatchlistSkeleton="toggleWatchlistSkeleton"
       v-show="!isWatchlistLoading"
     />
+    <br />
+    <br />
+    <br />
   </main>
 </template>
 
@@ -84,9 +60,12 @@ import useAxios from "@/composables/useAxios.js";
 import SearchList from "@/components/SearchList.vue";
 import WatchlistTable from "@/components/WatchlistTable.vue";
 import ListSkeleton from "@/components/skeleton/ListSkeleton.vue";
+import SearchBar from "@/components/SearchBar.vue";
+
 export default {
-  components: { SearchList, WatchlistTable, ListSkeleton },
+  components: { SearchBar, SearchList, WatchlistTable, ListSkeleton },
   setup() {
+    // searchList section
     const searchListSkeletonContent = ref({
       tableHead: {
         hasTableHead: false,
@@ -100,6 +79,29 @@ export default {
         td: 3,
       },
     });
+    const searchList = ref([]);
+    const isSearchListLoading = ref(null);
+    const isFocus = ref(null);
+
+    const toggleSearchListSkeleton = (isLoading) => {
+      isSearchListLoading.value = isLoading;
+    };
+
+    const toggleSearchList = (focus) => {
+      isFocus.value = focus;
+    };
+
+    const getSearchList = (tickerObject) => {
+      if (!tickerObject) return (searchList.value = null);
+      searchList.value = [tickerObject];
+    };
+
+    document.addEventListener("click", (e) => {
+      if (e.target.nodeName === "I") return;
+      isFocus.value = e.target.nodeName === "INPUT" ? true : false;
+    });
+
+    // watchlist section
     const watchlistTableSkeletonContent = ref({
       tableHead: {
         hasTableHead: true,
@@ -113,173 +115,85 @@ export default {
         td: 3,
       },
     });
-    const watchlist = ref(null);
     const isWatchlistLoading = ref(null);
-    const isSearchListLoading = ref(null);
     const isAddingProcess = ref(false);
-    const isFocus = ref(null);
-
-    document.addEventListener("click", (e) => {
-      if (e.target.nodeName === "I") return;
-      isFocus.value = e.target.nodeName === "INPUT" ? true : false;
-    });
-
-    const toggleSearchList = (onFocus) => {
-      isFocus.value = onFocus;
-    };
+    const watchlistDisplay = ref(null);
+    const watchlistInDB = ref(null);
 
     const toggleWatchlistSkeleton = (isLoading) => {
       isWatchlistLoading.value = isLoading;
     };
 
-    const toggleSearchListSkeleton = (isLoading) => {
-      isSearchListLoading.value = isLoading;
-    };
-
-    const toggleAddButton = (isLoading) => {
+    const toggleAddButtonSpinner = (isLoading) => {
       isAddingProcess.value = isLoading;
     };
 
-    function getWatchlist() {
+    const loadWatchlist = (hasDelete = false) => {
       const { data, error, loading } = useAxios("/api/getWatchlist", "get");
-      const allPromises = [];
 
-      watch([data, loading], ([newData, newLoading]) => {
+      toggleAddButtonSpinner(loading.value);
+
+      watch([data, loading], async ([newData, newLoading]) => {
+        const allPromises = [];
+
         for (let ticker in newData.result) {
           allPromises.push(axios.get(`/api/quote/${ticker}`));
         }
 
         // 刪除到最後一個時不會閃一下
-        if (allPromises.length === 0) {
-          toggleWatchlistSkeleton(false);
-        } else {
+        if (allPromises.length !== 0 && !hasDelete) {
           toggleWatchlistSkeleton(true);
         }
 
         watchlistTableSkeletonContent.value.tableBody.tr = allPromises.length;
 
-        Promise.allSettled(allPromises)
-          .then((res) => {
-            watchlist.value = res
-              .map((item) => item.value.data.result)
-              .reduce((obj, item) => {
-                return {
-                  ...obj,
-                  [item.ticker]: item,
-                };
-              }, {});
+        const result = await getWatchlist(allPromises);
 
-            toggleAddButton(newLoading);
-            toggleWatchlistSkeleton(newLoading);
-          })
-          .catch((error) => {
-            console.log("error", error);
-            toggleWatchlistSkeleton(newLoading);
-          });
+        if (!hasDelete) watchlistDisplay.value = result;
+        watchlistInDB.value = result;
+
+        toggleAddButtonSpinner(newLoading);
+        toggleWatchlistSkeleton(newLoading);
       });
-    }
-
-    getWatchlist();
-
-    const searchList = ref([]);
-    const searchTicker = ref(null);
-    const allPromises = [];
-    const cacheInput = ref(new Map());
-    const cacheValidTicker = ref(new Map());
-    const tickerRule = /^[a-z\-?]{1,5}$/i;
-
-    watch(searchTicker, async (newSearch, oldSearch) => {
-      isFocus.value = true;
-
-      const oldLen = oldSearch?.length || 0;
-      const newLen = newSearch?.length;
-      const isTyping = newLen > oldLen;
-      const isTickerMatch = tickerRule.test(newSearch);
-      const isOldSearchMatch = tickerRule.test(oldSearch);
-
-      if (!isTickerMatch) {
-        allPromises.length = 0;
-        searchList.value = null;
-        toggleSearchListSkeleton(false);
-        return;
-      }
-
-      if (oldSearch && isOldSearchMatch) {
-        cacheInput.value.set(oldSearch, oldSearch);
-      }
-
-      searchList.value = isTyping
-        ? await typingResponse(newSearch)
-        : deleteResponse(newSearch);
-    });
-
-    const typingResponse = async (newSearch) => {
-      const isInputNew = !cacheInput.value.has(newSearch);
-
-      if (isInputNew) toggleSearchListSkeleton(true);
-
-      return isInputNew
-        ? await getQuote(newSearch) // 第一次輸入
-        : showValidTicker(newSearch); // 曾輸入過
     };
 
-    const getQuote = async (newSearch) => {
-      allPromises.push(axios.get(`/api/quote/${newSearch}`));
-
+    const getWatchlist = async (allPromises) => {
       try {
-        let deleteCount = 0;
-
         const response = await Promise.allSettled(allPromises);
-        const results = response
+        return response
           .map((item) => item.value.data.result)
-          .filter((item) => {
-            if (isTickerValid(item)) {
-              const ticker = item.ticker.toLowerCase();
-              cacheValidTicker.value.set(ticker, item);
-              return isTickerValid(item);
-            } else {
-              deleteCount++;
-            }
-          });
-        const isGettingAllResults =
-          results.length === allPromises.length - deleteCount;
-
-        // 資料全部 load 完再一次呈現
-        if (isGettingAllResults) return showValidTicker(newSearch);
+          .reduce((obj, item) => {
+            return {
+              ...obj,
+              [item.ticker]: item,
+            };
+          }, {});
       } catch (error) {
         console.log("error", error);
-        toggleSearchListSkeleton(false);
+        toggleWatchlistSkeleton(false);
       }
     };
 
-    const deleteResponse = (newSearch) => showValidTicker(newSearch);
-
-    const showValidTicker = (newSearch) => {
-      const isInputValidTicker = cacheValidTicker.value.has(newSearch);
-
-      toggleSearchListSkeleton(false);
-
-      if (isInputValidTicker) {
-        return [cacheValidTicker.value.get(newSearch)];
-      }
-    };
-
-    const isTickerValid = (item) =>
-      item?.name != null && item?.previousCloseChange !== "NaN";
+    loadWatchlist();
 
     return {
-      searchTicker,
-      searchList,
-      watchlist,
-      getWatchlist,
       searchListSkeletonContent,
+      searchList,
+      toggleSearchList,
+      isSearchListLoading,
+      isFocus,
+
+      loadWatchlist,
+      watchlistDisplay,
+      watchlistInDB,
       watchlistTableSkeletonContent,
       isWatchlistLoading,
-      isSearchListLoading,
       isAddingProcess,
-      toggleAddButton,
-      toggleSearchList,
-      isFocus,
+      toggleAddButtonSpinner,
+      toggleWatchlistSkeleton,
+
+      getSearchList,
+      toggleSearchListSkeleton,
     };
   },
 };

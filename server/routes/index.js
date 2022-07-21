@@ -5,6 +5,7 @@ const firebaseDb = require('../firebase/index.js')
 
 const holdingRef = firebaseDb.ref('/holding/')
 const watchlistRef = firebaseDb.ref('/watchlist/')
+
 const getHoldingsTradeInfo = require('../actions/getHoldingsTradeInfo')
 const getHoldingsTotalInfo = require('../actions/getHoldingsTotalInfo')
 const getFormattedDate = require('../tools/getFormattedDate')
@@ -255,16 +256,26 @@ router.post('/addToWatchlist', async (req, res) => {
 })
 
 router.post('/deleteFromWatchlist', async (req, res) => {
-  const { ticker } = req.body
-  await watchlistRef.child(ticker).remove()
+  try {
+    const { ticker } = req.body
+    await watchlistRef.child(ticker).remove()
 
-  message = {
-    success: true,
-    content: '刪除成功',
-    errorMessage: null,
-    result: { ticker }
+    message = {
+      success: true,
+      content: '刪除成功',
+      errorMessage: null,
+      result: { ticker }
+    }
+    res.send(message)
+  } catch (error) {
+    message = {
+      success: false,
+      content: '刪除失敗',
+      errorMessage: error.message,
+      result: null
+    }
+    res.send(message)
   }
-  res.send(message)
 })
 
 router.get('/getWatchlist', async (req, res) => {
@@ -291,5 +302,7 @@ router.get('/getWatchlist', async (req, res) => {
     res.send(msg)
   }
 })
+
+router.get('/getWatchlistFromCache', async (req, res) => {})
 
 module.exports = router

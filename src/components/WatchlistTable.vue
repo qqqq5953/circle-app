@@ -87,7 +87,13 @@
           </tr>
         </thead>
         <tbody>
-          <tr class="border-t" v-for="item in result" :key="item.ticker">
+          <tr
+            class="border-t test"
+            v-for="(item, index) in result"
+            :key="item.ticker"
+            :id="index"
+            ref="tickerRow"
+          >
             <th
               class="
                 border-t-0 border-x-0
@@ -153,20 +159,22 @@
                 lg:w-auto
               "
             >
-              <div
-                class="flex items-center justify-center gap-2"
-                :class="
-                  item.previousCloseChange > 0
-                    ? 'text-green-600'
-                    : 'text-red-600'
-                "
-              >
-                <i
-                  class="fas fa-arrow-up"
-                  v-if="item.previousCloseChange > 0"
-                ></i>
-                <i class="fas fa-arrow-down" v-else></i>
-                <span>({{ item.previousCloseChangePercent }} %)</span>
+              <div class="flex m-auto">
+                <div
+                  class="flex items-center gap-2 m-auto px-3 py-2 rounded"
+                  :class="
+                    item.previousCloseChange > 0
+                      ? 'text-red-600 bg-red-100'
+                      : 'text-green-600 bg-green-100'
+                  "
+                >
+                  <i
+                    class="fas fa-arrow-up"
+                    v-if="item.previousCloseChange > 0"
+                  ></i>
+                  <i class="fas fa-arrow-down" v-else></i>
+                  <span class="">{{ item.previousCloseChangePercent }} %</span>
+                </div>
               </div>
             </td>
             <td
@@ -184,8 +192,8 @@
               <span
                 :class="
                   item.previousCloseChange > 0
-                    ? 'text-green-600'
-                    : 'text-red-600'
+                    ? 'text-red-600'
+                    : 'text-green-600'
                 "
                 >{{ item.previousCloseChange }}</span
               >
@@ -222,9 +230,25 @@ import { ref, watch } from "vue";
 
 export default {
   props: {
-    result: [Array, Object],
+    result: Object,
   },
   setup(props, { emit }) {
+    const tickerRow = ref(null);
+
+    // show deleted ticker when added
+    watch(
+      () => props.result,
+      () => {
+        if (!tickerRow.value) return;
+
+        tickerRow.value.forEach((item) => {
+          if (item.classList.contains("hidden")) {
+            item.classList.remove("hidden");
+          }
+        });
+      }
+    );
+
     function deleteTicker(ticker) {
       const { data, error, loading } = useAxios(
         "/api/deleteFromWatchlist",
@@ -234,11 +258,16 @@ export default {
 
       watch(data, (newData) => {
         console.log("deleteTicker", newData);
-        emit("getWatchlist");
+
+        const tickerRow = document.getElementById(ticker);
+        tickerRow.classList.add("hidden");
+
+        emit("loadWatchlist", true);
       });
     }
 
     return {
+      tickerRow,
       deleteTicker,
     };
   },

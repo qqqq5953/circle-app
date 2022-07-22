@@ -8,7 +8,7 @@
         @emitSearchList="getSearchList"
       />
 
-      <!-- 搜尋結果 v-show="isFocus"-->
+      <!-- 搜尋結果 -->
       <Transition>
         <div v-show="isFocus" class="mt-3 absolute top-12 w-full">
           <ListSkeleton
@@ -29,6 +29,9 @@
       </Transition>
     </div>
 
+    <!-- tabs -->
+    <WatchlistTabs @emitCurrentTab="handleClickTab" />
+
     <!-- table -->
     <ListSkeleton
       :tableContent="watchlistTableSkeletonContent"
@@ -48,37 +51,6 @@
       @toggleWatchlistSkeleton="toggleWatchlistSkeleton"
       v-show="!isWatchlistLoading"
     />
-
-    <br />
-    <br />
-    <br />
-
-    <nav class="flex border-b gap-0.5">
-      <button
-        class="border rounded-t p-3"
-        :class="{ 'bg-blue-100': currentTab === tab }"
-        v-for="tab in tabs"
-        :key="tab"
-        @click="currentTab = tab"
-      >
-        {{ tab }}
-      </button>
-
-      <div class="flex ml-auto py-1">
-        <div class="relative">
-          <div class="absolute -top-6 pl-6 text-red-500">
-            <ErrorDisplay :errors="errorMessage" v-if="errorMessage.length" />
-          </div>
-          <input
-            type="text"
-            class="block border rounded-full pl-6 py-2"
-            placeholder="add a tab"
-            v-model="inputTab"
-          />
-        </div>
-        <button class="border rounded-full px-3" @click="createTab">add</button>
-      </div>
-    </nav>
   </main>
 </template>
 
@@ -91,6 +63,7 @@ import SearchList from "@/components/SearchList.vue";
 import WatchlistTable from "@/components/WatchlistTable.vue";
 import ListSkeleton from "@/components/skeleton/ListSkeleton.vue";
 import SearchBar from "@/components/SearchBar.vue";
+import WatchlistTabs from "@/components/WatchlistTabs.vue";
 
 export default {
   components: {
@@ -98,6 +71,7 @@ export default {
     SearchList,
     WatchlistTable,
     ListSkeleton,
+    WatchlistTabs,
     ErrorDisplay: defineAsyncComponent(() =>
       import("@/components/ErrorDisplay.vue")
     ),
@@ -150,6 +124,14 @@ export default {
       if (isSearchBarFocus) isFocus.value = true;
     });
 
+    // tabs
+    const currentTab = ref("watchlist");
+    const handleClickTab = (tab) => {
+      currentTab.value = tab;
+    };
+
+    watch(currentTab, () => loadWatchlist());
+
     // watchlist section
     const watchlistTableSkeletonContent = ref({
       tableHead: {
@@ -177,38 +159,7 @@ export default {
       isAddingProcess.value = isLoading;
     };
 
-    const tabs = ref([]);
-    const currentTab = ref("watchlist");
-    const inputTab = ref("list");
-    const errorMessage = ref([]);
-
-    const createTab = () => {
-      const isTabsExist = tabs.value.includes(inputTab.value);
-
-      if (isTabsExist) {
-        errorMessage.value.push("tab already exists");
-        return;
-      }
-
-      const { data, error, loading } = useAxios(`/api/createTab`, "post", {
-        inputTab: inputTab.value,
-      });
-
-      watch(data, (newData) => tabs.value.push(inputTab.value));
-    };
-
-    const getTabs = () => {
-      const { data, error, loading } = useAxios(`/api/getTabs`, "get");
-      watch(data, (newData) => tabs.value.push(...newData.result));
-    };
-
-    getTabs();
-
-    watch(inputTab, () => {
-      if (errorMessage.value.length) errorMessage.value.pop();
-    });
-
-    const loadWatchlist = (hasDelete = false) => {
+    function loadWatchlist(hasDelete = false) {
       const { data, error, loading } = useAxios(
         `/api/getWatchlist/${currentTab.value}`,
         "get"
@@ -238,9 +189,9 @@ export default {
         toggleAddButtonSpinner(newLoading);
         toggleWatchlistSkeleton(newLoading);
       });
-    };
+    }
 
-    const getWatchlist = async (allPromises) => {
+    async function getWatchlist(allPromises) {
       try {
         const response = await Promise.allSettled(allPromises);
         return response
@@ -255,11 +206,9 @@ export default {
         console.log("error", error);
         toggleWatchlistSkeleton(false);
       }
-    };
+    }
 
     loadWatchlist();
-
-    watch(currentTab, () => loadWatchlist());
 
     return {
       searchListSkeletonContent,
@@ -279,11 +228,8 @@ export default {
       toggleAddButtonSpinner,
       toggleWatchlistSkeleton,
 
-      tabs,
       currentTab,
-      createTab,
-      inputTab,
-      errorMessage,
+      handleClickTab,
     };
   },
 };

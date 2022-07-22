@@ -230,7 +230,12 @@ import { ref, watch } from "vue";
 
 export default {
   props: {
-    result: Object,
+    result: {
+      type: Object,
+    },
+    currentTab: {
+      type: String,
+    },
   },
   setup(props, { emit }) {
     const tickerRow = ref(null);
@@ -253,7 +258,7 @@ export default {
       const { data, error, loading } = useAxios(
         "/api/deleteFromWatchlist",
         "post",
-        { ticker }
+        { ticker, currentTab: props.currentTab }
       );
 
       watch(data, (newData) => {

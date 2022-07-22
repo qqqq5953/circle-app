@@ -263,8 +263,14 @@ router.post('/addToWatchlist', async (req, res) => {
 
 router.post('/deleteFromWatchlist', async (req, res) => {
   try {
-    const { ticker } = req.body
-    await watchlistRef.child(ticker).remove()
+    const { ticker, currentTab } = req.body
+
+    const list =
+      currentTab.toLowerCase() === 'watchlist'
+        ? 'default'
+        : currentTab.toLowerCase()
+
+    await watchlistRef.child(list).child(ticker).remove()
 
     message = {
       success: true,

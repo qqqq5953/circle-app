@@ -46,6 +46,7 @@
     </ListSkeleton>
     <WatchlistTable
       :result="watchlistDisplay"
+      :currentTab="currentTab"
       @loadWatchlist="loadWatchlist"
       @toggleAddButtonSpinner="toggleAddButtonSpinner"
       @toggleWatchlistSkeleton="toggleWatchlistSkeleton"

@@ -2,6 +2,7 @@
   <main class="px-4 md:p-10 mx-auto w-full">
     <div class="relative w-full pb-24">
       <SearchBar
+        id="searchBar"
         @toggleSearchList="toggleSearchList"
         @toggleSearchListSkeleton="toggleSearchListSkeleton"
         @emitSearchList="getSearchList"
@@ -18,6 +19,7 @@
             :searchList="searchList"
             :watchlistInDB="watchlistInDB"
             :isAddingProcess="isAddingProcess"
+            :currentTab="currentTab"
             @loadWatchlist="loadWatchlist"
             @toggleWatchlistSkeleton="toggleWatchlistSkeleton"
             @toggleAddButtonSpinner="toggleAddButtonSpinner"
@@ -46,14 +48,42 @@
       @toggleWatchlistSkeleton="toggleWatchlistSkeleton"
       v-show="!isWatchlistLoading"
     />
+
     <br />
     <br />
     <br />
+
+    <nav class="flex border-b gap-0.5">
+      <button
+        class="border rounded-t p-3"
+        :class="{ 'bg-blue-100': currentTab === tab }"
+        v-for="tab in tabs"
+        :key="tab"
+        @click="currentTab = tab"
+      >
+        {{ tab }}
+      </button>
+
+      <div class="flex ml-auto py-1">
+        <div class="relative">
+          <div class="absolute -top-6 pl-6 text-red-500">
+            <ErrorDisplay :errors="errorMessage" v-if="errorMessage.length" />
+          </div>
+          <input
+            type="text"
+            class="block border rounded-full pl-6 py-2"
+            placeholder="add a tab"
+            v-model="inputTab"
+          />
+        </div>
+        <button class="border rounded-full px-3" @click="createTab">add</button>
+      </div>
+    </nav>
   </main>
 </template>
 
 <script>
-import { ref, watch } from "vue";
+import { ref, watch, defineAsyncComponent } from "vue";
 import axios from "axios";
 import useAxios from "@/composables/useAxios.js";
 
@@ -63,7 +93,15 @@ import ListSkeleton from "@/components/skeleton/ListSkeleton.vue";
 import SearchBar from "@/components/SearchBar.vue";
 
 export default {
-  components: { SearchBar, SearchList, WatchlistTable, ListSkeleton },
+  components: {
+    SearchBar,
+    SearchList,
+    WatchlistTable,
+    ListSkeleton,
+    ErrorDisplay: defineAsyncComponent(() =>
+      import("@/components/ErrorDisplay.vue")
+    ),
+  },
   setup() {
     // searchList section
     const searchListSkeletonContent = ref({
@@ -96,9 +134,20 @@ export default {
       searchList.value = [tickerObject];
     };
 
+    function hasParentElement(event, element) {
+      return event.target.closest(element);
+    }
+
     document.addEventListener("click", (e) => {
-      if (e.target.nodeName === "I") return;
-      isFocus.value = e.target.nodeName === "INPUT" ? true : false;
+      const isAddButtonCLick = e.target.nodeName === "I";
+      const isInputFocus = e.target.nodeName === "INPUT";
+      const isNavClick = hasParentElement(e, "nav");
+      const isSearchBarFocus =
+        isInputFocus && hasParentElement(e, "#searchBar");
+
+      if (isAddButtonCLick) return;
+      if (!isSearchBarFocus && !isNavClick) isFocus.value = false;
+      if (isSearchBarFocus) isFocus.value = true;
     });
 
     // watchlist section
@@ -128,8 +177,42 @@ export default {
       isAddingProcess.value = isLoading;
     };
 
+    const tabs = ref([]);
+    const currentTab = ref("watchlist");
+    const inputTab = ref("list");
+    const errorMessage = ref([]);
+
+    const createTab = () => {
+      const isTabsExist = tabs.value.includes(inputTab.value);
+
+      if (isTabsExist) {
+        errorMessage.value.push("tab already exists");
+        return;
+      }
+
+      const { data, error, loading } = useAxios(`/api/createTab`, "post", {
+        inputTab: inputTab.value,
+      });
+
+      watch(data, (newData) => tabs.value.push(inputTab.value));
+    };
+
+    const getTabs = () => {
+      const { data, error, loading } = useAxios(`/api/getTabs`, "get");
+      watch(data, (newData) => tabs.value.push(...newData.result));
+    };
+
+    getTabs();
+
+    watch(inputTab, () => {
+      if (errorMessage.value.length) errorMessage.value.pop();
+    });
+
     const loadWatchlist = (hasDelete = false) => {
-      const { data, error, loading } = useAxios("/api/getWatchlist", "get");
+      const { data, error, loading } = useAxios(
+        `/api/getWatchlist/${currentTab.value}`,
+        "get"
+      );
 
       toggleAddButtonSpinner(loading.value);
 
@@ -176,12 +259,16 @@ export default {
 
     loadWatchlist();
 
+    watch(currentTab, () => loadWatchlist());
+
     return {
       searchListSkeletonContent,
       searchList,
       toggleSearchList,
       isSearchListLoading,
       isFocus,
+      getSearchList,
+      toggleSearchListSkeleton,
 
       loadWatchlist,
       watchlistDisplay,
@@ -192,8 +279,11 @@ export default {
       toggleAddButtonSpinner,
       toggleWatchlistSkeleton,
 
-      getSearchList,
-      toggleSearchListSkeleton,
+      tabs,
+      currentTab,
+      createTab,
+      inputTab,
+      errorMessage,
     };
   },
 };

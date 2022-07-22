@@ -156,6 +156,9 @@ export default {
     isAddingProcess: {
       type: Boolean,
     },
+    currentTab: {
+      type: String,
+    },
   },
   setup(props, { emit }) {
     const isTickerInWatchlistDB = computed(() => {
@@ -172,6 +175,7 @@ export default {
       const { data, error, loading } = useAxios("/api/addToWatchlist", "post", {
         ticker,
         name,
+        currentTab: props.currentTab,
       });
 
       watch([data, loading], () => {

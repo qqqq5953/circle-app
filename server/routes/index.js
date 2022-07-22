@@ -5,6 +5,7 @@ const firebaseDb = require('../firebase/index.js')
 
 const holdingRef = firebaseDb.ref('/holding/')
 const watchlistRef = firebaseDb.ref('/watchlist/')
+const tabsRef = firebaseDb.ref('/tabs/')
 
 const getHoldingsTradeInfo = require('../actions/getHoldingsTradeInfo')
 const getHoldingsTotalInfo = require('../actions/getHoldingsTotalInfo')
@@ -242,9 +243,14 @@ router.post('/addStock', async (req, res) => {
 })
 
 router.post('/addToWatchlist', async (req, res) => {
-  const { ticker, name } = req.body
+  const { ticker, name, currentTab } = req.body
 
-  await watchlistRef.child(ticker).set(name)
+  const list =
+    currentTab.toLowerCase() === 'watchlist'
+      ? 'default'
+      : currentTab.toLowerCase()
+
+  await watchlistRef.child(list).child(ticker).set(name)
 
   message = {
     success: true,
@@ -278,9 +284,16 @@ router.post('/deleteFromWatchlist', async (req, res) => {
   }
 })
 
-router.get('/getWatchlist', async (req, res) => {
+router.get('/getWatchlist/:tab', async (req, res) => {
+  const currentTab = req.params.tab
+
+  const list =
+    currentTab.toLowerCase() === 'watchlist'
+      ? 'default'
+      : currentTab.toLowerCase()
+
   try {
-    const watchlistChildRef = await watchlistRef.once('value')
+    const watchlistChildRef = await watchlistRef.child(list).once('value')
     const watchlist = watchlistChildRef.val()
 
     const msg = {
@@ -303,6 +316,89 @@ router.get('/getWatchlist', async (req, res) => {
   }
 })
 
-router.get('/getWatchlistFromCache', async (req, res) => {})
+router.post('/createTab', async (req, res) => {
+  const { inputTab } = req.body
+  const defaultTab = 'watchlist'
+
+  const response = await tabsRef.once('value')
+
+  const tabs =
+    response.val() == null
+      ? [defaultTab, inputTab]
+      : [...response.val(), inputTab]
+
+  if (response.val() == null) {
+    console.log('第一次')
+    setTabs()
+  } else {
+    console.log('非第一次')
+
+    const hasSameTab = response.val().includes(inputTab)
+    if (hasSameTab) {
+      console.log('hasSameTab')
+      const message = {
+        success: false,
+        content: '新增失敗',
+        errorMessage: '已存在相同頁籤',
+        result: null
+      }
+      res.send(message)
+      return
+    }
+    setTabs()
+  }
+
+  async function setTabs() {
+    console.log('setTabs')
+
+    try {
+      await tabsRef.set(tabs)
+      const message = {
+        success: true,
+        content: '新增成功',
+        errorMessage: null,
+        result: tabs
+      }
+      res.send(message)
+    } catch (error) {
+      const message = {
+        success: false,
+        content: '新增失敗',
+        errorMessage: error.message,
+        result: null
+      }
+      res.send(message)
+    }
+  }
+})
+
+router.get('/getTabs', async (req, res) => {
+  try {
+    let refreshTabs
+    const defaultTab = 'watchlist'
+    const initTabs = await tabsRef.once('value')
+
+    if (initTabs.val() == null) {
+      await tabsRef.set([defaultTab])
+      refreshTabs = await tabsRef.once('value')
+    }
+
+    const message = {
+      success: true,
+      content: '成功獲得所有頁籤',
+      errorMessage: null,
+      result: initTabs.val() || refreshTabs.val()
+    }
+    res.send(message)
+  } catch (error) {
+    const message = {
+      success: false,
+      content: '獲得頁籤失敗',
+      errorMessage: error.message,
+      result: null
+    }
+    res.send(message)
+  }
+})
 
 module.exports = router

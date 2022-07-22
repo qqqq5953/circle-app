@@ -14,7 +14,7 @@ export default function useAxios(url, method, options = {}) {
     try {
       const response = await axios[method](url, options)
       const { success, content, errorMessage, result = null } = response.data
-      data.value = { success, content, result }
+      data.value = { success, content, errorMessage, result }
       state.error = errorMessage
 
       console.log('=========賦值完成==========')

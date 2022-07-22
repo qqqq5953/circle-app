@@ -22,13 +22,11 @@
         pl-10
         py-3
         placeholder-blueGray-300
-        text-blueGray-600
+        text-blueGray-600 text-sm
         bg-white
         rounded
-        text-sm
         shadow
-        outline-none
-        focus:outline-none focus:ring
+        focus:outline-none
         w-full
       "
       autofocus

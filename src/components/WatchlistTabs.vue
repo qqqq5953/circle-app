@@ -1,33 +1,49 @@
 <template>
-  <nav class="flex border-b gap-0.5">
-    <button
-      class="border rounded-t p-3"
-      :class="{ 'bg-blue-100': currentTab === tab }"
-      v-for="tab in tabs"
-      :key="tab"
-      @click="
-        handleClickTab(tab);
-        emitCurrentTab(tab);
+  <div class="flex gap-10 pb-3 py-5 text-sm overflow-x-scroll">
+    <nav class="flex gap-2.5">
+      <button
+        class="border rounded p-2 w-24 relative"
+        :class="{
+          'after:absolute after:inset-x-0 after:bottom-0 after:h-1 after:bg-blue-500':
+            currentTab === tab,
+        }"
+        v-for="tab in tabs"
+        :key="tab"
+        @click="
+          handleClickTab(tab);
+          emitCurrentTab(tab);
+        "
+      >
+        {{ tab }}
+      </button>
+    </nav>
+
+    <section
+      class="
+        flex
+        justify-between
+        gap-2
+        ml-auto
+        min-w-[50%]
+        md:min-w-[30%]
+        lg:min-w-0
+        sm:w-1/3
       "
     >
-      {{ tab }}
-    </button>
-
-    <div class="flex ml-auto py-1">
-      <div class="relative">
-        <div class="absolute -top-6 pl-6 text-red-500">
+      <div class="relative grow">
+        <div class="absolute -top-5 text-red-500">
           <ErrorDisplay :errors="errorMessage" v-if="errorMessage.length" />
         </div>
         <input
           type="text"
-          class="block border rounded-full pl-6 py-2"
+          class="absolute inset-0 border rounded focus:outline-none px-4 py-2"
           placeholder="add a tab"
           v-model="inputTab"
         />
       </div>
-      <button class="border rounded-full px-3" @click="createTab">add</button>
-    </div>
-  </nav>
+      <button class="border rounded px-3" @click="createTab">add</button>
+    </section>
+  </div>
 </template>
 
 <script>
@@ -43,7 +59,7 @@ export default {
   setup(props, { emit }) {
     const tabs = ref([]);
     const currentTab = ref("watchlist");
-    const inputTab = ref("list");
+    const inputTab = ref(null);
     const errorMessage = ref([]);
 
     const handleClickTab = (tab) => {

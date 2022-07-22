@@ -1,6 +1,6 @@
 <template>
-  <main class="px-4 md:p-10 mx-auto w-full">
-    <div class="relative w-full pb-24">
+  <main class="flex flex-col gap-4 px-4 md:p-10 mx-auto w-full">
+    <div class="relative w-full pb-20">
       <SearchBar
         id="searchBar"
         @toggleSearchList="toggleSearchList"
@@ -10,7 +10,7 @@
 
       <!-- 搜尋結果 -->
       <Transition>
-        <div v-show="isFocus" class="mt-3 absolute top-12 w-full">
+        <div v-show="isFocus" class="absolute top-12 z-10 w-full bg-white">
           <ListSkeleton
             :tableContent="searchListSkeletonContent"
             v-show="isSearchListLoading"

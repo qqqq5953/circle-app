@@ -272,12 +272,12 @@ router.post('/deleteFromWatchlist', async (req, res) => {
 
     await watchlistRef.child(list).child(ticker).remove()
 
-    message = {
-      success: true,
-      content: '刪除成功',
-      errorMessage: null,
-      result: { ticker }
-    }
+    success: true,
+      (message = {
+        content: '刪除成功',
+        errorMessage: null,
+        result: { ticker }
+      })
     res.send(message)
   } catch (error) {
     message = {
@@ -324,13 +324,13 @@ router.get('/getWatchlist/:tab', async (req, res) => {
 
 router.post('/createTab', async (req, res) => {
   const { inputTab } = req.body
-  const defaultTab = 'watchlist'
+  const DEFAULT_TAB = 'watchlist'
 
   const response = await tabsRef.once('value')
 
   const tabs =
     response.val() == null
-      ? [defaultTab, inputTab]
+      ? [DEFAULT_TAB, inputTab]
       : [...response.val(), inputTab]
 
   if (response.val() == null) {
@@ -381,11 +381,11 @@ router.post('/createTab', async (req, res) => {
 router.get('/getTabs', async (req, res) => {
   try {
     let refreshTabs
-    const defaultTab = 'watchlist'
+    const DEFAULT_TAB = 'watchlist'
     const initTabs = await tabsRef.once('value')
 
     if (initTabs.val() == null) {
-      await tabsRef.set([defaultTab])
+      await tabsRef.set([DEFAULT_TAB])
       refreshTabs = await tabsRef.once('value')
     }
 
@@ -400,6 +400,34 @@ router.get('/getTabs', async (req, res) => {
     const message = {
       success: false,
       content: '獲得頁籤失敗',
+      errorMessage: error.message,
+      result: null
+    }
+    res.send(message)
+  }
+})
+
+router.post('/deleteTab', async (req, res) => {
+  try {
+    const { currentTab } = req.body
+    const tabs = await tabsRef.once('value')
+    const newTabs = tabs.val().filter((tab) => tab !== currentTab)
+
+    await tabsRef.set(newTabs)
+    await watchlistRef.child(currentTab).remove()
+
+    const message = {
+      success: true,
+      content: '刪除成功',
+      errorMessage: null,
+      result: newTabs
+    }
+
+    res.send(message)
+  } catch (error) {
+    const message = {
+      success: false,
+      content: '刪除失敗',
       errorMessage: error.message,
       result: null
     }

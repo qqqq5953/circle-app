@@ -10,14 +10,42 @@
     "
   >
     <!-- table title -->
-    <div class="rounded-t px-4 py-3 border-0 flex flex-wrap items-center">
-      <div class="w-full px-4 max-w-full flex-1">
-        <h3 class="font-semibold text-base text-blueGray-700">Watchlist</h3>
+    <div class="rounded-t py-3 border-0 flex flex-wrap items-center">
+      <h3 class="font-semibold px-4">{{ currentTab }}</h3>
+
+      <!-- dropdown -->
+      <div
+        class="relative ml-auto h-full w-2/3"
+        v-if="currentTab !== 'watchlist'"
+      >
+        <button
+          class="absolute top-0 right-2 px-3 rounded-full active:rounded-full"
+          @click="toggleDropdown"
+        >
+          <i class="fa-solid fa-ellipsis-vertical"></i>
+        </button>
+        <Transition>
+          <ul
+            class="absolute right-0 -bottom-16 p-3 shadow rounded bg-white"
+            v-show="isOpen"
+          >
+            <li>
+              <button
+                @click="
+                  deleteWatchlist();
+                  toggleDropdown();
+                "
+              >
+                delete watchlist
+              </button>
+            </li>
+          </ul>
+        </Transition>
       </div>
     </div>
 
     <!-- body -->
-    <div class="block w-full overflow-x-auto" v-if="result">
+    <div class="block w-full overflow-x-auto" v-if="watchlistDisplay">
       <table class="w-full border-collapse table-fixed">
         <thead
           class="bg-gray-100 border-t border-b hidden lg:table-header-group"
@@ -89,7 +117,7 @@
         <tbody>
           <tr
             class="border-t test"
-            v-for="(item, index) in result"
+            v-for="(item, index) in watchlistDisplay"
             :key="item.ticker"
             :id="index"
             ref="tickerRow"
@@ -230,7 +258,7 @@ import { ref, watch } from "vue";
 
 export default {
   props: {
-    result: {
+    watchlistDisplay: {
       type: Object,
     },
     currentTab: {
@@ -239,10 +267,28 @@ export default {
   },
   setup(props, { emit }) {
     const tickerRow = ref(null);
+    const isOpen = ref(false);
+
+    const toggleDropdown = () => (isOpen.value = !isOpen.value);
+
+    const emitCurrentTab = (tab) => emit("emitCurrentTab", tab);
+
+    const deleteWatchlist = () => {
+      const { data, error, loading } = useAxios("/api/deleteTab", "post", {
+        currentTab: props.currentTab,
+      });
+
+      watch(data, (newData) => {
+        console.log("deleteWatchlist", newData);
+
+        const defaultTab = newData.watchlistDisplay[0];
+        emitCurrentTab(defaultTab);
+      });
+    };
 
     // show deleted ticker when added
     watch(
-      () => props.result,
+      () => props.watchlistDisplay,
       () => {
         if (!tickerRow.value) return;
 
@@ -274,7 +320,24 @@ export default {
     return {
       tickerRow,
       deleteTicker,
+      isOpen,
+      toggleDropdown,
+      deleteWatchlist,
     };
   },
 };
 </script>
+
+<style scoped>
+.v-enter-active,
+.v-leave-active {
+  transform: translateY(0);
+  transition: opacity 0.1s ease, transform 0.1s ease;
+}
+
+.v-enter-from,
+.v-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+</style>

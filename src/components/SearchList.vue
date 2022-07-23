@@ -179,6 +179,7 @@ export default {
       });
 
       watch([data, loading], () => {
+        console.log("SEARCHLIST");
         emit("loadWatchlist");
       });
     }

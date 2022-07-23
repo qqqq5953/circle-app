@@ -30,7 +30,7 @@
     </div>
 
     <!-- tabs -->
-    <WatchlistTabs @emitCurrentTab="handleClickTab" />
+    <WatchlistTabs :defaultTab="currentTab" @emitCurrentTab="showCurrentTab" />
 
     <!-- table -->
     <ListSkeleton
@@ -38,15 +38,14 @@
       v-show="isWatchlistLoading"
       ><template #table-title>
         <div class="rounded-t px-4 py-3 border-0 flex flex-wrap items-center">
-          <div class="w-full px-4 max-w-full flex-1">
-            <h3 class="font-semibold text-base text-blueGray-700">Watchlist</h3>
-          </div>
+          <h3 class="font-semibold text-base text-blueGray-700">Watchlist</h3>
         </div>
       </template>
     </ListSkeleton>
     <WatchlistTable
-      :result="watchlistDisplay"
+      :watchlistDisplay="watchlistDisplay"
       :currentTab="currentTab"
+      @emitCurrentTab="showCurrentTab"
       @loadWatchlist="loadWatchlist"
       @toggleAddButtonSpinner="toggleAddButtonSpinner"
       @toggleWatchlistSkeleton="toggleWatchlistSkeleton"
@@ -126,11 +125,11 @@ export default {
     });
 
     // tabs
-    const currentTab = ref("watchlist");
-    const handleClickTab = (tab) => {
-      currentTab.value = tab;
-    };
+    const DEFAULT_TAB = ref("watchlist");
+    const currentTab = ref(null);
+    const showCurrentTab = (tab) => (currentTab.value = tab);
 
+    showCurrentTab(DEFAULT_TAB.value);
     watch(currentTab, () => loadWatchlist());
 
     // watchlist section
@@ -160,7 +159,11 @@ export default {
       isAddingProcess.value = isLoading;
     };
 
-    function loadWatchlist(hasDelete = false) {
+    const setSkeletonTableRow = (rowNumber) => {
+      watchlistTableSkeletonContent.value.tableBody.tr = rowNumber;
+    };
+
+    function loadWatchlist(isTickerDelete = false) {
       const { data, error, loading } = useAxios(
         `/api/getWatchlist/${currentTab.value}`,
         "get"
@@ -176,15 +179,15 @@ export default {
         }
 
         // 刪除到最後一個時不會閃一下
-        if (allPromises.length !== 0 && !hasDelete) {
+        if (allPromises.length !== 0 && !isTickerDelete) {
           toggleWatchlistSkeleton(true);
         }
 
-        watchlistTableSkeletonContent.value.tableBody.tr = allPromises.length;
+        setSkeletonTableRow(allPromises.length);
 
         const result = await getWatchlist(allPromises);
 
-        if (!hasDelete) watchlistDisplay.value = result;
+        if (!isTickerDelete) watchlistDisplay.value = result;
         watchlistInDB.value = result;
 
         toggleAddButtonSpinner(newLoading);
@@ -230,7 +233,7 @@ export default {
       toggleWatchlistSkeleton,
 
       currentTab,
-      handleClickTab,
+      showCurrentTab,
     };
   },
 };

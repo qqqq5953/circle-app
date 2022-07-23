@@ -1,6 +1,6 @@
 <template>
-  <div class="flex gap-10 pb-3 py-5 text-sm overflow-x-scroll">
-    <nav class="flex gap-2.5">
+  <div class="flex gap-10 pb-3 py-5 text-sm overflow-x-auto">
+    <nav class="flex gap-2.5 xl:overflow-x-auto">
       <button
         class="border rounded p-2 w-24 relative"
         :class="{
@@ -10,7 +10,7 @@
         v-for="tab in tabs"
         :key="tab"
         @click="
-          handleClickTab(tab);
+          showCurrentTab(tab);
           emitCurrentTab(tab);
         "
       >
@@ -19,16 +19,7 @@
     </nav>
 
     <section
-      class="
-        flex
-        justify-between
-        gap-2
-        ml-auto
-        min-w-[50%]
-        md:min-w-[30%]
-        lg:min-w-0
-        sm:w-1/3
-      "
+      class="flex justify-between gap-2 ml-auto min-w-[50%] lg:min-w-[30%]"
     >
       <div class="relative grow">
         <div class="absolute -top-5 text-red-500">
@@ -56,19 +47,20 @@ export default {
       import("@/components/ErrorDisplay.vue")
     ),
   },
+  props: {
+    defaultTab: {
+      type: String,
+    },
+  },
   setup(props, { emit }) {
     const tabs = ref([]);
     const currentTab = ref("watchlist");
     const inputTab = ref(null);
     const errorMessage = ref([]);
 
-    const handleClickTab = (tab) => {
-      currentTab.value = tab;
-    };
+    const showCurrentTab = (tab) => (currentTab.value = tab);
 
-    const emitCurrentTab = (tab) => {
-      emit("emitCurrentTab", tab);
-    };
+    const emitCurrentTab = (tab) => emit("emitCurrentTab", tab);
 
     const createTab = () => {
       const isTabsExist = tabs.value.includes(inputTab.value);
@@ -87,10 +79,23 @@ export default {
 
     const getTabs = () => {
       const { data, error, loading } = useAxios(`/api/getTabs`, "get");
-      watch(data, (newData) => tabs.value.push(...newData.result));
+      watch(data, (newData) => {
+        console.log("getTabs", newData);
+        tabs.value.length = 0;
+        tabs.value.push(...newData.result);
+      });
     };
 
     getTabs();
+
+    watch(
+      () => props.defaultTab,
+      (newTab) => {
+        console.log("newTab", newTab);
+        getTabs();
+        showCurrentTab(newTab);
+      }
+    );
 
     watch(inputTab, () => {
       if (errorMessage.value.length) errorMessage.value.pop();
@@ -98,7 +103,7 @@ export default {
 
     return {
       createTab,
-      handleClickTab,
+      showCurrentTab,
       emitCurrentTab,
       tabs,
       currentTab,

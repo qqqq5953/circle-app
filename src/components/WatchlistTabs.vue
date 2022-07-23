@@ -32,7 +32,7 @@
           v-model="inputTab"
         />
       </div>
-      <button class="border rounded px-3" @click="createTab">add</button>
+      <button class="border rounded px-3" @click="createTab()">add</button>
     </section>
   </div>
 </template>
@@ -58,6 +58,10 @@ export default {
     const inputTab = ref(null);
     const errorMessage = ref([]);
 
+    const clearInput = () => {
+      inputTab.value = null;
+    };
+
     const showCurrentTab = (tab) => (currentTab.value = tab);
 
     const emitCurrentTab = (tab) => emit("emitCurrentTab", tab);
@@ -74,7 +78,14 @@ export default {
         inputTab: inputTab.value,
       });
 
-      watch(data, (newData) => tabs.value.push(inputTab.value));
+      watch(data, (newTab) => {
+        console.log("createTab", newTab);
+
+        tabs.value.push(newTab.result);
+        showCurrentTab(newTab).result;
+        emitCurrentTab(newTab.result);
+        clearInput();
+      });
     };
 
     const getTabs = () => {

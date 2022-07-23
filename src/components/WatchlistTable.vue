@@ -281,7 +281,7 @@ export default {
       watch(data, (newData) => {
         console.log("deleteWatchlist", newData);
 
-        const defaultTab = newData.watchlistDisplay[0];
+        const defaultTab = newData.result[0];
         emitCurrentTab(defaultTab);
       });
     };

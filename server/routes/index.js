@@ -335,7 +335,7 @@ router.post('/createTab', async (req, res) => {
 
   if (response.val() == null) {
     console.log('第一次')
-    setTabs()
+    setTabs(DEFAULT_TAB)
   } else {
     console.log('非第一次')
 
@@ -351,10 +351,10 @@ router.post('/createTab', async (req, res) => {
       res.send(message)
       return
     }
-    setTabs()
+    setTabs(inputTab)
   }
 
-  async function setTabs() {
+  async function setTabs(tab) {
     console.log('setTabs')
 
     try {
@@ -363,7 +363,7 @@ router.post('/createTab', async (req, res) => {
         success: true,
         content: '新增成功',
         errorMessage: null,
-        result: tabs
+        result: tab
       }
       res.send(message)
     } catch (error) {

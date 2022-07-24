@@ -1,6 +1,12 @@
 <template>
   <div class="flex gap-10 pb-3 py-5 text-sm overflow-x-auto">
-    <nav class="flex gap-2.5 xl:overflow-x-auto">
+    <TabSkeleton
+      :tabs="tabs"
+      :currentTab="currentTab"
+      v-if="isWatchlistLoading"
+    />
+
+    <nav class="flex gap-2.5 xl:overflow-x-auto" v-else>
       <button
         class="border rounded p-2 w-24 relative"
         :class="{
@@ -40,9 +46,11 @@
 <script>
 import { ref, watch, defineAsyncComponent } from "vue";
 import useAxios from "@/composables/useAxios.js";
+import TabSkeleton from "@/components/skeleton/TabSkeleton.vue";
 
 export default {
   components: {
+    TabSkeleton,
     ErrorDisplay: defineAsyncComponent(() =>
       import("@/components/ErrorDisplay.vue")
     ),
@@ -51,19 +59,18 @@ export default {
     defaultTab: {
       type: String,
     },
+    isWatchlistLoading: {
+      type: Boolean,
+    },
   },
   setup(props, { emit }) {
     const tabs = ref([]);
-    const currentTab = ref("watchlist");
+    const currentTab = ref(null);
     const inputTab = ref(null);
     const errorMessage = ref([]);
 
-    const clearInput = () => {
-      inputTab.value = null;
-    };
-
+    const clearInput = () => (inputTab.value = null);
     const showCurrentTab = (tab) => (currentTab.value = tab);
-
     const emitCurrentTab = (tab) => emit("emitCurrentTab", tab);
 
     const createTab = () => {
@@ -98,6 +105,7 @@ export default {
     };
 
     getTabs();
+    showCurrentTab(props.defaultTab);
 
     watch(
       () => props.defaultTab,

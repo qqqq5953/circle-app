@@ -324,22 +324,22 @@ router.get('/getWatchlist/:tab', async (req, res) => {
 
 router.post('/createTab', async (req, res) => {
   const { inputTab } = req.body
-  const DEFAULT_TAB = 'watchlist'
+  const DEFAULT_TAB = 'Watchlist'
 
-  const response = await tabsRef.once('value')
+  const initTabs = await tabsRef.once('value')
 
   const tabs =
-    response.val() == null
+    initTabs.val() == null
       ? [DEFAULT_TAB, inputTab]
-      : [...response.val(), inputTab]
+      : [...initTabs.val(), inputTab]
 
-  if (response.val() == null) {
+  if (initTabs.val() == null) {
     console.log('第一次')
     setTabs(DEFAULT_TAB)
   } else {
     console.log('非第一次')
 
-    const hasSameTab = response.val().includes(inputTab)
+    const hasSameTab = initTabs.val().includes(inputTab)
     if (hasSameTab) {
       console.log('hasSameTab')
       const message = {
@@ -381,7 +381,7 @@ router.post('/createTab', async (req, res) => {
 router.get('/getTabs', async (req, res) => {
   try {
     let refreshTabs
-    const DEFAULT_TAB = 'watchlist'
+    const DEFAULT_TAB = 'Watchlist'
     const initTabs = await tabsRef.once('value')
 
     if (initTabs.val() == null) {

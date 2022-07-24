@@ -30,7 +30,11 @@
     </div>
 
     <!-- tabs -->
-    <WatchlistTabs :defaultTab="currentTab" @emitCurrentTab="showCurrentTab" />
+    <WatchlistNavbar
+      :defaultTab="currentTab"
+      :isWatchlistLoading="isWatchlistLoading"
+      @emitCurrentTab="showCurrentTab"
+    />
 
     <!-- table -->
     <ListSkeleton
@@ -63,7 +67,7 @@ import SearchList from "@/components/SearchList.vue";
 import WatchlistTable from "@/components/WatchlistTable.vue";
 import ListSkeleton from "@/components/skeleton/ListSkeleton.vue";
 import SearchBar from "@/components/SearchBar.vue";
-import WatchlistTabs from "@/components/WatchlistTabs.vue";
+import WatchlistNavbar from "@/components/WatchlistNavbar.vue";
 
 export default {
   components: {
@@ -71,7 +75,7 @@ export default {
     SearchList,
     WatchlistTable,
     ListSkeleton,
-    WatchlistTabs,
+    WatchlistNavbar,
     ErrorDisplay: defineAsyncComponent(() =>
       import("@/components/ErrorDisplay.vue")
     ),
@@ -125,7 +129,7 @@ export default {
     });
 
     // tabs
-    const DEFAULT_TAB = ref("watchlist");
+    const DEFAULT_TAB = ref("Watchlist");
     const currentTab = ref(null);
     const showCurrentTab = (tab) => (currentTab.value = tab);
 

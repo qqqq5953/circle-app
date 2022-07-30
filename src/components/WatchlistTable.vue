@@ -19,7 +19,7 @@
       <!-- dropdown -->
       <div
         class="relative ml-auto h-full w-2/3"
-        v-if="currentTab !== 'watchlist'"
+        v-if="currentTab.toLowerCase() !== 'watchlist'"
       >
         <button
           class="absolute top-0 right-2 px-3 rounded-full active:rounded-full"
@@ -31,21 +31,57 @@
           <ul
             class="absolute right-0 -bottom-16 p-3 shadow rounded bg-white"
             v-show="isOpen"
+            @click="toggleDropdown"
           >
-            <li>
-              <button
-                @click="
-                  deleteWatchlist();
-                  toggleDropdown();
-                "
-              >
-                delete watchlist
-              </button>
+            <li v-for="list in dropdownMenu" :key="list.name">
+              <button @click="list.onClick">{{ list.name }}</button>
             </li>
+            <!-- <li>
+              <button @click="deleteWatchlist">delete watchlist</button>
+            </li> -->
           </ul>
         </Transition>
       </div>
     </div>
+
+    <Teleport to="body">
+      <div v-if="isRename" class="fixed inset-0 z-20 bg-slate-700/60">
+        <div
+          class="
+            absolute
+            top-1/2
+            left-1/2
+            -translate-x-1/2 -translate-y-1/2
+            bg-white
+            rounded
+            p-5
+            flex flex-wrap flex-col
+            gap-4
+            w-2/3
+            lg:w-1/3
+          "
+        >
+          <h2 class="text-xl lg:text-2xl">Rename watchlist</h2>
+          <input
+            type="text"
+            class="border rounded p-2 w-full"
+            v-model="newListName"
+            ref="inputRename"
+          />
+          <div class="text-right">
+            <button class="text-blue-600 p-2 mr-2" @click="isRename = false">
+              Close
+            </button>
+            <button
+              class="border rounded p-2 bg-blue-600 text-white"
+              @click="renameWatchlist"
+            >
+              Rename
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
     <!-- body -->
     <div class="block w-full overflow-x-auto" v-if="watchlistDisplay">
@@ -259,7 +295,7 @@
 
 <script>
 import useAxios from "@/composables/useAxios.js";
-import { ref, watch } from "vue";
+import { ref, watch, nextTick } from "vue";
 
 export default {
   props: {
@@ -273,12 +309,25 @@ export default {
   setup(props, { emit }) {
     const tickerRow = ref(null);
     const isOpen = ref(false);
+    const dropdownMenu = ref([
+      {
+        name: "delete",
+        onClick: [deleteWatchlist],
+      },
+      {
+        name: "rename",
+        onClick: [openRenameModal],
+      },
+    ]);
+    const isRename = ref(false);
+    const newListName = ref(null);
+    const inputRename = ref(null);
 
     const toggleDropdown = () => (isOpen.value = !isOpen.value);
 
     const emitCurrentTab = (tab) => emit("emitCurrentTab", tab);
 
-    const deleteWatchlist = () => {
+    function deleteWatchlist() {
       const { data, error, loading } = useAxios("/api/deleteTab", "post", {
         currentTab: props.currentTab,
       });
@@ -289,7 +338,29 @@ export default {
         const defaultTab = newData.result[0];
         emitCurrentTab(defaultTab);
       });
-    };
+    }
+
+    function renameWatchlist() {
+      console.log("renameWatchlist");
+      const { data, error, loading } = useAxios("/api/editTab", "post", {
+        oldTab: props.currentTab,
+        newTab: newListName.value,
+      });
+
+      watch(data, (newData) => {
+        console.log("renameWatchlist", newData);
+
+        // const defaultTab = newData.result[0];
+        // emitCurrentTab(defaultTab);
+      });
+    }
+
+    async function openRenameModal() {
+      isRename.value = true;
+      newListName.value = props.currentTab;
+      await nextTick();
+      inputRename.value.select();
+    }
 
     // show deleted ticker when added
     watch(
@@ -326,8 +397,14 @@ export default {
       tickerRow,
       deleteTicker,
       isOpen,
+      isRename,
       toggleDropdown,
       deleteWatchlist,
+      dropdownMenu,
+      openRenameModal,
+      newListName,
+      inputRename,
+      renameWatchlist,
     };
   },
 };

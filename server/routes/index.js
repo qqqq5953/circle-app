@@ -435,4 +435,40 @@ router.post('/deleteTab', async (req, res) => {
   }
 })
 
+router.post('/editTab', async (req, res) => {
+  try {
+    const { oldTab, newTab } = req.body
+    console.log('oldTab', oldTab)
+    console.log('newTab', newTab)
+    const tabs = await tabsRef.once('value')
+    const allTabs = tabs.val()
+    console.log('old tabs', allTabs)
+
+    const idx = allTabs.indexOf(oldTab)
+    console.log('idx', idx)
+    allTabs.splice(idx, 1, newTab)
+
+    console.log('new tabs', allTabs)
+    // await tabsRef.set(allTabs)
+    // await watchlistRef.child(currentTab).remove()
+
+    // const message = {
+    //   success: true,
+    //   content: '刪除成功',
+    //   errorMessage: null,
+    //   result: newTabs
+    // }
+
+    // res.send(message)
+  } catch (error) {
+    // const message = {
+    //   success: false,
+    //   content: '刪除失敗',
+    //   errorMessage: error.message,
+    //   result: null
+    // }
+    // res.send(message)
+  }
+})
+
 module.exports = router

@@ -10,7 +10,7 @@
 
       <!-- 搜尋結果 -->
       <Transition>
-        <div v-show="isFocus" class="absolute top-12 z-10 w-full bg-white">
+        <div v-show="isFocus" class="absolute top-12 w-full bg-white">
           <ListSkeleton
             :tableContent="searchListSkeletonContent"
             v-show="isSearchListLoading"
@@ -41,8 +41,20 @@
       :tableContent="watchlistTableSkeletonContent"
       v-show="isWatchlistLoading"
       ><template #table-title>
-        <div class="rounded-t px-4 py-3 border-0 flex flex-wrap items-center">
-          <h3 class="font-semibold text-base text-blueGray-700">Watchlist</h3>
+        <div
+          class="
+            rounded-t
+            pl-4
+            lg:pl-8
+            py-3
+            flex flex-wrap
+            items-center
+            border-b
+          "
+        >
+          <h3 class="font-semibold">
+            {{ currentTab }}
+          </h3>
         </div>
       </template>
     </ListSkeleton>

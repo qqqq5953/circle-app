@@ -1,5 +1,5 @@
 <template>
-  <div class="overflow-y-auto shadow-lg rounded" v-if="searchList?.length">
+  <div class="shadow-lg rounded bg-white" v-if="searchList?.length">
     <table class="w-full border-collapse table-fixed">
       <slot name="thead"></slot>
       <tbody>
@@ -83,7 +83,9 @@
                   v-if="item.previousCloseChange > 0"
                 ></i>
                 <i class="fas fa-arrow-down" v-else></i>
-                <span class="">{{ item.previousCloseChangePercent }} %</span>
+                <span class=""
+                  >{{ Math.abs(item.previousCloseChangePercent) }} %</span
+                >
               </div>
             </div>
           </td>
@@ -112,6 +114,7 @@
               py-3
               sm:py-4
               pr-3
+              pl-1
               lg:pr-4
               text-xs text-center
               w-1/12

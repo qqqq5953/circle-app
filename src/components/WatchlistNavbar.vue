@@ -1,14 +1,16 @@
 <template>
-  <div class="flex gap-10 pb-3 py-5 text-sm overflow-x-auto">
+  <div
+    class="flex gap-10 pb-3 py-5 text-sm overflow-x-auto lg:overflow-x-visible"
+  >
     <TabSkeleton
       :tabs="tabs"
       :currentTab="currentTab"
       v-if="isWatchlistLoading"
     />
 
-    <nav class="flex gap-2.5 xl:overflow-x-auto" v-else>
+    <nav class="flex gap-2.5 lg:overflow-x-auto lg:max-w-[70%]" v-else>
       <button
-        class="border rounded p-2 w-24 relative"
+        class="border rounded p-2 w-24 relative shrink-0"
         :class="{
           'after:absolute after:inset-x-0 after:bottom-0 after:h-1 after:bg-blue-500':
             currentTab === tab,

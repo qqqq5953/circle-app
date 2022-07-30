@@ -10,8 +10,11 @@
     "
   >
     <!-- table title -->
-    <div class="rounded-t py-3 border-0 flex flex-wrap items-center">
-      <h3 class="font-semibold px-4">{{ currentTab }}</h3>
+    <div
+      class="rounded-t pl-4 lg:pl-8 py-3 flex flex-wrap items-center border-b"
+      :class="{ 'border-b': watchlistDisplay }"
+    >
+      <h3 class="font-semibold">{{ currentTab }}</h3>
 
       <!-- dropdown -->
       <div
@@ -116,7 +119,6 @@
         </thead>
         <tbody>
           <tr
-            class="border-t test"
             v-for="(item, index) in watchlistDisplay"
             :key="item.ticker"
             :id="index"
@@ -201,7 +203,9 @@
                     v-if="item.previousCloseChange > 0"
                   ></i>
                   <i class="fas fa-arrow-down" v-else></i>
-                  <span class="">{{ item.previousCloseChangePercent }} %</span>
+                  <span class=""
+                    >{{ Math.abs(item.previousCloseChangePercent) }} %</span
+                  >
                 </div>
               </div>
             </td>
@@ -232,6 +236,7 @@
                 py-3
                 sm:py-4
                 pr-3
+                pl-1
                 lg:pr-4
                 text-xs text-center
                 w-1/12

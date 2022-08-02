@@ -17,10 +17,7 @@
         }"
         v-for="tab in tabs"
         :key="tab"
-        @click="
-          showCurrentTab(tab);
-          emitCurrentTab(tab);
-        "
+        @click="showCurrentTab(tab)"
       >
         {{ tab }}
       </button>
@@ -49,6 +46,8 @@
 import { ref, watch, defineAsyncComponent } from "vue";
 import useAxios from "@/composables/useAxios.js";
 import TabSkeleton from "@/components/skeleton/TabSkeleton.vue";
+import { useWatchlistStore } from "@/stores/watchlistStore.js";
+import { storeToRefs } from "pinia";
 
 export default {
   components: {
@@ -58,22 +57,27 @@ export default {
     ),
   },
   props: {
-    defaultTab: {
-      type: String,
-    },
     isWatchlistLoading: {
       type: Boolean,
     },
   },
-  setup(props, { emit }) {
-    const tabs = ref([]);
-    const currentTab = ref(null);
+  setup() {
+    const $store = useWatchlistStore();
+
     const inputTab = ref(null);
     const errorMessage = ref([]);
+    const { currentTab, tabs } = storeToRefs($store);
 
     const clearInput = () => (inputTab.value = null);
-    const showCurrentTab = (tab) => (currentTab.value = tab);
-    const emitCurrentTab = (tab) => emit("emitCurrentTab", tab);
+
+    const showCurrentTab = (tab) => {
+      console.log("showCurrentTab in navbar");
+      $store.showCurrentTab(tab);
+    };
+
+    const setTabs = (tab) => {
+      $store.setTabs(tab);
+    };
 
     const createTab = () => {
       const isTabsExist = tabs.value.includes(inputTab.value);
@@ -90,33 +94,21 @@ export default {
       watch(data, (newTab) => {
         console.log("createTab", newTab);
 
-        tabs.value.push(newTab.result);
-        showCurrentTab(newTab).result;
-        emitCurrentTab(newTab.result);
+        setTabs(newTab.result);
+        showCurrentTab(newTab.result);
         clearInput();
       });
     };
 
-    const getTabs = () => {
+    const fetchAndSetTabs = () => {
+      console.log("getTabs");
       const { data, error, loading } = useAxios(`/api/getTabs`, "get");
       watch(data, (newData) => {
-        console.log("getTabs", newData);
-        tabs.value.length = 0;
-        tabs.value.push(...newData.result);
+        setTabs(newData.result);
       });
     };
 
-    getTabs();
-    showCurrentTab(props.defaultTab);
-
-    watch(
-      () => props.defaultTab,
-      (newTab) => {
-        console.log("newTab", newTab);
-        getTabs();
-        showCurrentTab(newTab);
-      }
-    );
+    fetchAndSetTabs();
 
     watch(inputTab, () => {
       if (errorMessage.value.length) errorMessage.value.pop();
@@ -125,7 +117,6 @@ export default {
     return {
       createTab,
       showCurrentTab,
-      emitCurrentTab,
       tabs,
       currentTab,
       inputTab,

@@ -19,7 +19,7 @@
       <!-- dropdown -->
       <div
         class="relative ml-auto h-full w-2/3"
-        v-if="currentTab.toLowerCase() !== 'watchlist'"
+        v-if="currentTab?.toLowerCase() !== 'watchlist'"
       >
         <button
           class="absolute top-0 right-2 px-3 rounded-full active:rounded-full"
@@ -36,9 +36,6 @@
             <li v-for="list in dropdownMenu" :key="list.name">
               <button @click="list.onClick">{{ list.name }}</button>
             </li>
-            <!-- <li>
-              <button @click="deleteWatchlist">delete watchlist</button>
-            </li> -->
           </ul>
         </Transition>
       </div>
@@ -296,17 +293,21 @@
 <script>
 import useAxios from "@/composables/useAxios.js";
 import { ref, watch, nextTick } from "vue";
+import { useWatchlistStore } from "@/stores/watchlistStore.js";
+import { storeToRefs } from "pinia";
 
 export default {
   props: {
     watchlistDisplay: {
       type: Object,
     },
-    currentTab: {
-      type: String,
-    },
+    // currentTab: {
+    //   type: String,
+    // },
   },
   setup(props, { emit }) {
+    const $store = useWatchlistStore();
+
     const tickerRow = ref(null);
     const isOpen = ref(false);
     const dropdownMenu = ref([
@@ -322,28 +323,37 @@ export default {
     const isRename = ref(false);
     const newListName = ref(null);
     const inputRename = ref(null);
+    const { currentTab } = storeToRefs($store);
+
+    const showCurrentTab = (tab) => {
+      $store.showCurrentTab(tab);
+    };
 
     const toggleDropdown = () => (isOpen.value = !isOpen.value);
 
-    const emitCurrentTab = (tab) => emit("emitCurrentTab", tab);
+    const setTabs = (tab) => {
+      $store.setTabs(tab);
+    };
 
     function deleteWatchlist() {
       const { data, error, loading } = useAxios("/api/deleteTab", "post", {
-        currentTab: props.currentTab,
+        currentTab: $store.currentTab,
       });
 
       watch(data, (newData) => {
         console.log("deleteWatchlist", newData);
-
-        const defaultTab = newData.result[0];
-        emitCurrentTab(defaultTab);
+        setTabs(newData.result);
+        // $store.$patch((state) => {
+        //   state.isTabUpdate = true;
+        // });
+        showCurrentTab($store.DEFAULT_TAB);
       });
     }
 
     function renameWatchlist() {
       console.log("renameWatchlist");
       const { data, error, loading } = useAxios("/api/editTab", "post", {
-        oldTab: props.currentTab,
+        oldTab: $store.currentTab,
         newTab: newListName.value,
       });
 
@@ -357,9 +367,26 @@ export default {
 
     async function openRenameModal() {
       isRename.value = true;
-      newListName.value = props.currentTab;
+      newListName.value = $store.currentTab;
       await nextTick();
       inputRename.value.select();
+    }
+
+    function deleteTicker(ticker) {
+      const { data, error, loading } = useAxios(
+        "/api/deleteFromWatchlist",
+        "post",
+        { ticker, currentTab: $store.currentTab }
+      );
+
+      watch(data, (newData) => {
+        console.log("deleteTicker", newData);
+
+        const tickerRow = document.getElementById(ticker);
+        tickerRow.classList.add("hidden");
+
+        emit("loadWatchlist", true);
+      });
     }
 
     // show deleted ticker when added
@@ -376,23 +403,6 @@ export default {
       }
     );
 
-    function deleteTicker(ticker) {
-      const { data, error, loading } = useAxios(
-        "/api/deleteFromWatchlist",
-        "post",
-        { ticker, currentTab: props.currentTab }
-      );
-
-      watch(data, (newData) => {
-        console.log("deleteTicker", newData);
-
-        const tickerRow = document.getElementById(ticker);
-        tickerRow.classList.add("hidden");
-
-        emit("loadWatchlist", true);
-      });
-    }
-
     return {
       tickerRow,
       deleteTicker,
@@ -405,6 +415,7 @@ export default {
       newListName,
       inputRename,
       renameWatchlist,
+      currentTab,
     };
   },
 };

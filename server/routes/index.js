@@ -322,6 +322,30 @@ router.get('/getWatchlist/:tab', async (req, res) => {
   }
 })
 
+router.get('/getAllWatchlists', async (req, res) => {
+  try {
+    const watchlistsRef = await watchlistRef.once('value')
+    const watchlists = watchlistsRef.val()
+
+    const msg = {
+      success: true,
+      content: '獲得 watchlist',
+      errorMessage: null,
+      result: watchlists
+    }
+
+    res.send(msg)
+  } catch (error) {
+    const msg = {
+      success: false,
+      content: '獲得標的失敗',
+      errorMessage: error.message,
+      result: null
+    }
+    res.send(msg)
+  }
+})
+
 router.post('/createTab', async (req, res) => {
   const { inputTab } = req.body
   const DEFAULT_TAB = 'Watchlist'

@@ -19,7 +19,6 @@
             :searchList="searchList"
             :watchlistInDB="watchlistInDB"
             :isAddingProcess="isAddingProcess"
-            :currentTab="currentTab"
             @loadWatchlist="loadWatchlist"
             @toggleWatchlistSkeleton="toggleWatchlistSkeleton"
             @toggleAddButtonSpinner="toggleAddButtonSpinner"
@@ -30,11 +29,7 @@
     </div>
 
     <!-- tabs -->
-    <WatchlistNavbar
-      :defaultTab="currentTab"
-      :isWatchlistLoading="isWatchlistLoading"
-      @emitCurrentTab="showCurrentTab"
-    />
+    <WatchlistNavbar :isWatchlistLoading="isWatchlistLoading" />
 
     <!-- table -->
     <ListSkeleton
@@ -55,13 +50,20 @@
           <h3 class="font-semibold">
             {{ currentTab }}
           </h3>
+          <div
+            class="relative ml-auto h-full w-2/3"
+            v-if="currentTab?.toLowerCase() !== 'watchlist'"
+          >
+            <div class="absolute top-0 right-2 px-3">
+              <i class="fa-solid fa-ellipsis-vertical"></i>
+            </div>
+          </div>
         </div>
       </template>
     </ListSkeleton>
+
     <WatchlistTable
       :watchlistDisplay="watchlistDisplay"
-      :currentTab="currentTab"
-      @emitCurrentTab="showCurrentTab"
       @loadWatchlist="loadWatchlist"
       @toggleAddButtonSpinner="toggleAddButtonSpinner"
       @toggleWatchlistSkeleton="toggleWatchlistSkeleton"
@@ -81,6 +83,9 @@ import ListSkeleton from "@/components/skeleton/ListSkeleton.vue";
 import SearchBar from "@/components/SearchBar.vue";
 import WatchlistNavbar from "@/components/WatchlistNavbar.vue";
 
+import { useWatchlistStore } from "@/stores/watchlistStore.js";
+import { storeToRefs } from "pinia";
+
 export default {
   components: {
     SearchBar,
@@ -93,6 +98,8 @@ export default {
     ),
   },
   setup() {
+    const $store = useWatchlistStore();
+
     // searchList section
     const searchListSkeletonContent = ref({
       tableHead: {
@@ -141,12 +148,11 @@ export default {
     });
 
     // tabs
-    const DEFAULT_TAB = ref("Watchlist");
-    const currentTab = ref(null);
-    const showCurrentTab = (tab) => (currentTab.value = tab);
+    const { currentTab } = storeToRefs($store);
 
-    showCurrentTab(DEFAULT_TAB.value);
-    watch(currentTab, () => loadWatchlist());
+    watch(currentTab, (newVal) => {
+      loadWatchlist();
+    });
 
     // watchlist section
     const watchlistTableSkeletonContent = ref({
@@ -179,6 +185,20 @@ export default {
       watchlistTableSkeletonContent.value.tableBody.tr = rowNumber;
     };
 
+    function getAllWatchlists() {
+      const { data, error, loading } = useAxios("/api/getAllWatchlists", "get");
+
+      watch(data, (newList) => {
+        console.log("getAllWatchlists", newList);
+
+        const tabs = Object.keys(newList.result);
+
+        console.log("tabs", tabs);
+      });
+    }
+
+    getAllWatchlists();
+
     function loadWatchlist(isTickerDelete = false) {
       const { data, error, loading } = useAxios(
         `/api/getWatchlist/${currentTab.value}`,
@@ -202,6 +222,7 @@ export default {
         setSkeletonTableRow(allPromises.length);
 
         const result = await getWatchlist(allPromises);
+        console.log("result", result);
 
         if (!isTickerDelete) watchlistDisplay.value = result;
         watchlistInDB.value = result;
@@ -249,7 +270,6 @@ export default {
       toggleWatchlistSkeleton,
 
       currentTab,
-      showCurrentTab,
     };
   },
 };

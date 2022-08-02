@@ -146,6 +146,7 @@
 <script>
 import useAxios from "@/composables/useAxios.js";
 import { ref, watch, computed } from "vue";
+import { useWatchlistStore } from "@/stores/watchlistStore.js";
 
 export default {
   props: {
@@ -159,11 +160,10 @@ export default {
     isAddingProcess: {
       type: Boolean,
     },
-    currentTab: {
-      type: String,
-    },
   },
   setup(props, { emit }) {
+    const $store = useWatchlistStore();
+
     const isTickerInWatchlistDB = computed(() => {
       const watchlistInDB = props.watchlistInDB;
       const ticker = props.searchList[0]?.ticker;
@@ -178,7 +178,7 @@ export default {
       const { data, error, loading } = useAxios("/api/addToWatchlist", "post", {
         ticker,
         name,
-        currentTab: props.currentTab,
+        currentTab: $store.currentTab,
       });
 
       watch([data, loading], () => {

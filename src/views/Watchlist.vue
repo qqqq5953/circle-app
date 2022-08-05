@@ -24,6 +24,14 @@
             @toggleAddButtonSpinner="toggleAddButtonSpinner"
             v-show="!isSearchListLoading"
           />
+          <div
+            class="shadow-lg rounded bg-white px-4 py-3"
+            v-if="searchList === undefined"
+            v-show="!isSearchListLoading"
+          >
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span class="ml-3">The ticker does not exist</span>
+          </div>
         </div>
       </Transition>
     </div>
@@ -127,8 +135,12 @@ export default {
     };
 
     const getSearchList = (tickerObject) => {
-      if (!tickerObject) return (searchList.value = null);
-      searchList.value = [tickerObject];
+      searchList.value =
+        tickerObject === undefined // 無搜尋結果
+          ? undefined
+          : tickerObject === null // 輸入不符格式
+          ? null
+          : [tickerObject];
     };
 
     function hasParentElement(event, element) {

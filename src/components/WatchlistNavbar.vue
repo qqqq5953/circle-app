@@ -1,6 +1,7 @@
 <template>
   <div
     class="flex gap-10 pb-3 py-5 text-sm overflow-x-auto lg:overflow-x-visible"
+    ref="navbar"
   >
     <TabSkeleton
       :tabs="tabs"
@@ -23,22 +24,53 @@
       </button>
     </nav>
 
-    <section
-      class="flex justify-between gap-2 ml-auto min-w-[50%] lg:min-w-[30%]"
-    >
-      <div class="relative grow">
-        <div class="absolute -top-5 text-red-500">
-          <ErrorDisplay :errors="errorMessage" v-if="errorMessage.length" />
+    <button class="shrink-0 text-blue-600 ml-auto" @click="toggleModal(true)">
+      + Add watchlist
+    </button>
+
+    <Teleport to="body">
+      <div v-if="isModalOpen" class="fixed inset-0 z-20 bg-slate-700/60">
+        <div
+          class="
+            absolute
+            top-1/2
+            left-1/2
+            -translate-x-1/2 -translate-y-1/2
+            bg-white
+            rounded
+            p-5
+            flex flex-wrap flex-col
+            gap-4
+            w-2/3
+            lg:w-1/3
+          "
+        >
+          <h2 class="text-xl lg:text-2xl">Add watchlist</h2>
+          <div>
+            <input
+              type="text"
+              class="border rounded focus:outline-none px-4 py-4 w-full"
+              placeholder="add a tab"
+              v-model="inputListName"
+            />
+            <div class="text-red-500">
+              <ErrorDisplay :errors="errorMessage" v-if="errorMessage.length" />
+            </div>
+          </div>
+          <div class="text-right">
+            <button class="text-blue-600 p-2 mr-2" @click="toggleModal(false)">
+              Close
+            </button>
+            <button
+              class="border rounded p-2 bg-blue-600 text-white"
+              @click="createTab()"
+            >
+              Add
+            </button>
+          </div>
         </div>
-        <input
-          type="text"
-          class="absolute inset-0 border rounded focus:outline-none px-4 py-2"
-          placeholder="add a tab"
-          v-model="inputTab"
-        />
       </div>
-      <button class="border rounded px-3" @click="createTab()">add</button>
-    </section>
+    </Teleport>
   </div>
 </template>
 
@@ -64,14 +96,15 @@ export default {
   setup() {
     const $store = useWatchlistStore();
 
-    const inputTab = ref(null);
+    const isModalOpen = ref(false);
+    const inputListName = ref(null);
+    const navbar = ref(null);
     const errorMessage = ref([]);
     const { currentTab, tabs } = storeToRefs($store);
 
-    const clearInput = () => (inputTab.value = null);
+    const clearInput = () => (inputListName.value = null);
 
     const showCurrentTab = (tab) => {
-      console.log("showCurrentTab in navbar");
       $store.showCurrentTab(tab);
     };
 
@@ -79,29 +112,40 @@ export default {
       $store.setTabs(tab);
     };
 
+    const toggleModal = (isOpen) => {
+      if (!isOpen) clearInput();
+      isModalOpen.value = isOpen;
+    };
+
     const createTab = () => {
-      const isTabsExist = tabs.value.includes(inputTab.value);
+      const isTabsExist = tabs.value.includes(inputListName.value);
 
       if (isTabsExist) {
         errorMessage.value.push("tab already exists");
         return;
       }
 
-      const { data, error, loading } = useAxios(`/api/createTab`, "post", {
-        inputTab: inputTab.value,
-      });
+      if (inputListName.value == null) {
+        errorMessage.value.push("input must not be empty");
+        return;
+      }
+
+      const { data, error, loading } = useAxios(
+        `/api/createWatchlist`,
+        "post",
+        {
+          listName: inputListName.value,
+        }
+      );
 
       watch(data, (newTab) => {
-        console.log("createTab", newTab);
-
         setTabs(newTab.result);
         showCurrentTab(newTab.result);
-        clearInput();
+        toggleModal(false);
       });
     };
 
     const fetchAndSetTabs = () => {
-      console.log("getTabs");
       const { data, error, loading } = useAxios(`/api/getTabs`, "get");
       watch(data, (newData) => {
         setTabs(newData.result);
@@ -110,17 +154,27 @@ export default {
 
     fetchAndSetTabs();
 
-    watch(inputTab, () => {
+    watch(currentTab, (newTab) => {
+      if (newTab === "Watchlist") {
+        navbar.value.scrollLeft = -100;
+      }
+    });
+
+    watch(inputListName, () => {
       if (errorMessage.value.length) errorMessage.value.pop();
     });
 
     return {
+      isModalOpen,
+      navbar,
+      inputListName,
+      errorMessage,
+      currentTab,
+      tabs,
+
       createTab,
       showCurrentTab,
-      tabs,
-      currentTab,
-      inputTab,
-      errorMessage,
+      toggleModal,
     };
   },
 };

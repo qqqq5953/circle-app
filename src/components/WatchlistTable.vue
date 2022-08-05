@@ -29,12 +29,18 @@
         </button>
         <Transition>
           <ul
-            class="absolute right-0 -bottom-16 p-3 shadow rounded bg-white"
-            v-show="isOpen"
+            class="absolute right-0 -bottom-28 p-3 shadow rounded bg-white"
+            v-show="isDropdownOpen"
             @click="toggleDropdown"
           >
-            <li v-for="list in dropdownMenu" :key="list.name">
-              <button @click="list.onClick">{{ list.name }}</button>
+            <li
+              class="flex gap-3 items-center py-1"
+              v-for="list in dropdownMenu"
+              :key="list.name"
+              @click="list.onClick"
+            >
+              <i :class="list.icon"></i>
+              <span>{{ list.name }}</span>
             </li>
           </ul>
         </Transition>
@@ -42,7 +48,7 @@
     </div>
 
     <Teleport to="body">
-      <div v-if="isRename" class="fixed inset-0 z-20 bg-slate-700/60">
+      <div v-if="isModalOpen" class="fixed inset-0 z-20 bg-slate-700/60">
         <div
           class="
             absolute
@@ -66,12 +72,15 @@
             ref="inputRename"
           />
           <div class="text-right">
-            <button class="text-blue-600 p-2 mr-2" @click="isRename = false">
+            <button class="text-blue-600 p-2 mr-2" @click="isModalOpen = false">
               Close
             </button>
             <button
               class="border rounded p-2 bg-blue-600 text-white"
-              @click="renameWatchlist"
+              @click="
+                renameWatchlist();
+                isModalOpen = false;
+              "
             >
               Rename
             </button>
@@ -301,26 +310,25 @@ export default {
     watchlistDisplay: {
       type: Object,
     },
-    // currentTab: {
-    //   type: String,
-    // },
   },
   setup(props, { emit }) {
     const $store = useWatchlistStore();
 
     const tickerRow = ref(null);
-    const isOpen = ref(false);
+    const isDropdownOpen = ref(false);
     const dropdownMenu = ref([
       {
         name: "delete",
         onClick: [deleteWatchlist],
+        icon: "fa-regular fa-trash-can",
       },
       {
         name: "rename",
         onClick: [openRenameModal],
+        icon: "fa-regular fa-pen-to-square",
       },
     ]);
-    const isRename = ref(false);
+    const isModalOpen = ref(false);
     const newListName = ref(null);
     const inputRename = ref(null);
     const { currentTab } = storeToRefs($store);
@@ -329,44 +337,43 @@ export default {
       $store.showCurrentTab(tab);
     };
 
-    const toggleDropdown = () => (isOpen.value = !isOpen.value);
+    const toggleDropdown = () => (isDropdownOpen.value = !isDropdownOpen.value);
 
     const setTabs = (tab) => {
       $store.setTabs(tab);
     };
 
     function deleteWatchlist() {
-      const { data, error, loading } = useAxios("/api/deleteTab", "post", {
-        currentTab: $store.currentTab,
-      });
+      const { data, error, loading } = useAxios(
+        "/api/deleteWatchlist",
+        "post",
+        {
+          currentTab: $store.currentTab,
+        }
+      );
 
       watch(data, (newData) => {
-        console.log("deleteWatchlist", newData);
         setTabs(newData.result);
-        // $store.$patch((state) => {
-        //   state.isTabUpdate = true;
-        // });
         showCurrentTab($store.DEFAULT_TAB);
       });
     }
 
     function renameWatchlist() {
-      console.log("renameWatchlist");
+      if ($store.currentTab === newListName.value) return;
       const { data, error, loading } = useAxios("/api/editTab", "post", {
         oldTab: $store.currentTab,
         newTab: newListName.value,
       });
 
       watch(data, (newData) => {
-        console.log("renameWatchlist", newData);
-
-        // const defaultTab = newData.result[0];
-        // emitCurrentTab(defaultTab);
+        const { newTab, allTabs } = newData.result;
+        showCurrentTab(newTab);
+        setTabs(allTabs);
       });
     }
 
     async function openRenameModal() {
-      isRename.value = true;
+      isModalOpen.value = true;
       newListName.value = $store.currentTab;
       await nextTick();
       inputRename.value.select();
@@ -380,14 +387,16 @@ export default {
       );
 
       watch(data, (newData) => {
-        console.log("deleteTicker", newData);
-
         const tickerRow = document.getElementById(ticker);
         tickerRow.classList.add("hidden");
 
         emit("loadWatchlist", true);
       });
     }
+
+    watch(currentTab, (newTab) => {
+      isDropdownOpen.value = false;
+    });
 
     // show deleted ticker when added
     watch(
@@ -404,18 +413,19 @@ export default {
     );
 
     return {
+      isDropdownOpen,
+      isModalOpen,
       tickerRow,
-      deleteTicker,
-      isOpen,
-      isRename,
-      toggleDropdown,
-      deleteWatchlist,
-      dropdownMenu,
-      openRenameModal,
-      newListName,
-      inputRename,
-      renameWatchlist,
       currentTab,
+      dropdownMenu,
+      inputRename,
+      newListName,
+
+      toggleDropdown,
+      openRenameModal,
+      deleteTicker,
+      deleteWatchlist,
+      renameWatchlist,
     };
   },
 };

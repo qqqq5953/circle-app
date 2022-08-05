@@ -9,9 +9,14 @@ export const useWatchlistStore = defineStore('watchlist', () => {
   const setTabs = (tab) => {
     console.log('setTabs', typeof tab)
 
-    if (typeof tab === 'object') tabs.value.length = 0
+    if (typeof tab === 'object') {
+      tabs.value.length = 0
+      tabs.value.push(...tab)
+    }
 
-    tabs.value.push(...tab)
+    if (typeof tab === 'string') {
+      tabs.value.push(tab)
+    }
   }
 
   const showCurrentTab = (tab) => {

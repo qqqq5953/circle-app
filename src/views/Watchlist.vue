@@ -136,13 +136,13 @@ export default {
     }
 
     document.addEventListener("click", (e) => {
-      const isAddButtonCLick = e.target.nodeName === "I";
+      const isAddButtonClick = e.target.nodeName === "I";
       const isInputFocus = e.target.nodeName === "INPUT";
       const isNavClick = hasParentElement(e, "nav");
       const isSearchBarFocus =
         isInputFocus && hasParentElement(e, "#searchBar");
 
-      if (isAddButtonCLick) return;
+      if (isAddButtonClick) return;
       if (!isSearchBarFocus && !isNavClick) isFocus.value = false;
       if (isSearchBarFocus) isFocus.value = true;
     });
@@ -185,20 +185,6 @@ export default {
       watchlistTableSkeletonContent.value.tableBody.tr = rowNumber;
     };
 
-    function getAllWatchlists() {
-      const { data, error, loading } = useAxios("/api/getAllWatchlists", "get");
-
-      watch(data, (newList) => {
-        console.log("getAllWatchlists", newList);
-
-        const tabs = Object.keys(newList.result);
-
-        console.log("tabs", tabs);
-      });
-    }
-
-    getAllWatchlists();
-
     function loadWatchlist(isTickerDelete = false) {
       const { data, error, loading } = useAxios(
         `/api/getWatchlist/${currentTab.value}`,
@@ -222,7 +208,6 @@ export default {
         setSkeletonTableRow(allPromises.length);
 
         const result = await getWatchlist(allPromises);
-        console.log("result", result);
 
         if (!isTickerDelete) watchlistDisplay.value = result;
         watchlistInDB.value = result;
@@ -254,10 +239,10 @@ export default {
     return {
       searchListSkeletonContent,
       searchList,
-      toggleSearchList,
       isSearchListLoading,
       isFocus,
       getSearchList,
+      toggleSearchList,
       toggleSearchListSkeleton,
 
       loadWatchlist,

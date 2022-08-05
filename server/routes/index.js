@@ -290,6 +290,8 @@ router.post('/deleteFromWatchlist', async (req, res) => {
   }
 })
 
+// watchlist
+
 router.get('/getWatchlist/:tab', async (req, res) => {
   const currentTab = req.params.tab
 
@@ -346,40 +348,35 @@ router.get('/getAllWatchlists', async (req, res) => {
   }
 })
 
-router.post('/createTab', async (req, res) => {
-  const { inputTab } = req.body
+router.post('/createWatchlist', async (req, res) => {
+  const { listName } = req.body
   const DEFAULT_TAB = 'Watchlist'
 
   const initTabs = await tabsRef.once('value')
-
-  const tabs =
-    initTabs.val() == null
-      ? [DEFAULT_TAB, inputTab]
-      : [...initTabs.val(), inputTab]
+  const hasSameTab = initTabs.val().includes(listName)
 
   if (initTabs.val() == null) {
-    console.log('第一次')
     setTabs(DEFAULT_TAB)
-  } else {
-    console.log('非第一次')
-
-    const hasSameTab = initTabs.val().includes(inputTab)
-    if (hasSameTab) {
-      console.log('hasSameTab')
-      const message = {
-        success: false,
-        content: '新增失敗',
-        errorMessage: '已存在相同頁籤',
-        result: null
-      }
-      res.send(message)
-      return
-    }
-    setTabs(inputTab)
+    return
   }
 
+  if (hasSameTab) {
+    const message = {
+      success: false,
+      content: '新增失敗',
+      errorMessage: '已存在相同頁籤',
+      result: null
+    }
+    res.send(message)
+    return
+  }
+  setTabs(listName)
+
   async function setTabs(tab) {
-    console.log('setTabs')
+    const tabs =
+      initTabs.val() == null
+        ? [DEFAULT_TAB, listName]
+        : [...initTabs.val(), listName]
 
     try {
       await tabsRef.set(tabs)
@@ -399,6 +396,34 @@ router.post('/createTab', async (req, res) => {
       }
       res.send(message)
     }
+  }
+})
+
+router.post('/deleteWatchlist', async (req, res) => {
+  try {
+    const { currentTab } = req.body
+    const tabs = await tabsRef.once('value')
+    const newTabs = tabs.val().filter((tab) => tab !== currentTab)
+
+    await tabsRef.set(newTabs)
+    await watchlistRef.child(currentTab).remove()
+
+    const message = {
+      success: true,
+      content: '刪除成功',
+      errorMessage: null,
+      result: newTabs
+    }
+
+    res.send(message)
+  } catch (error) {
+    const message = {
+      success: false,
+      content: '刪除失敗',
+      errorMessage: error.message,
+      result: null
+    }
+    res.send(message)
   }
 })
 
@@ -431,67 +456,38 @@ router.get('/getTabs', async (req, res) => {
   }
 })
 
-router.post('/deleteTab', async (req, res) => {
+router.post('/editTab', async (req, res) => {
   try {
-    const { currentTab } = req.body
+    const { oldTab, newTab } = req.body
     const tabs = await tabsRef.once('value')
-    const newTabs = tabs.val().filter((tab) => tab !== currentTab)
+    const allTabs = tabs.val()
+    const idx = allTabs.indexOf(oldTab)
+    allTabs.splice(idx, 1, newTab)
 
-    await tabsRef.set(newTabs)
-    await watchlistRef.child(currentTab).remove()
+    const targetList = await watchlistRef.child(oldTab).once('value')
+
+    if (targetList.val() !== null) {
+      await watchlistRef.child(oldTab).remove()
+      await watchlistRef.child(newTab).set(targetList.val())
+    }
+    await tabsRef.set(allTabs)
 
     const message = {
       success: true,
-      content: '刪除成功',
+      content: '編輯成功',
       errorMessage: null,
-      result: newTabs
+      result: { newTab, allTabs }
     }
 
     res.send(message)
   } catch (error) {
     const message = {
       success: false,
-      content: '刪除失敗',
+      content: '編輯失敗',
       errorMessage: error.message,
       result: null
     }
     res.send(message)
-  }
-})
-
-router.post('/editTab', async (req, res) => {
-  try {
-    const { oldTab, newTab } = req.body
-    console.log('oldTab', oldTab)
-    console.log('newTab', newTab)
-    const tabs = await tabsRef.once('value')
-    const allTabs = tabs.val()
-    console.log('old tabs', allTabs)
-
-    const idx = allTabs.indexOf(oldTab)
-    console.log('idx', idx)
-    allTabs.splice(idx, 1, newTab)
-
-    console.log('new tabs', allTabs)
-    // await tabsRef.set(allTabs)
-    // await watchlistRef.child(currentTab).remove()
-
-    // const message = {
-    //   success: true,
-    //   content: '刪除成功',
-    //   errorMessage: null,
-    //   result: newTabs
-    // }
-
-    // res.send(message)
-  } catch (error) {
-    // const message = {
-    //   success: false,
-    //   content: '刪除失敗',
-    //   errorMessage: error.message,
-    //   result: null
-    // }
-    // res.send(message)
   }
 })
 

@@ -1,14 +1,15 @@
 <template>
-  <nav class="flex gap-2.5 xl:overflow-x-auto animate-pulse">
+  <nav class="flex gap-2.5 lg:overflow-x-auto lg:max-w-[73%] animate-pulse">
     <div
       class="
-        relative
-        border
-        rounded
         bg-gray-200
         opacity-70
+        border
+        rounded
         p-2
         w-24
+        relative
+        shrink-0
         text-center
       "
       :class="{

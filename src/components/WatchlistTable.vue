@@ -34,7 +34,7 @@
             @click="toggleDropdown"
           >
             <li
-              class="flex gap-3 items-center py-1"
+              class="flex gap-3 items-center py-1 cursor-pointer"
               v-for="list in dropdownMenu"
               :key="list.name"
               @click="list.onClick"

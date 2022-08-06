@@ -1,7 +1,7 @@
 <template>
   <div
     class="flex gap-10 pb-3 py-5 text-sm overflow-x-auto lg:overflow-x-visible"
-    ref="navbar"
+    ref="navbarRef"
   >
     <TabSkeleton
       :tabs="tabs"
@@ -9,7 +9,11 @@
       v-if="isWatchlistLoading"
     />
 
-    <nav class="flex gap-2.5 lg:overflow-x-auto lg:max-w-[70%]" v-else>
+    <nav
+      class="flex gap-2.5 lg:overflow-x-auto lg:max-w-[73%] py-2"
+      ref="navRef"
+      v-else
+    >
       <button
         class="border rounded p-2 w-24 relative shrink-0"
         :class="{
@@ -24,7 +28,7 @@
       </button>
     </nav>
 
-    <button class="shrink-0 text-blue-600 ml-auto" @click="toggleModal(true)">
+    <button class="ml-auto shrink-0 text-blue-600" @click="toggleModal(true)">
       + Add watchlist
     </button>
 
@@ -75,7 +79,7 @@
 </template>
 
 <script>
-import { ref, watch, defineAsyncComponent } from "vue";
+import { ref, watch, defineAsyncComponent, nextTick } from "vue";
 import useAxios from "@/composables/useAxios.js";
 import TabSkeleton from "@/components/skeleton/TabSkeleton.vue";
 import { useWatchlistStore } from "@/stores/watchlistStore.js";
@@ -98,7 +102,8 @@ export default {
 
     const isModalOpen = ref(false);
     const inputListName = ref(null);
-    const navbar = ref(null);
+    const navbarRef = ref(null);
+    const navRef = ref(null);
     const errorMessage = ref([]);
     const { currentTab, tabs } = storeToRefs($store);
 
@@ -154,9 +159,29 @@ export default {
 
     fetchAndSetTabs();
 
-    watch(currentTab, (newTab) => {
+    watch(currentTab, async (newTab) => {
+      const IndexOflastItem = tabs.value.length - 1;
+      const isTabsNew = tabs.value[IndexOflastItem] === newTab;
+
+      await nextTick();
+
+      if (isTabsNew) {
+        navRef.value.scroll({
+          left: navRef.value.scrollWidth,
+          behavior: "smooth",
+        });
+      }
+
       if (newTab === "Watchlist") {
-        navbar.value.scrollLeft = -100;
+        navbarRef.value.scroll({
+          left: -1,
+          behavior: "smooth",
+        });
+
+        navRef.value.scroll({
+          left: -1,
+          behavior: "smooth",
+        });
       }
     });
 
@@ -166,7 +191,8 @@ export default {
 
     return {
       isModalOpen,
-      navbar,
+      navbarRef,
+      navRef,
       inputListName,
       errorMessage,
       currentTab,

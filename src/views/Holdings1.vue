@@ -195,7 +195,7 @@ export default {
       const dateStart = 30;
       const dateEnd = 29;
       const response = await axios.get(
-        `/api/historical/${period}/${dateStart}/${dateEnd}`
+        `/api/historicalHolding/${period}/${dateStart}/${dateEnd}`
       );
       console.log("getHistorical= ", response.data);
       historicalQutoes.value = response.data;

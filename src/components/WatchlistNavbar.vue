@@ -17,7 +17,7 @@
       <button
         class="border rounded p-2 w-24 relative shrink-0"
         :class="{
-          'after:absolute after:inset-x-0 after:bottom-0 after:h-1 after:bg-blue-500':
+          'after:absolute after:inset-x-0 after:bottom-0 after:h-1 after:bg-blue-500 after:rounded-b-lg':
             currentTab === tab,
         }"
         v-for="tab in tabs"
@@ -82,7 +82,7 @@
 import { ref, watch, defineAsyncComponent, nextTick } from "vue";
 import useAxios from "@/composables/useAxios.js";
 import TabSkeleton from "@/components/skeleton/TabSkeleton.vue";
-import { useWatchlistStore } from "@/stores/watchlistStore.js";
+import useWatchlistStore from "@/stores/watchlistStore.js";
 import { storeToRefs } from "pinia";
 
 export default {

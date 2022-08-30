@@ -3,7 +3,12 @@
     <table class="w-full border-collapse table-fixed">
       <slot name="thead"></slot>
       <tbody>
-        <tr class="border-b" v-for="item in searchList" :key="item.ticker">
+        <tr
+          class="hover:bg-slate-100 hover:cursor-pointer"
+          v-for="item in searchList"
+          :key="item.ticker"
+          @click="toInfoPage(item.ticker)"
+        >
           <th
             class="
               border-t-0 border-x-0
@@ -12,8 +17,7 @@
               px-4
               lg:px-8
               text-xs text-left
-              w-6/12
-              lg:w-5/12
+              w-5/12
             "
           >
             <div
@@ -51,7 +55,7 @@
               px-0
               lg:px-6
               text-xs text-center
-              w-2/12
+              w-[12.5%]
               lg:w-auto
             "
           >
@@ -66,7 +70,7 @@
               lg:px-6
               text-xs
               w-3/12
-              lg:w-auto
+              xl:w-auto
             "
           >
             <div class="flex m-auto">
@@ -114,7 +118,6 @@
               py-3
               sm:py-4
               pr-3
-              pl-1
               lg:pr-4
               text-xs text-center
               w-1/12
@@ -126,14 +129,16 @@
             <div v-else>
               <a
                 href="#"
-                class="lg:text-lg text-gray-300"
-                @click.prevent="addToWatchlist(item.ticker, item.name)"
+                class="text-gray-300"
+                @click.stop.prevent="addToWatchlist(item.ticker, item.name)"
                 v-if="!isTickerInWatchlistDB"
               >
-                <i class="fas fa-plus"></i>
+                <i
+                  class="fas fa-plus text-lg md:text-xl hover:text-blue-600"
+                ></i>
               </a>
-              <span v-else class="lg:text-lg">
-                <i class="fa-solid fa-check"></i>
+              <span v-else class="">
+                <i class="fa-solid fa-check text-lg md:text-2xl lg:text-xl"></i>
               </span>
             </div>
           </td>
@@ -144,9 +149,11 @@
 </template>
 
 <script>
+import { useRouter } from "vue-router";
 import useAxios from "@/composables/useAxios.js";
-import { ref, watch, computed } from "vue";
-import { useWatchlistStore } from "@/stores/watchlistStore.js";
+import { watch, computed } from "vue";
+import useWatchlistStore from "@/stores/watchlistStore.js";
+import useStockInfoStore from "@/stores/stockInfoStore.js";
 
 export default {
   props: {
@@ -162,7 +169,9 @@ export default {
     },
   },
   setup(props, { emit }) {
-    const $store = useWatchlistStore();
+    const $watchlistStore = useWatchlistStore();
+    const $stockInfoStore = useStockInfoStore();
+    const router = useRouter();
 
     const isTickerInWatchlistDB = computed(() => {
       const watchlistInDB = props.watchlistInDB;
@@ -172,13 +181,20 @@ export default {
       return watchlistInDB.hasOwnProperty(ticker);
     });
 
+    function toInfoPage(ticker) {
+      router.push({
+        name: "stockInfo",
+        params: { ticker },
+      });
+    }
+
     function addToWatchlist(ticker, name) {
       if (isTickerInWatchlistDB.value) return;
 
       const { data, error, loading } = useAxios("/api/addToWatchlist", "post", {
         ticker,
         name,
-        currentTab: $store.currentTab,
+        currentTab: $watchlistStore.currentTab,
       });
 
       watch([data, loading], () => {
@@ -190,6 +206,7 @@ export default {
     return {
       isTickerInWatchlistDB,
       addToWatchlist,
+      toInfoPage,
     };
   },
 };

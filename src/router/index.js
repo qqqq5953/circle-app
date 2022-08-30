@@ -36,6 +36,12 @@ const routes = [
         path: 'watchlist',
         name: 'Watchlist',
         component: () => import('../views/Watchlist.vue')
+      },
+      {
+        path: 'stockInfo/:ticker',
+        name: 'stockInfo',
+        component: () => import('../views/StockInfo.vue'),
+        props: true
       }
     ]
   },

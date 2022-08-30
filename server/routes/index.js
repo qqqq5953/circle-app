@@ -1,4 +1,5 @@
 const express = require('express')
+const numberWithCommas = require('../tools/getNumberWithComma')
 const router = express.Router()
 const yahooFinance = require('yahoo-finance')
 const firebaseDb = require('../firebase/index.js')
@@ -71,7 +72,7 @@ router.get('/quote/:ticker', async (req, res) => {
   }
 })
 
-router.get('/historical/:period/:from/:to', async (req, res) => {
+router.get('/historicalHolding/:period/:from/:to', async (req, res) => {
   const tickerRef = await holdingRef.once('value')
   const currentHoldings = tickerRef.val()
   if (!currentHoldings) return res.send('invalid ticker name')
@@ -245,10 +246,7 @@ router.post('/addStock', async (req, res) => {
 router.post('/addToWatchlist', async (req, res) => {
   const { ticker, name, currentTab } = req.body
 
-  const list =
-    currentTab.toLowerCase() === 'watchlist'
-      ? 'default'
-      : currentTab.toLowerCase()
+  const list = currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
 
   await watchlistRef.child(list).child(ticker).set(name)
 
@@ -266,21 +264,19 @@ router.post('/deleteFromWatchlist', async (req, res) => {
     const { ticker, currentTab } = req.body
 
     const list =
-      currentTab.toLowerCase() === 'watchlist'
-        ? 'default'
-        : currentTab.toLowerCase()
+      currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
 
     await watchlistRef.child(list).child(ticker).remove()
 
-    success: true,
-      (message = {
-        content: '刪除成功',
-        errorMessage: null,
-        result: { ticker }
-      })
+    const message = {
+      success: true,
+      content: '刪除成功',
+      errorMessage: null,
+      result: { ticker }
+    }
     res.send(message)
   } catch (error) {
-    message = {
+    const message = {
       success: false,
       content: '刪除失敗',
       errorMessage: error.message,
@@ -295,10 +291,7 @@ router.post('/deleteFromWatchlist', async (req, res) => {
 router.get('/getWatchlist/:tab', async (req, res) => {
   const currentTab = req.params.tab
 
-  const list =
-    currentTab.toLowerCase() === 'watchlist'
-      ? 'default'
-      : currentTab.toLowerCase()
+  const list = currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
 
   try {
     const watchlistChildRef = await watchlistRef.child(list).once('value')
@@ -489,6 +482,276 @@ router.post('/editTab', async (req, res) => {
     }
     res.send(message)
   }
+})
+
+// stockInfo
+router.get('/financialData/:ticker', async (req, res) => {
+  const quoteOptions = {
+    symbol: req.params.ticker,
+    modules: ['earnings', 'financialData']
+  }
+
+  try {
+    const { earnings, financialData } = await yahooFinance.quote(quoteOptions)
+
+    const {
+      quickRatio,
+      currentRatio,
+      freeCashflow,
+      operatingCashflow,
+      returnOnAssets,
+      returnOnEquity,
+      revenueGrowth,
+      totalRevenue,
+      grossProfits,
+      grossMargins,
+      operatingMargins,
+      ebitda,
+      ebitdaMargins,
+      profitMargins
+    } = financialData
+
+    const stock = {
+      Profitability: {
+        ROA: returnOnAssets,
+        ROE: returnOnEquity
+      },
+      Liquidity: {
+        'Quick Ratio': quickRatio,
+        'Current Ratio': currentRatio
+      },
+      'Cash Flow': {
+        'Free Cash Flow': freeCashflow,
+        'Operating Cash Flow': operatingCashflow
+      },
+      IncomeStatement: {
+        'Total Revenue': totalRevenue,
+        'Gross Profit': grossProfits,
+        'Operating Income': operatingMargins * totalRevenue,
+        EBITDA: ebitda,
+        'Net Profit': profitMargins * totalRevenue
+      },
+      IncomeStatementMargin: {
+        'Revenue Growth': revenueGrowth,
+        'Gross Margin': grossMargins,
+        'Operating Margin': operatingMargins,
+        'EBITDA Margin': ebitdaMargins,
+        'Profit Margin': profitMargins
+      },
+      earnings
+    }
+
+    const message = {
+      success: true,
+      content: '取得成功',
+      errorMessage: null,
+      result: stock
+    }
+
+    res.send(message)
+  } catch (error) {
+    console.log('getFinancialData error', error)
+    const message = {
+      success: false,
+      content: '取得失敗',
+      errorMessage: error.message,
+      result: null
+    }
+
+    res.send(message)
+  }
+})
+
+router.get('/tickerSummary/:ticker', async (req, res) => {
+  const quoteOptions = {
+    symbol: req.params.ticker,
+    modules: ['summaryProfile', 'summaryDetail', 'price']
+  }
+
+  try {
+    const { summaryProfile, summaryDetail, price } = await yahooFinance.quote(
+      quoteOptions
+    )
+
+    let ticker = null
+    const { exchangeName, quoteType, marketState } = price
+
+    if (quoteType === 'ETF') {
+      const { longBusinessSummary } = summaryProfile
+      const {
+        yield,
+        fiftyTwoWeekLow,
+        fiftyTwoWeekHigh,
+        dayLow,
+        dayHigh,
+        previousClose,
+        averageVolume
+      } = summaryDetail
+
+      stock = {
+        profile: {
+          longBusinessSummary
+        },
+        price: {
+          exchangeName,
+          quoteType,
+          marketState
+        },
+        detail: {
+          range: {
+            'Day Range': {
+              dayLow,
+              previousClose,
+              dayHigh
+            },
+            '52 Week Range': {
+              fiftyTwoWeekLow,
+              fiftyTwoWeekHigh
+            }
+          },
+          fixed: {
+            'Avg. Volume': numberWithCommas(averageVolume),
+            Yield: `${parseFloat((yield * 100).toFixed(2))}%`
+          }
+        }
+      }
+    }
+
+    if (quoteType === 'EQUITY') {
+      const {
+        longBusinessSummary,
+        fullTimeEmployees,
+        sector,
+        website,
+        city,
+        state,
+        country
+      } = summaryProfile
+
+      const {
+        dividendYield,
+        exDividendDate,
+        beta,
+        trailingPE,
+        forwardPE,
+        fiftyTwoWeekLow,
+        fiftyTwoWeekHigh,
+        dayLow,
+        dayHigh,
+        previousClose,
+        marketCap,
+        averageVolume
+      } = summaryDetail
+
+      ticker = {
+        profile: {
+          longBusinessSummary,
+          website,
+          address: `${city}, ${state}, ${country}`,
+          fullTimeEmployees: numberWithCommas(fullTimeEmployees),
+          sector,
+          country
+        },
+        price: {
+          exchangeName,
+          marketState,
+          quoteType: quoteType === 'EQUITY' ? 'Equity' : quoteType
+        },
+        detail: {
+          range: {
+            'Day Range': {
+              dayLow,
+              previousClose,
+              dayHigh
+            },
+            '52 Week Range': {
+              fiftyTwoWeekLow,
+              fiftyTwoWeekHigh
+            }
+          },
+          fixed: {
+            'Market Cap': numberWithCommas(marketCap),
+            'Avg. Volume': numberWithCommas(averageVolume),
+            'Trailing PE': trailingPE.toFixed(2),
+            'Forward PE': forwardPE.toFixed(2),
+            Beta: beta.toFixed(2),
+            'Dividend Yield': dividendYield
+              ? `${parseFloat((dividendYield * 100).toFixed(2))}%`
+              : '---',
+            'Ex-dividend Date': exDividendDate
+              ? `${exDividendDate.getFullYear()}-${
+                  exDividendDate.getMonth() + 1
+                }-${exDividendDate.getDate()}`
+              : '---'
+          }
+        }
+      }
+    }
+
+    const message = {
+      success: true,
+      content: '取得成功',
+      errorMessage: null,
+      result: ticker
+    }
+
+    res.send(message)
+  } catch (error) {
+    console.log('getTickerSummary error', error)
+    const message = {
+      success: false,
+      content: '取得失敗',
+      errorMessage: error.message,
+      result: null
+    }
+
+    res.send(message)
+  }
+})
+
+router.get('/historicalPrice/:ticker', async (req, res) => {
+  console.log('params', req.params)
+  console.log('query', req.query)
+
+  const getWindow = (window) => {
+    const window_1D = { to: getFormattedDate(0), from: getFormattedDate(1) }
+    const window_5D = { to: getFormattedDate(0), from: getFormattedDate(6) }
+    const window_1M = { to: getFormattedDate(0), from: getFormattedDate(30) }
+    const window_6M = { to: getFormattedDate(0), from: getFormattedDate(180) }
+
+    if (window === '1D') return window_1D
+    if (window === '5D') return window_5D
+    if (window === '1M') return window_1M
+    if (window === '6M') return window_6M
+  }
+
+  const window = getWindow(req.query.window)
+
+  const ticker = req.params.ticker
+  const quoteOptions = {
+    symbols: [ticker],
+    ...window,
+    period: 'd'
+  }
+
+  const response = await yahooFinance.historical(quoteOptions)
+  const quotes = response[ticker]
+  const priceTrend = quotes.map((item) => {
+    const year = item.date.getFullYear()
+    const month = item.date.getMonth() + 1
+    const date = item.date.getDate()
+    const fullDate = `${year}-${month}-${date}`
+
+    return { date: fullDate, close: item.close }
+  })
+  const message = {
+    success: true,
+    content: '取得成功',
+    errorMessage: null,
+    result: priceTrend.reverse()
+  }
+
+  res.send(message)
 })
 
 module.exports = router

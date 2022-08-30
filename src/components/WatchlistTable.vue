@@ -120,7 +120,7 @@
                 border-x-0
                 whitespace-nowrap
                 font-semibold
-                w-2/12
+                w-[12.5%]
                 lg:w-auto
               "
             >
@@ -136,7 +136,7 @@
                 whitespace-nowrap
                 font-semibold
                 w-3/12
-                lg:w-auto
+                xl:w-auto
               "
             >
               Change %
@@ -161,8 +161,10 @@
         </thead>
         <tbody>
           <tr
+            class="hover:bg-slate-100 hover:cursor-pointer"
             v-for="(item, index) in watchlistDisplay"
             :key="item.ticker"
+            @click="toInfoPage(item.ticker)"
             :id="index"
             ref="tickerRow"
           >
@@ -174,8 +176,7 @@
                 px-4
                 lg:px-8
                 text-xs text-left
-                w-6/12
-                lg:w-5/12
+                w-5/12
               "
             >
               <div
@@ -213,7 +214,7 @@
                 px-0
                 lg:px-6
                 text-xs text-center
-                w-2/12
+                w-[12.5%]
                 lg:w-auto
               "
             >
@@ -228,7 +229,7 @@
                 lg:px-6
                 text-xs text-center
                 w-3/12
-                lg:w-auto
+                xl:w-auto
               "
             >
               <div class="flex m-auto">
@@ -278,7 +279,6 @@
                 py-3
                 sm:py-4
                 pr-3
-                pl-1
                 lg:pr-4
                 text-xs text-center
                 w-1/12
@@ -286,10 +286,17 @@
             >
               <a
                 href="#"
-                class="lg:text-lg text-gray-300"
-                @click.prevent="deleteTicker(item.ticker)"
+                class="text-gray-300"
+                @click.stop.prevent="deleteTicker(item.ticker)"
               >
-                <i class="fas fa-times"></i>
+                <i
+                  class="
+                    fa-solid fa-xmark
+                    text-lg
+                    md:text-xl
+                    hover:text-blue-600
+                  "
+                ></i>
               </a>
             </td>
           </tr>
@@ -300,10 +307,12 @@
 </template>
 
 <script>
-import useAxios from "@/composables/useAxios.js";
+import { useRouter } from "vue-router";
 import { ref, watch, nextTick } from "vue";
-import { useWatchlistStore } from "@/stores/watchlistStore.js";
 import { storeToRefs } from "pinia";
+import useAxios from "@/composables/useAxios.js";
+import useWatchlistStore from "@/stores/watchlistStore.js";
+import useStockInfoStore from "@/stores/stockInfoStore.js";
 
 export default {
   props: {
@@ -312,7 +321,10 @@ export default {
     },
   },
   setup(props, { emit }) {
-    const $store = useWatchlistStore();
+    const $watchlistStore = useWatchlistStore();
+    const $stockInfoStore = useStockInfoStore();
+
+    const router = useRouter();
 
     const tickerRow = ref(null);
     const isDropdownOpen = ref(false);
@@ -331,16 +343,23 @@ export default {
     const isModalOpen = ref(false);
     const newListName = ref(null);
     const inputRename = ref(null);
-    const { currentTab } = storeToRefs($store);
+    const { currentTab } = storeToRefs($watchlistStore);
+
+    function toInfoPage(ticker) {
+      router.push({
+        name: "stockInfo",
+        params: { ticker },
+      });
+    }
 
     const showCurrentTab = (tab) => {
-      $store.showCurrentTab(tab);
+      $watchlistStore.showCurrentTab(tab);
     };
 
     const toggleDropdown = () => (isDropdownOpen.value = !isDropdownOpen.value);
 
     const setTabs = (tab) => {
-      $store.setTabs(tab);
+      $watchlistStore.setTabs(tab);
     };
 
     function deleteWatchlist() {
@@ -348,20 +367,20 @@ export default {
         "/api/deleteWatchlist",
         "post",
         {
-          currentTab: $store.currentTab,
+          currentTab: $watchlistStore.currentTab,
         }
       );
 
       watch(data, (newData) => {
         setTabs(newData.result);
-        showCurrentTab($store.DEFAULT_TAB);
+        showCurrentTab($watchlistStore.DEFAULT_TAB);
       });
     }
 
     function renameWatchlist() {
-      if ($store.currentTab === newListName.value) return;
+      if ($watchlistStore.currentTab === newListName.value) return;
       const { data, error, loading } = useAxios("/api/editTab", "post", {
-        oldTab: $store.currentTab,
+        oldTab: $watchlistStore.currentTab,
         newTab: newListName.value,
       });
 
@@ -374,7 +393,7 @@ export default {
 
     async function openRenameModal() {
       isModalOpen.value = true;
-      newListName.value = $store.currentTab;
+      newListName.value = $watchlistStore.currentTab;
       await nextTick();
       inputRename.value.select();
     }
@@ -383,7 +402,7 @@ export default {
       const { data, error, loading } = useAxios(
         "/api/deleteFromWatchlist",
         "post",
-        { ticker, currentTab: $store.currentTab }
+        { ticker, currentTab: $watchlistStore.currentTab }
       );
 
       watch(data, (newData) => {
@@ -426,6 +445,8 @@ export default {
       deleteTicker,
       deleteWatchlist,
       renameWatchlist,
+
+      toInfoPage,
     };
   },
 };

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 
-export const useWatchlistStore = defineStore('watchlist', () => {
+const useWatchlistStore = defineStore('watchlist', () => {
   const currentTab = ref(null)
   const DEFAULT_TAB = ref('Watchlist')
   const tabs = ref([])
@@ -34,3 +34,5 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     setTabs
   }
 })
+
+export default useWatchlistStore

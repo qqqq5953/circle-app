@@ -91,7 +91,7 @@ import ListSkeleton from "@/components/skeleton/ListSkeleton.vue";
 import SearchBar from "@/components/SearchBar.vue";
 import WatchlistNavbar from "@/components/WatchlistNavbar.vue";
 
-import { useWatchlistStore } from "@/stores/watchlistStore.js";
+import useWatchlistStore from "@/stores/watchlistStore.js";
 import { storeToRefs } from "pinia";
 
 export default {

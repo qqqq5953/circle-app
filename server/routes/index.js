@@ -27,7 +27,7 @@ router.get('/quote/:ticker', async (req, res) => {
     const { price: priceObj } = await yahooFinance.quote(quoteOptions)
 
     const {
-      shortName: name,
+      longName: name,
       regularMarketPrice: price,
       symbol: ticker,
       regularMarketPreviousClose: previousClose,
@@ -45,9 +45,9 @@ router.get('/quote/:ticker', async (req, res) => {
 
     const obj = {
       name,
-      price,
       ticker,
       regularMarketTime,
+      price,
       previousCloseChange,
       previousCloseChangePercent
     }
@@ -584,11 +584,13 @@ router.get('/tickerSummary/:ticker', async (req, res) => {
         fiftyTwoWeekHigh,
         dayLow,
         dayHigh,
-        previousClose,
-        averageVolume
+        averageVolume,
+        totalAssets,
+        trailingPE,
+        navPrice
       } = summaryDetail
 
-      stock = {
+      ticker = {
         profile: {
           longBusinessSummary
         },
@@ -600,17 +602,19 @@ router.get('/tickerSummary/:ticker', async (req, res) => {
         detail: {
           range: {
             'Day Range': {
-              dayLow,
-              previousClose,
-              dayHigh
+              low: dayLow.toFixed(2),
+              high: dayHigh.toFixed(2)
             },
             '52 Week Range': {
-              fiftyTwoWeekLow,
-              fiftyTwoWeekHigh
+              low: fiftyTwoWeekLow.toFixed(2),
+              high: fiftyTwoWeekHigh.toFixed(2)
             }
           },
           fixed: {
+            'Total Assets': numberWithCommas(totalAssets),
             'Avg. Volume': numberWithCommas(averageVolume),
+            'Nav Price': navPrice?.toFixed(2) || '---',
+            'Trailing PE': trailingPE?.toFixed(2) || '---',
             Yield: `${parseFloat((yield * 100).toFixed(2))}%`
           }
         }
@@ -638,7 +642,6 @@ router.get('/tickerSummary/:ticker', async (req, res) => {
         fiftyTwoWeekHigh,
         dayLow,
         dayHigh,
-        previousClose,
         marketCap,
         averageVolume
       } = summaryDetail
@@ -660,21 +663,20 @@ router.get('/tickerSummary/:ticker', async (req, res) => {
         detail: {
           range: {
             'Day Range': {
-              dayLow,
-              previousClose,
-              dayHigh
+              low: dayLow.toFixed(2),
+              high: dayHigh.toFixed(2)
             },
             '52 Week Range': {
-              fiftyTwoWeekLow,
-              fiftyTwoWeekHigh
+              low: fiftyTwoWeekLow.toFixed(2),
+              high: fiftyTwoWeekHigh.toFixed(2)
             }
           },
           fixed: {
             'Market Cap': numberWithCommas(marketCap),
             'Avg. Volume': numberWithCommas(averageVolume),
-            'Trailing PE': trailingPE.toFixed(2),
-            'Forward PE': forwardPE.toFixed(2),
-            Beta: beta.toFixed(2),
+            'Trailing PE': trailingPE?.toFixed(2) || '---',
+            'Forward PE': forwardPE?.toFixed(2) || '---',
+            Beta: beta.toFixed(2) || '---',
             'Dividend Yield': dividendYield
               ? `${parseFloat((dividendYield * 100).toFixed(2))}%`
               : '---',
@@ -710,48 +712,45 @@ router.get('/tickerSummary/:ticker', async (req, res) => {
 })
 
 router.get('/historicalPrice/:ticker', async (req, res) => {
-  console.log('params', req.params)
-  console.log('query', req.query)
-
-  const getWindow = (window) => {
-    const window_1D = { to: getFormattedDate(0), from: getFormattedDate(1) }
-    const window_5D = { to: getFormattedDate(0), from: getFormattedDate(6) }
-    const window_1M = { to: getFormattedDate(0), from: getFormattedDate(30) }
-    const window_6M = { to: getFormattedDate(0), from: getFormattedDate(180) }
-
-    if (window === '1D') return window_1D
-    if (window === '5D') return window_5D
-    if (window === '1M') return window_1M
-    if (window === '6M') return window_6M
-  }
-
-  const window = getWindow(req.query.window)
-
   const ticker = req.params.ticker
+  const window_5Y = { to: getFormattedDate(0), from: getFormattedDate(1825) }
   const quoteOptions = {
     symbols: [ticker],
-    ...window,
+    ...window_5Y,
     period: 'd'
   }
 
-  const response = await yahooFinance.historical(quoteOptions)
-  const quotes = response[ticker]
-  const priceTrend = quotes.map((item) => {
-    const year = item.date.getFullYear()
-    const month = item.date.getMonth() + 1
-    const date = item.date.getDate()
-    const fullDate = `${year}-${month}-${date}`
+  try {
+    const response = await yahooFinance.historical(quoteOptions)
+    // console.log('response', response)
+    const quotes = response[ticker]
+    const priceTrend = quotes.map((item) => {
+      const year = item.date.getFullYear()
+      const month = item.date.getMonth() + 1
+      const date = item.date.getDate()
+      const fullDate = `${year}/${month}/${date}`
 
-    return { date: fullDate, close: item.close }
-  })
-  const message = {
-    success: true,
-    content: '取得成功',
-    errorMessage: null,
-    result: priceTrend.reverse()
+      return { date: fullDate, close: parseFloat(item.close.toFixed(2)) }
+    })
+
+    const message = {
+      success: true,
+      content: '取得成功',
+      errorMessage: null,
+      result: priceTrend
+    }
+
+    res.send(message)
+  } catch (error) {
+    const message = {
+      success: false,
+      content: '取得失敗',
+      errorMessage: error.message,
+      result: null
+    }
+
+    res.send(message)
   }
-
-  res.send(message)
 })
 
 module.exports = router

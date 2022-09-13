@@ -1,22 +1,22 @@
 <template>
   <nav
     class="
-      md:left-0
-      md:block
-      md:fixed
-      md:top-0
-      md:bottom-0
-      md:overflow-y-auto
-      md:flex-row
-      md:flex-nowrap
-      md:overflow-hidden
+      lg:left-0
+      lg:block
+      lg:fixed
+      lg:top-0
+      lg:bottom-0
+      lg:overflow-y-auto
+      lg:flex-row
+      lg:flex-nowrap
+      lg:overflow-hidden
       shadow-xl
       bg-green-100
       flex flex-wrap
       items-center
       justify-between
       relative
-      md:w-56
+      lg:w-56
       z-10
       py-4
       px-6
@@ -24,7 +24,7 @@
   >
     <div
       class="
-        md:flex-col md:items-stretch md:min-h-full md:flex-nowrap
+        lg:flex-col lg:items-stretch lg:min-h-full lg:flex-nowrap
         px-0
         flex flex-wrap
         items-center
@@ -40,7 +40,7 @@
           cursor-pointer
           text-black
           opacity-50
-          md:hidden
+          lg:hidden
           px-3
           py-1
           text-xl
@@ -57,9 +57,9 @@
       <!-- Brand -->
       <a
         class="
-          md:block
+          lg:block
           text-left
-          md:pb-2
+          lg:pb-2
           text-blueGray-600
           mr-0
           inline-block
@@ -75,7 +75,7 @@
         Circle
       </a>
       <!-- User -->
-      <ul class="md:hidden items-center flex flex-wrap list-none">
+      <ul class="lg:hidden items-center flex flex-wrap list-none">
         <li class="inline-block relative">
           notification-dropdown-component
           <!-- <notification-dropdown-component></notification-dropdown-component> -->
@@ -88,13 +88,13 @@
       <!-- Collapse:yellow -->
       <div
         class="
-          md:flex
-          md:flex-col
-          md:items-stretch
-          md:opacity-100
-          md:relative
-          md:mt-4
-          md:shadow-none
+          lg:flex
+          lg:flex-col
+          lg:items-stretch
+          lg:opacity-100
+          lg:relative
+          lg:mt-4
+          lg:shadow-none
           shadow
           absolute
           top-0
@@ -113,7 +113,7 @@
         <!-- Collapse header -->
         <div
           class="
-            md:min-w-full md:hidden
+            lg:min-w-full lg:hidden
             block
             pb-4
             mb-4
@@ -124,9 +124,9 @@
             <div class="w-6/12">
               <a
                 class="
-                  md:block
+                  lg:block
                   text-left
-                  md:pb-2
+                  lg:pb-2
                   text-blueGray-600
                   mr-0
                   inline-block
@@ -149,7 +149,7 @@
                   cursor-pointer
                   text-black
                   opacity-50
-                  md:hidden
+                  lg:hidden
                   px-3
                   py-1
                   text-xl
@@ -166,7 +166,7 @@
           </div>
         </div>
         <!-- Form -->
-        <form class="mt-6 mb-4 md:hidden">
+        <form class="mt-6 mb-4 lg:hidden">
           <div class="mb-3 pt-0">
             <input
               type="text"
@@ -194,7 +194,7 @@
         <!-- Navigation -->
         <ul
           class="
-            md:flex-col md:min-w-full
+            lg:flex-col lg:min-w-full
             flex flex-col
             list-none
             outline-black
@@ -284,7 +284,7 @@
           </li>
         </ul>
         <!-- Divider -->
-        <hr class="my-4 md:min-w-full" />
+        <hr class="my-4 lg:min-w-full" />
       </div>
     </div>
   </nav>

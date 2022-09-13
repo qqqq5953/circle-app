@@ -1,6 +1,6 @@
 <template>
   <Sidebar></Sidebar>
-  <div class="md:ml-56 h-screen flex flex-col">
+  <div class="lg:ml-56 h-screen flex flex-col">
     <NavbarDashboard></NavbarDashboard>
     <router-view class="flex-grow outline-black"></router-view>
     <Footer class="mt-48"></Footer>

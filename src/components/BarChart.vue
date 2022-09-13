@@ -1,5 +1,7 @@
 <template>
-  <v-chart class="h-60" :option="option" />
+  <div v-if="xAxisData && seriesData">
+    <v-chart class="h-60" :option="option" autoresize />
+  </div>
 </template>
 
 <script>
@@ -7,14 +9,13 @@ import { use } from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { BarChart } from "echarts/charts";
 import { GridComponent } from "echarts/components";
-
 import {
   TitleComponent,
   TooltipComponent,
   LegendComponent,
 } from "echarts/components";
 import VChart from "vue-echarts";
-import { ref, watch, watchEffect } from "vue";
+import { onUpdated, ref } from "vue";
 
 use([
   CanvasRenderer,
@@ -38,19 +39,15 @@ export default {
     },
   },
   setup(props) {
-    const { xAxisData, seriesData } = props;
-
     const option = ref({
-      series: seriesData.map((item) => item),
-      xAxis: [
-        {
-          type: "category",
-          data: xAxisData,
-          axisTick: {
-            alignWithLabel: true,
-          },
+      series: null,
+      xAxis: {
+        type: "category",
+        data: null,
+        axisTick: {
+          alignWithLabel: true,
         },
-      ],
+      },
       yAxis: [
         {
           type: "value",
@@ -76,13 +73,20 @@ export default {
         bottom: "0%",
         containLabel: true,
       },
+      animation: false,
     });
 
-    watch(props, (newProps) => {
-      const { xAxisData, seriesData } = newProps;
+    function initBarChart() {
+      const { xAxisData, seriesData } = props;
 
-      option.value.xAxis[0].data = xAxisData;
-      option.value.series = seriesData;
+      option.value.xAxis.data = xAxisData;
+      option.value.series = seriesData.map((item) => item);
+    }
+
+    initBarChart();
+
+    onUpdated(() => {
+      initBarChart();
     });
 
     return { option };

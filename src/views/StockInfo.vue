@@ -258,37 +258,40 @@ export default {
     (async function getTickerInfo() {
       const quotePromiseObj = axios.get(`/api/quote/${props.ticker}`);
       const summaryPromiseObj = axios.get(`/api/tickerSummary/${props.ticker}`);
+      // const priceTrendPromiseObj = axios.get(
+      //   `/api/historicalPrice/${props.ticker}/?timespan=5Y`
+      // );
       const priceTrendPromiseObj = axios.get(
-        `/api/historicalPrice/${props.ticker}`
+        `/api/historicalPrice/${props.ticker}/?timespan=1Y`
       );
 
       try {
-        const response = await Promise.allSettled([
+        const promiseResponse = await Promise.allSettled([
           quotePromiseObj,
           summaryPromiseObj,
           priceTrendPromiseObj,
         ]);
 
-        const quote = response[0].value.data.result;
-        const summary = response[1].value.data.result;
-        const priceTrend = response[2].value.data.result;
+        const quote = promiseResponse[0].value.data.result;
+        const summary = promiseResponse[1].value.data.result;
+        const priceTrend_1Y = promiseResponse[2].value.data.result;
         const { profile, detail, price } = summary;
 
-        console.log("quote", quote);
-        console.log("summary", summary);
+        // console.log("quote", quote);
+        // console.log("priceTrend_1Y", priceTrend_1Y);
 
         stock.value = {
           profile,
           detail,
-          priceTrend: getTotalTimeSpanPrice(priceTrend),
+          priceTrend: test(priceTrend_1Y, "1Y"),
+          // priceTrend: getTotalTimeSpanPrice_1Y(priceTrend_1Y),
+          // priceTrend: getTotalTimeSpanPrice(priceTrend_1Y),
           price: {
             ...price,
             ...quote,
             previousClose: quote.price.toFixed(2),
           },
         };
-
-        console.log("stock", stock.value);
 
         if (price.quoteType === "Equity") {
           stock.value.financialData = await getFinancialData();
@@ -298,6 +301,19 @@ export default {
 
         await nextTick();
         summaryProfileRef.value.adjustProfileSummaryDisplay();
+
+        const axiosResponse = await axios.get(
+          `/api/historicalPrice/${props.ticker}/?timespan=5Y`
+        );
+        const priceTrend_5Y = axiosResponse.data.result;
+        // stock.value.priceTrend["5Y"] =
+        //   getTotalTimeSpanPrice_5Y(priceTrend_5Y)["5Y"];
+        stock.value.priceTrend["5Y"] = test(priceTrend_5Y, "5Y")["5Y"];
+
+        console.log("stock", stock.value);
+
+        // const testResult = test(priceTrend_5Y, "5Y");
+        // console.log("testResult", testResult);
       } catch (error) {
         console.log("error", error);
       }
@@ -307,6 +323,109 @@ export default {
       const response = await axios.get(`/api/financialData/${props.ticker}`);
       const financialData = response.data.result;
       return financialData;
+    }
+
+    function test(priceTrend, timespan = "1Y") {
+      console.log("timespan", timespan);
+
+      const year = new Date().getFullYear();
+      const month = new Date().getMonth() + 1;
+      const date = new Date().getDate();
+
+      const obj1 = {
+        startDate_1M: `${year}/${month - 1}/${date}`,
+        startDate_6M: `${year}/${month - 6}/${date}`,
+        startDate_YTD: `${year - 1}/12/31`,
+        startDate_1Y: `${year - 1}/${month}/${date}`,
+        startDate_5Y: `${year - 5}/${month}/${date}`,
+      };
+
+      if (timespan === "1Y") {
+        const arr_1Y = ["5D", "1M", "6M", "YTD", "1Y"];
+        return arr_1Y.reduce((obj, timespan) => {
+          let data = null;
+
+          if (timespan === "5D") {
+            data = [...priceTrend].slice(0, 5).reverse();
+            obj[timespan] = mappingPriceData(data);
+            return obj;
+          }
+
+          const key = `startDate_${timespan}`;
+          const startDate = obj1[key];
+          const startIndex = getStartDateIndex(priceTrend, startDate);
+
+          data = [...priceTrend].slice(0, startIndex).reverse();
+
+          obj[timespan] = mappingPriceData(data);
+          return obj;
+        }, {});
+      } else {
+        const arr_5Y = ["5Y"];
+        const startDate_TotalTimeSpan = priceTrend.slice(-1)[0].date;
+
+        return arr_5Y.reduce((obj, timespan) => {
+          const key = `startDate_${timespan}`;
+          const startDate = obj1[key];
+          const startIndex = getStartDateIndex(priceTrend, startDate);
+          let data = null;
+
+          if (startDate_TotalTimeSpan === startDate) {
+            console.log("test 有五年");
+            data = [...priceTrend].slice(0, startIndex).reverse();
+          } else {
+            console.log("test 沒有五年");
+            data = [...priceTrend].reverse();
+          }
+
+          obj[timespan] = mappingPriceData(data);
+          return obj;
+        }, {});
+      }
+
+      // switch (timespan) {
+      //   case "1Y":
+      //     const arr_1Y = ["5D", "1M", "6M", "YTD", "1Y"];
+      //     return arr_1Y.reduce((obj, timespan) => {
+      //       let data = null;
+
+      //       if (timespan === "5D") {
+      //         data = [...priceTrend].slice(0, 5).reverse();
+      //         obj[timespan] = mappingPriceData(data);
+      //         return obj;
+      //       }
+
+      //       const key = `startDate_${timespan}`;
+      //       const startDate = obj1[key];
+      //       const startIndex = getStartDateIndex(priceTrend, startDate);
+
+      //       data = [...priceTrend].slice(0, startIndex).reverse();
+
+      //       obj[timespan] = mappingPriceData(data);
+      //       return obj;
+      //     }, {});
+      //   case "5Y":
+      //     const arr_5Y = ["5Y"];
+      //     const startDate_TotalTimeSpan = priceTrend.slice(-1)[0].date;
+
+      //     return arr_5Y.reduce((obj, timespan) => {
+      //       const key = `startDate_${timespan}`;
+      //       const startDate = obj1[key];
+      //       const startIndex = getStartDateIndex(priceTrend, startDate);
+      //       let data = null;
+
+      //       if (startDate_TotalTimeSpan === startDate) {
+      //         console.log("test 有五年");
+      //         data = [...priceTrend].slice(0, startIndex).reverse();
+      //       } else {
+      //         console.log("test 沒有五年");
+      //         data = [...priceTrend].reverse();
+      //       }
+
+      //       obj[timespan] = mappingPriceData(data);
+      //       return obj;
+      //     }, {});
+      // }
     }
 
     function getTotalTimeSpanPrice(priceTrend) {
@@ -380,8 +499,86 @@ export default {
       }, {});
     }
 
+    function getTotalTimeSpanPrice_1Y(priceTrend) {
+      const year = new Date().getFullYear();
+      const month = new Date().getMonth() + 1;
+      const date = new Date().getDate();
+
+      const startDate_1M = `${year}/${month - 1}/${date}`;
+      const startDate_6M = `${year}/${month - 6}/${date}`;
+      const startDate_YTD = `${year - 1}/12/31`;
+      const startDate_1Y = `${year - 1}/${month}/${date}`;
+
+      const window_5D = {
+        timespan: "5D",
+        data: [...priceTrend].slice(0, 5).reverse(),
+      };
+      const window_1M = {
+        timespan: "1M",
+        data: [...priceTrend]
+          .slice(0, getStartDateIndex(priceTrend, startDate_1M))
+          .reverse(),
+      };
+      const window_6M = {
+        timespan: "6M",
+        data: [...priceTrend]
+          .slice(0, getStartDateIndex(priceTrend, startDate_6M))
+          .reverse(),
+      };
+      const window_YTD = {
+        timespan: "YTD",
+        data: [...priceTrend]
+          .slice(0, getStartDateIndex(priceTrend, startDate_YTD))
+          .reverse(),
+      };
+      const window_1Y = {
+        timespan: "1Y",
+        data: [...priceTrend]
+          .slice(0, getStartDateIndex(priceTrend, startDate_1Y))
+          .reverse(),
+      };
+
+      const windows = [window_5D, window_1M, window_6M, window_YTD, window_1Y];
+
+      return windows.reduce((obj, window) => {
+        obj[window.timespan] = mappingPriceData(window.data);
+        return obj;
+      }, {});
+    }
+
+    function getTotalTimeSpanPrice_5Y(priceTrend) {
+      const year = new Date().getFullYear();
+      const month = new Date().getMonth() + 1;
+      const date = new Date().getDate();
+
+      const startDate_5Y = `${year - 5}/${month}/${date}`;
+      const startDate_TotalTimeSpan = priceTrend.slice(-1)[0].date;
+
+      const window_5Y = {
+        timespan: "5Y",
+        data: null,
+      };
+
+      if (startDate_TotalTimeSpan === startDate_5Y) {
+        console.log("有五年");
+        window_5Y.data = [...priceTrend]
+          .slice(0, getStartDateIndex(priceTrend, startDate_5Y))
+          .reverse();
+      } else {
+        console.log("沒有五年");
+        window_5Y.data = [...priceTrend].reverse();
+      }
+
+      const windows = [window_5Y];
+
+      return windows.reduce((obj, window) => {
+        obj[window.timespan] = mappingPriceData(window.data);
+        return obj;
+      }, {});
+    }
+
     function getStartDateIndex(priceTrend, fullDate) {
-      console.log("fullDate", fullDate);
+      // console.log("fullDate", fullDate);
       const [startYear, startMonth, startDate] = fullDate.split("/");
       let date = startDate;
       let month = startMonth;

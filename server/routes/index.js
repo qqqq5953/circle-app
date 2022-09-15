@@ -712,44 +712,61 @@ router.get('/tickerSummary/:ticker', async (req, res) => {
 })
 
 router.get('/historicalPrice/:ticker', async (req, res) => {
-  const ticker = req.params.ticker
-  const window_5Y = { to: getFormattedDate(0), from: getFormattedDate(1825) }
-  const quoteOptions = {
-    symbols: [ticker],
-    ...window_5Y,
-    period: 'd'
+  const timespan = req.query.timespan
+
+  switch (timespan) {
+    case '1Y':
+      await getPriceByTimespan(365)
+      break
+    case '5Y':
+      await getPriceByTimespan(1825)
+      break
   }
 
-  try {
-    const response = await yahooFinance.historical(quoteOptions)
-    // console.log('response', response)
-    const quotes = response[ticker]
-    const priceTrend = quotes.map((item) => {
-      const year = item.date.getFullYear()
-      const month = item.date.getMonth() + 1
-      const date = item.date.getDate()
-      const fullDate = `${year}/${month}/${date}`
+  async function getPriceByTimespan(totalTimespan) {
+    const ticker = req.params.ticker
 
-      return { date: fullDate, close: parseFloat(item.close.toFixed(2)) }
-    })
-
-    const message = {
-      success: true,
-      content: '取得成功',
-      errorMessage: null,
-      result: priceTrend
+    const window = {
+      to: getFormattedDate(0),
+      from: getFormattedDate(totalTimespan)
     }
 
-    res.send(message)
-  } catch (error) {
-    const message = {
-      success: false,
-      content: '取得失敗',
-      errorMessage: error.message,
-      result: null
+    const quoteOptions = {
+      symbols: [ticker],
+      ...window,
+      period: 'd'
     }
 
-    res.send(message)
+    try {
+      const response = await yahooFinance.historical(quoteOptions)
+      const quotes = response[ticker]
+      const priceTrend = quotes.map((item) => {
+        const year = item.date.getFullYear()
+        const month = item.date.getMonth() + 1
+        const date = item.date.getDate()
+        const fullDate = `${year}/${month}/${date}`
+
+        return { date: fullDate, close: parseFloat(item.close.toFixed(2)) }
+      })
+
+      const message = {
+        success: true,
+        content: '取得成功',
+        errorMessage: null,
+        result: priceTrend
+      }
+
+      res.send(message)
+    } catch (error) {
+      const message = {
+        success: false,
+        content: '取得失敗',
+        errorMessage: error.message,
+        result: null
+      }
+
+      res.send(message)
+    }
   }
 })
 

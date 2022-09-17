@@ -740,20 +740,21 @@ router.get('/historicalPrice/:ticker', async (req, res) => {
     try {
       const response = await yahooFinance.historical(quoteOptions)
       const quotes = response[ticker]
-      const priceTrend = quotes.map((item) => {
+      const priceMap = new Map()
+
+      quotes.forEach((item) => {
         const year = item.date.getFullYear()
         const month = item.date.getMonth() + 1
         const date = item.date.getDate()
         const fullDate = `${year}/${month}/${date}`
-
-        return { date: fullDate, close: parseFloat(item.close.toFixed(2)) }
+        priceMap.set(fullDate, parseFloat(item.close.toFixed(2)))
       })
 
       const message = {
         success: true,
         content: '取得成功',
         errorMessage: null,
-        result: priceTrend
+        result: [...priceMap]
       }
 
       res.send(message)

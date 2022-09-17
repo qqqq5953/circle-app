@@ -13,31 +13,29 @@
       class="
         relative
         top-11
+        flex
+        items-center
+        gap-2
         max-w-fit
-        border-[1.5px]
-        rounded
-        px-2
-        py-1.5
         text-xs
+        py-3
         font-medium
       "
-      :class="
-        closeChange > 0
-          ? 'text-red-600 border-red-600'
-          : 'text-green-600 border-green-600'
-      "
+      :class="closeChange > 0 ? 'text-red-600' : 'text-green-600'"
     >
-      <span>
-        <span class="text-slate-500 mr-px">(</span>
+      <span
+        class="rounded px-1.5 py-1"
+        :class="closeChange > 0 ? 'bg-red-100' : 'bg-green-100'"
+      >
         <i class="fas fa-arrow-up" v-if="closeChangePercent > 0"></i>
         <i class="fas fa-arrow-down" v-else></i>
-        {{ closeChangePercent }}%
-        <span class="text-slate-500 ml-px">)</span>
+        <span class="ml-1.5">{{ closeChangePercent }}%</span>
       </span>
-      <span class="ml-1.5">
+      <span>
         <span v-if="closeChange > 0">+</span>
         <span>{{ closeChange }}</span>
       </span>
+      <span>{{ currentTab }}</span>
     </div>
     <div class="relative top-2 w-full">
       <LineChart
@@ -70,10 +68,10 @@ export default {
     const currentTab = ref("5D");
 
     const xAxisData = computed(() => {
-      return props.priceTrend[currentTab.value].xAxisData;
+      return props.priceTrend[currentTab.value]?.xAxisData;
     });
     const seriesData = computed(() => {
-      return props.priceTrend[currentTab.value].seriesData;
+      return props.priceTrend[currentTab.value]?.seriesData;
     });
 
     watch(currentTab, () => {

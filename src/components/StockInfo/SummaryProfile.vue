@@ -96,7 +96,7 @@ export default {
       emit("toggleProfileSummary", isSummaryShow.value);
     };
 
-    function adjustProfileSummaryDisplay() {
+    function adjustSummaryHeight() {
       profileSummaryHeight.value = profileSummary.value?.offsetHeight;
       isChevronShow.value =
         profileSummary.value?.offsetHeight > profileSummaryMaxHeight.value;
@@ -107,7 +107,7 @@ export default {
       isSummaryShow,
       profileSummary,
       toggleProfileSummary,
-      adjustProfileSummaryDisplay,
+      adjustSummaryHeight,
     };
   },
 };

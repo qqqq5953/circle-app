@@ -9,14 +9,14 @@
           gap-1.5
           md:gap-5
           border-t
-          pt-2
+          py-2.5
           md:pt-4
         "
       >
         <!-- price -->
         <span class="w-1/3 lg:w-28 h-9 bg-gray-300 rounded"></span>
         <!-- change -->
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 pt-1 md:pt-0">
           <span
             class="w-16 h-7 bg-gray-300 rounded"
             v-for="item in 2"
@@ -25,7 +25,7 @@
         </div>
       </div>
       <!-- time -->
-      <div class="flex flex-col gap-2 mt-2 md:mt-3">
+      <div class="flex flex-col gap-2">
         <span
           class="w-full md:w-1/2 h-3 bg-gray-300 rounded"
           v-for="item in 2"

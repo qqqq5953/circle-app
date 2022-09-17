@@ -10,7 +10,7 @@
       <header>
         <h2 class="text-xl md:text-2xl pb-2 md:pb-3 max-w-fit">
           <span>{{ stock.price?.name }} </span>
-          <span class="ml-1.5">({{ ticker }})</span>
+          <span class="ml-1.5">({{ stock.price?.ticker }})</span>
         </h2>
         <div
           class="
@@ -19,13 +19,13 @@
             gap-1.5
             md:gap-5
             border-t
-            pt-2
+            py-2
             md:pt-4
           "
         >
           <span class="text-3xl">${{ stock.price?.previousClose }}</span>
           <div
-            class="flex items-center gap-3 text-sm font-medium"
+            class="flex items-center gap-2 text-sm font-medium py-0.5 md:py-0"
             :class="
               stock.price?.previousCloseChange > 0
                 ? 'text-red-600'
@@ -44,9 +44,12 @@
                 v-if="stock.price?.previousCloseChangePercent > 0"
               ></i>
               <i class="fas fa-arrow-down" v-else></i>
-              {{ stock.price?.previousCloseChangePercent }}%</span
-            >
+              <span class="ml-1.5"
+                >{{ stock.price?.previousCloseChangePercent }}%</span
+              >
+            </span>
             <span>{{ stock.price?.previousCloseChange }}</span>
+            <span>Today</span>
           </div>
         </div>
         <div
@@ -57,12 +60,10 @@
             break-all
             text-slate-500
             font-light
-            mt-1
-            md:mt-2
           "
         >
           <span>
-            <span class="font-medium">{{ stock.price?.marketState }}: </span>
+            <span class="font-medium">{{ marketState }}: </span>
             <span>{{ regularMarketTime }}</span></span
           >
           <span>
@@ -83,7 +84,7 @@
         />
         <SummaryDetail
           class="lg:col-start-3 lg:row-start-2 lg:row-end-3 xl:row-start-1"
-          :class="{ 'xl:mb-12': isSummaryShow }"
+          :class="{ 'xl:mb-[39.5px]': isSummaryShow }"
           :stock="stock"
         />
         <div
@@ -96,17 +97,16 @@
             lg:col-start-1 lg:col-end-3 lg:row-start-2
             xl:row-start-2 xl:row-end-4
           "
+          v-if="stock.financialData?.earnings"
         >
           <div class="max-w-[99%]">
             <RevenueAndEarnings
               class="border-b pb-5"
               :earnings="stock.financialData?.earnings"
-              v-if="stock.financialData?.earnings"
             />
             <EarningsPerShare
               class="pt-3"
               :financialData="stock.financialData"
-              v-if="stock.financialData?.earnings"
             />
           </div>
         </div>
@@ -115,16 +115,13 @@
             lg:col-start-1 lg:col-end-3 lg:row-start-3 lg:row-end-5
             xl:row-start-4
           "
-          :class="{
-            'xl:mt-[9px]': isSummaryShow,
-          }"
           :financialData="stock.financialData"
         />
         <SummaryProfile
           class="lg:col-start-3 lg:row-start-3 lg:row-end-4"
           :class="[
             isSummaryShow
-              ? 'lg:row-end-6 xl:row-end-6 xl:-mt-12 2xl:row-end-5'
+              ? 'lg:row-end-6 xl:row-end-6 xl:-mt-[39.5px] 2xl:row-end-5'
               : '',
           ]"
           :stock="stock"
@@ -138,10 +135,8 @@
 
 <script>
 import { ref, nextTick, computed } from "vue";
-import axios from "axios";
+import http from "../api/index";
 
-import useAxios from "@/composables/useAxios.js";
-import useStockInfoStore from "@/stores/watchlistStore.js";
 import StockInfoSkeleton from "@/components/skeleton/StockInfoSkeleton.vue";
 import PriceTrend from "@/components/StockInfo/PriceTrend.vue";
 import RevenueAndEarnings from "@/components/StockInfo/FinancialStatement/RevenueAndEarnings.vue";
@@ -149,6 +144,7 @@ import EarningsPerShare from "@/components/StockInfo/FinancialStatement/Earnings
 import FinancialData from "@/components/StockInfo/FinancialStatement/FinancialData.vue";
 import SummaryDetail from "@/components/StockInfo/SummaryDetail.vue";
 import SummaryProfile from "@/components/StockInfo/SummaryProfile.vue";
+
 export default {
   components: {
     StockInfoSkeleton,
@@ -160,12 +156,9 @@ export default {
     SummaryProfile,
   },
   props: {
-    ticker: {
-      type: String,
-    },
+    ticker: String,
   },
   setup(props) {
-    const $store = useStockInfoStore();
     const summaryProfileRef = ref(null);
     const isSummaryShow = ref(false);
     const isSkeletonLoading = ref(true);
@@ -188,6 +181,14 @@ export default {
       return `${year}/${month}/${date} ${time}`;
     });
 
+    const marketState = computed(() => {
+      if (!stock.value.price) return;
+
+      return stock.value.price?.marketState !== "POSTPOST"
+        ? stock.value.price?.marketState
+        : "POST";
+    });
+
     const currentTime = computed(() => {
       const year = new Date(Date.now()).getFullYear();
       const month = new Date(Date.now()).getMonth() + 1;
@@ -201,64 +202,35 @@ export default {
 
     const closeChange = computed(() => {
       if (!stock.value.priceTrend) return;
-
-      switch (currentTab.value) {
-        case "5D":
-          return calculateCloseChange("5D");
-        case "1M":
-          return calculateCloseChange("1M");
-        case "6M":
-          return calculateCloseChange("6M");
-        case "YTD":
-          return calculateCloseChange("YTD");
-        case "1Y":
-          return calculateCloseChange("1Y");
-        case "5Y":
-          return calculateCloseChange("5Y");
-      }
+      return calculateClose(currentTab.value, "change");
     });
 
     const closeChangePercent = computed(() => {
       if (!stock.value.priceTrend) return;
-
-      switch (currentTab.value) {
-        case "5D":
-          return calculateCloseChangePercent("5D");
-        case "1M":
-          return calculateCloseChangePercent("1M");
-        case "6M":
-          return calculateCloseChangePercent("6M");
-        case "YTD":
-          return calculateCloseChangePercent("YTD");
-        case "1Y":
-          return calculateCloseChangePercent("1Y");
-        case "5Y":
-          return calculateCloseChangePercent("5Y");
-      }
+      return calculateClose(currentTab.value, "change percent");
     });
 
-    function calculateCloseChange(timeSpan) {
+    function calculateClose(timespan, closeType) {
       const priceTrend = stock.value.priceTrend;
-      const firstClosingPrice = priceTrend[timeSpan].seriesData[0];
-      const lastClosingPrice = priceTrend[timeSpan].seriesData.slice(-1)[0];
-      return (lastClosingPrice - firstClosingPrice).toFixed(2);
-    }
+      if (!priceTrend[timespan]) return;
+      const firstClosingPrice = priceTrend[timespan].seriesData[0];
+      const lastClosingPrice = priceTrend[timespan].seriesData.slice(-1)[0];
 
-    function calculateCloseChangePercent(timeSpan) {
-      const priceTrend = stock.value.priceTrend;
-
-      const firstClosingPrice = priceTrend[timeSpan].seriesData[0];
-      const lastClosingPrice = priceTrend[timeSpan].seriesData.slice(-1)[0];
-      return (
-        ((lastClosingPrice - firstClosingPrice) * 100) /
-        firstClosingPrice
-      ).toFixed(2);
+      switch (closeType) {
+        case "change":
+          return (lastClosingPrice - firstClosingPrice).toFixed(2);
+        case "change percent":
+          return (
+            ((lastClosingPrice - firstClosingPrice) * 100) /
+            firstClosingPrice
+          ).toFixed(2);
+      }
     }
 
     (async function getTickerInfo() {
-      const quotePromiseObj = axios.get(`/api/quote/${props.ticker}`);
-      const summaryPromiseObj = axios.get(`/api/tickerSummary/${props.ticker}`);
-      const priceTrendPromiseObj = axios.get(
+      const quotePromiseObj = http.get(`/api/quote/${props.ticker}`);
+      const summaryPromiseObj = http.get(`/api/tickerSummary/${props.ticker}`);
+      const priceTrendPromiseObj = http.get(
         `/api/historicalPrice/${props.ticker}/?timespan=1Y`
       );
 
@@ -277,24 +249,22 @@ export default {
         stock.value = {
           profile,
           detail,
-          priceTrend: getTimespanPrice(priceTrend_1Y, "1Y"),
           price: {
             ...price,
             ...quote,
             previousClose: quote.price.toFixed(2),
           },
+          priceTrend: getTimespanPrice(priceTrend_1Y, "1Y"),
+          financialData:
+            price.quoteType === "Equity" ? await getFinancialData() : null,
         };
-
-        if (price.quoteType === "Equity") {
-          stock.value.financialData = await getFinancialData();
-        }
 
         toggleSkeleton(false);
 
         await nextTick();
-        summaryProfileRef.value.adjustProfileSummaryDisplay();
+        summaryProfileRef.value.adjustSummaryHeight();
 
-        const axiosResponse = await axios.get(
+        const axiosResponse = await http.get(
           `/api/historicalPrice/${props.ticker}/?timespan=5Y`
         );
         const priceTrend_5Y = axiosResponse.data.result;
@@ -307,103 +277,76 @@ export default {
       }
     })();
 
-    async function getFinancialData() {
-      const response = await axios.get(`/api/financialData/${props.ticker}`);
-      const financialData = response.data.result;
-      return financialData;
-    }
-
     function getTimespanPrice(priceTrend, maxTimespan = "1Y") {
-      console.log("maxTimespan", maxTimespan);
-
+      const priceMap = new Map(priceTrend);
       const year = new Date().getFullYear();
       const month = new Date().getMonth() + 1;
       const date = new Date().getDate();
-
       const startDateObj = {
-        _1M: `${year}/${month - 1}/${date}`,
-        _6M: `${year}/${month - 6}/${date}`,
-        _YTD: `${year - 1}/12/31`,
-        _1Y: `${year - 1}/${month}/${date}`,
-        _5Y: `${year - 5}/${month}/${date}`,
+        ["1M"]: `${year}/${month - 1}/${date}`,
+        ["6M"]: `${year}/${month - 6}/${date}`,
+        ["YTD"]: `${year - 1}/12/31`,
+        ["1Y"]: `${year - 1}/${month}/${date}`,
+        ["5Y"]: `${year - 5}/${month}/${date}`,
       };
-
       const totalTimespan = ["5D", "1M", "6M", "YTD", "1Y", "5Y"];
 
       switch (maxTimespan) {
         case "1Y":
           return totalTimespan.slice(0, 5).reduce((obj, timespan) => {
-            let data = null;
+            const startDate = startDateObj[timespan];
 
-            if (timespan === "5D") {
-              data = [...priceTrend].slice(0, 5).reverse();
-              obj[timespan] = mappingPriceData(data);
-              return obj;
+            if (timespan !== "5D") {
+              obj[timespan] = iteratePriceMapToLineChartData(
+                priceMap,
+                startDate
+              );
+            } else {
+              obj[timespan] = mappingLineChartData(priceTrend, "5D");
             }
-
-            const startDate = startDateObj[`_${timespan}`];
-            const startIndex = getStartDateIndex(priceTrend, startDate);
-
-            data = [...priceTrend].slice(0, startIndex).reverse();
-            obj[timespan] = mappingPriceData(data);
 
             return obj;
           }, {});
         case "5Y":
-          let data = null;
-          const startDate = startDateObj[`_${maxTimespan}`];
+          const startDate = startDateObj[maxTimespan];
           const startDate_TotalTimeSpan = priceTrend.slice(-1)[0].date;
 
-          if (startDate_TotalTimeSpan === startDate) {
-            console.log("test 有五年");
-            const startIndex = getStartDateIndex(priceTrend, startDate);
-            data = [...priceTrend].slice(0, startIndex).reverse();
-          } else {
-            console.log("test 沒有五年");
-            data = [...priceTrend].reverse();
-          }
-
-          return mappingPriceData(data);
+          return startDate !== startDate_TotalTimeSpan
+            ? mappingLineChartData(priceTrend, "5Y")
+            : iteratePriceMapToLineChartData(priceMap, startDate);
       }
     }
 
-    function getStartDateIndex(priceTrend, fullDate) {
-      console.log("fullDate", fullDate);
-      const [startYear, startMonth, startDate] = fullDate.split("/");
-      let date = startDate;
-      let month = startMonth;
-      let year = startYear;
-      let startIndex = -1;
-
-      while (startIndex === -1) {
-        const startDate = `^${year}/${month}/${date}$`;
-        const regex = new RegExp(startDate, "i");
-
-        startIndex = priceTrend.findIndex(
-          (element) => element.date === element.date.match(regex)?.[0]
-        );
-
-        if (date <= 1) {
-          date = 31;
-          if (month <= 1) {
-            month = 12;
-            year--;
-          } else {
-            month--;
-          }
-        } else {
-          date--;
-        }
-      }
-
-      return startIndex;
-    }
-
-    function mappingPriceData(timeSpan) {
-      const xAxisData = timeSpan.map((item) => item.date);
-      const seriesData = timeSpan.map((item) => item.close);
-
+    function mappingLineChartData(priceTrend, timespan) {
+      const dataset =
+        timespan === "5D"
+          ? [...priceTrend].slice(0, 5).reverse()
+          : [...priceTrend].reverse();
+      const xAxisData = dataset.map((item) => item[0]);
+      const seriesData = dataset.map((item) => item[1]);
       return { xAxisData, seriesData };
+    }
+
+    function iteratePriceMapToLineChartData(priceMap, startDate) {
+      const xAxisData = [];
+      const seriesData = [];
+
+      for (let [key, value] of priceMap.entries()) {
+        if (key === startDate) break;
+        xAxisData.push(key);
+        seriesData.push(value);
+      }
+
+      return {
+        xAxisData: xAxisData.reverse(),
+        seriesData: seriesData.reverse(),
+      };
+    }
+
+    async function getFinancialData() {
+      const response = await http.get(`/api/financialData/${props.ticker}`);
+      const financialData = response.data.result;
+      return financialData;
     }
 
     return {
@@ -415,6 +358,7 @@ export default {
       currentTab,
       isSummaryShow,
       regularMarketTime,
+      marketState,
       currentTime,
     };
   },

@@ -1,5 +1,5 @@
 <template>
-  <section v-if="financialData?.earnings">
+  <section>
     <h2 class="text-2xl">Earnings per share</h2>
     <BarChart :xAxisData="epsQuarterlyDate" :seriesData="epsQuarterly" />
   </section>

@@ -1,5 +1,10 @@
 <template>
-  <v-chart class="h-60" :option="option" autoresize />
+  <v-chart
+    class="h-60"
+    :option="isLoading ? defaultOption : option"
+    :loading="isLoading"
+    autoresize
+  />
 </template>
 
 <script>
@@ -13,7 +18,7 @@ import {
   LegendComponent,
 } from "echarts/components";
 import VChart from "vue-echarts";
-import { onUpdated, ref } from "vue";
+import { onUpdated, ref, computed } from "vue";
 
 use([
   CanvasRenderer,
@@ -39,6 +44,20 @@ export default {
     },
   },
   setup(props) {
+    const defaultOption = ref({
+      xAxis: {
+        data: null,
+      },
+      yAxis: {},
+      series: [
+        {
+          name: "Price",
+          type: "line",
+          data: null,
+        },
+      ],
+    });
+
     const option = ref({
       tooltip: {
         trigger: "axis",
@@ -91,12 +110,21 @@ export default {
 
     const min768 = window.matchMedia("(min-width:768px)");
 
+    const isLoading = ref(false);
+
     onUpdated(() => {
       initLineChart();
+
+      const { xAxisData, seriesData, currentTab } = props;
+
+      if (currentTab === "5Y") {
+        isLoading.value = !xAxisData && !seriesData;
+      }
     });
 
     function initLineChart() {
       const { xAxisData, seriesData, currentTab } = props;
+      if (!xAxisData && !seriesData) return;
 
       setLineData(xAxisData, seriesData);
       setYAxis(seriesData, currentTab);
@@ -202,7 +230,7 @@ export default {
       option.value.series[0].showSymbol = currentTab === "5D";
     }
 
-    return { option };
+    return { option, defaultOption, isLoading };
   },
 };
 </script>

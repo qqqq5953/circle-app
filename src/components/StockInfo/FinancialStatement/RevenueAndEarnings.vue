@@ -1,5 +1,5 @@
 <template>
-  <section v-if="earnings">
+  <section>
     <h2 class="text-2xl mb-2">Revenue and Earnings</h2>
     <Tabs
       :tabs="tabs_Earnings"

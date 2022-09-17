@@ -1,5 +1,5 @@
 import { toRefs, ref, reactive } from 'vue'
-import axios from 'axios'
+import http from '../api/index'
 
 export default function useAxios(url, method, options = {}) {
   const data = ref(null)
@@ -12,7 +12,7 @@ export default function useAxios(url, method, options = {}) {
     state.loading = true
 
     try {
-      const response = await axios[method](url, options)
+      const response = await http[method](url, options)
       const { success, content, errorMessage, result = null } = response.data
       data.value = { success, content, errorMessage, result }
       state.error = errorMessage

@@ -1,10 +1,10 @@
 import axios from 'axios'
 
-const service = axios.create({
-  baseURL: 'http://localhost:8081'
+const http = axios.create({
+  baseURL: 'http://localhost:8080'
 })
 
-service.interceptors.request.use(
+http.interceptors.request.use(
   (config) => {
     console.log('config', config)
     return config
@@ -12,11 +12,11 @@ service.interceptors.request.use(
   (error) => {}
 )
 
-service.interceptors.response.use(
+http.interceptors.response.use(
   (response) => {
     return response
   },
   (error) => {}
 )
 
-export default service
+export default http

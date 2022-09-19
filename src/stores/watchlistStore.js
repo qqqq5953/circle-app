@@ -12,10 +12,12 @@ const useWatchlistStore = defineStore('watchlist', () => {
     if (typeof tab === 'object') {
       tabs.value.length = 0
       tabs.value.push(...tab)
+      return
     }
 
     if (typeof tab === 'string') {
       tabs.value.push(tab)
+      return
     }
   }
 

@@ -22,6 +22,7 @@
         font-medium
       "
       :class="closeChange > 0 ? 'text-red-600' : 'text-green-600'"
+      v-if="closeChange"
     >
       <span
         class="rounded px-1.5 py-1"

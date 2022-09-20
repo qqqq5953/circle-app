@@ -77,9 +77,7 @@
       <main class="grid gap-4 lg:gap-4 lg:grid-cols-3">
         <PriceTrend
           class="pb-5 lg:col-start-1 lg:col-end-4 xl:col-end-3"
-          :priceTrend="stock.priceTrend"
-          :closeChange="closeChange"
-          :closeChangePercent="closeChangePercent"
+          :ticker="ticker"
           @switchTab="(tab) => (currentTab = tab)"
         />
         <SummaryDetail
@@ -200,50 +198,18 @@ export default {
       return `${year}/${month}/${date} ${hour}:${minute}:${second}`;
     });
 
-    const closeChange = computed(() => {
-      if (!stock.value.priceTrend) return;
-      return calculateClose(currentTab.value, "change");
-    });
-
-    const closeChangePercent = computed(() => {
-      if (!stock.value.priceTrend) return;
-      return calculateClose(currentTab.value, "change percent");
-    });
-
-    function calculateClose(timespan, closeType) {
-      const priceTrend = stock.value.priceTrend;
-      if (!priceTrend[timespan]) return;
-      const firstClosingPrice = priceTrend[timespan].seriesData[0];
-      const lastClosingPrice = priceTrend[timespan].seriesData.slice(-1)[0];
-
-      switch (closeType) {
-        case "change":
-          return (lastClosingPrice - firstClosingPrice).toFixed(2);
-        case "change percent":
-          return (
-            ((lastClosingPrice - firstClosingPrice) * 100) /
-            firstClosingPrice
-          ).toFixed(2);
-      }
-    }
-
     (async function getTickerInfo() {
       const quotePromiseObj = http.get(`/api/quote/${props.ticker}`);
       const summaryPromiseObj = http.get(`/api/tickerSummary/${props.ticker}`);
-      const priceTrendPromiseObj = http.get(
-        `/api/historicalPrice/${props.ticker}/?timespan=1Y`
-      );
 
       try {
         const promiseResponse = await Promise.allSettled([
           quotePromiseObj,
           summaryPromiseObj,
-          priceTrendPromiseObj,
         ]);
 
         const quote = promiseResponse[0].value.data.result;
         const summary = promiseResponse[1].value.data.result;
-        const priceTrend_1Y = promiseResponse[2].value.data.result;
         const { profile, detail, price } = summary;
 
         stock.value = {
@@ -254,94 +220,20 @@ export default {
             ...quote,
             previousClose: quote.price.toFixed(2),
           },
-          priceTrend: getTimespanPrice(priceTrend_1Y, "1Y"),
-          financialData:
-            price.quoteType === "Equity" ? await getFinancialData() : null,
         };
+
+        if (price.quoteType === "Equity") {
+          stock.value.financialData = await getFinancialData();
+        }
 
         toggleSkeleton(false);
 
         await nextTick();
         summaryProfileRef.value.adjustSummaryHeight();
-
-        const axiosResponse = await http.get(
-          `/api/historicalPrice/${props.ticker}/?timespan=5Y`
-        );
-        const priceTrend_5Y = axiosResponse.data.result;
-
-        stock.value.priceTrend["5Y"] = getTimespanPrice(priceTrend_5Y, "5Y");
-
-        console.log("stock", stock.value);
       } catch (error) {
         console.log("error", error);
       }
     })();
-
-    function getTimespanPrice(priceTrend, maxTimespan = "1Y") {
-      const priceMap = new Map(priceTrend);
-      const year = new Date().getFullYear();
-      const month = new Date().getMonth() + 1;
-      const date = new Date().getDate();
-      const startDateObj = {
-        ["1M"]: `${year}/${month - 1}/${date}`,
-        ["6M"]: `${year}/${month - 6}/${date}`,
-        ["YTD"]: `${year - 1}/12/31`,
-        ["1Y"]: `${year - 1}/${month}/${date}`,
-        ["5Y"]: `${year - 5}/${month}/${date}`,
-      };
-      const totalTimespan = ["5D", "1M", "6M", "YTD", "1Y", "5Y"];
-
-      switch (maxTimespan) {
-        case "1Y":
-          return totalTimespan.slice(0, 5).reduce((obj, timespan) => {
-            const startDate = startDateObj[timespan];
-
-            if (timespan !== "5D") {
-              obj[timespan] = iteratePriceMapToLineChartData(
-                priceMap,
-                startDate
-              );
-            } else {
-              obj[timespan] = mappingLineChartData(priceTrend, "5D");
-            }
-
-            return obj;
-          }, {});
-        case "5Y":
-          const startDate = startDateObj[maxTimespan];
-          const startDate_TotalTimeSpan = priceTrend.slice(-1)[0].date;
-
-          return startDate !== startDate_TotalTimeSpan
-            ? mappingLineChartData(priceTrend, "5Y")
-            : iteratePriceMapToLineChartData(priceMap, startDate);
-      }
-    }
-
-    function mappingLineChartData(priceTrend, timespan) {
-      const dataset =
-        timespan === "5D"
-          ? [...priceTrend].slice(0, 5).reverse()
-          : [...priceTrend].reverse();
-      const xAxisData = dataset.map((item) => item[0]);
-      const seriesData = dataset.map((item) => item[1]);
-      return { xAxisData, seriesData };
-    }
-
-    function iteratePriceMapToLineChartData(priceMap, startDate) {
-      const xAxisData = [];
-      const seriesData = [];
-
-      for (let [key, value] of priceMap.entries()) {
-        if (key === startDate) break;
-        xAxisData.push(key);
-        seriesData.push(value);
-      }
-
-      return {
-        xAxisData: xAxisData.reverse(),
-        seriesData: seriesData.reverse(),
-      };
-    }
 
     async function getFinancialData() {
       const response = await http.get(`/api/financialData/${props.ticker}`);
@@ -353,8 +245,6 @@ export default {
       stock,
       isSkeletonLoading,
       summaryProfileRef,
-      closeChange,
-      closeChangePercent,
       currentTab,
       isSummaryShow,
       regularMarketTime,

@@ -18,7 +18,7 @@ import {
   LegendComponent,
 } from "echarts/components";
 import VChart from "vue-echarts";
-import { onUpdated, ref, computed } from "vue";
+import { computed, ref, watchEffect } from "vue";
 
 use([
   CanvasRenderer,
@@ -45,6 +45,11 @@ export default {
   },
   setup(props) {
     const defaultOption = ref({
+      grid: {
+        left: "0%",
+        right: "0%",
+        bottom: "3%",
+      },
       xAxis: {
         data: null,
       },
@@ -65,7 +70,7 @@ export default {
       grid: {
         left: "2%",
         right: null,
-        bottom: "3%",
+        bottom: "0%",
         containLabel: true,
       },
       xAxis: {
@@ -110,17 +115,12 @@ export default {
 
     const min768 = window.matchMedia("(min-width:768px)");
 
-    const isLoading = ref(false);
-
-    onUpdated(() => {
-      initLineChart();
-
-      const { xAxisData, seriesData, currentTab } = props;
-
-      if (currentTab === "5Y") {
-        isLoading.value = !xAxisData && !seriesData;
-      }
+    const isLoading = computed(() => {
+      const { xAxisData, seriesData } = props;
+      return !xAxisData && !seriesData;
     });
+
+    watchEffect(() => initLineChart());
 
     function initLineChart() {
       const { xAxisData, seriesData, currentTab } = props;
@@ -134,8 +134,6 @@ export default {
       setMinMaxLabel(currentTab);
       setShowSymbol(currentTab);
     }
-
-    initLineChart();
 
     function createAreaColor(offsetColor0, offsetColor1) {
       return [

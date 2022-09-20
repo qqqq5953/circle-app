@@ -35,7 +35,7 @@ router.get('/quote/:ticker', async (req, res) => {
     } = priceObj
 
     const previousCloseChange =
-      parseFloat(price - previousClose).toFixed(2) > 0
+      parseFloat(price - previousClose) > 0
         ? '+' + parseFloat(price - previousClose).toFixed(2)
         : parseFloat(price - previousClose).toFixed(2)
 

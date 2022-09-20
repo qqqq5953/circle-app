@@ -40,8 +40,8 @@
     </div>
     <div class="relative top-2 w-full">
       <LineChart
-        :xAxisData="xAxisData"
-        :seriesData="seriesData"
+        :xAxisData="lineChartData?.xAxisData"
+        :seriesData="lineChartData?.seriesData"
         :currentTab="currentTab"
       />
     </div>
@@ -50,6 +50,7 @@
 
 <script>
 import { ref, computed, watch } from "vue";
+import http from "@/api/index";
 import Tabs from "@/components/Tabs.vue";
 import LineChart from "@/components/LineChart.vue";
 
@@ -59,31 +60,179 @@ export default {
     LineChart,
   },
   props: {
-    priceTrend: Object,
-    closeChange: String,
-    closeChangePercent: String,
+    ticker: String,
   },
   emits: ["switchTab"],
   setup(props, { emit }) {
     const tabs = ref(["5D", "1M", "6M", "YTD", "1Y", "5Y"]);
     const currentTab = ref("5D");
+    const lineChartData = ref(null);
+    const priceRawMapData = ref({});
 
-    const xAxisData = computed(() => {
-      return props.priceTrend[currentTab.value]?.xAxisData;
-    });
-    const seriesData = computed(() => {
-      return props.priceTrend[currentTab.value]?.seriesData;
+    const closeChange = computed(() => {
+      if (!lineChartData.value) return;
+      return calculateClose("change");
     });
 
-    watch(currentTab, () => {
-      emit("switchTab", currentTab.value);
+    const closeChangePercent = computed(() => {
+      if (!lineChartData.value) return;
+      return calculateClose("change percent");
     });
+
+    function calculateClose(closeType) {
+      const { seriesData } = lineChartData.value;
+      const firstClosingPrice = seriesData[0];
+      const lastClosingPrice = seriesData[seriesData.length - 1];
+
+      switch (closeType) {
+        case "change":
+          return (lastClosingPrice - firstClosingPrice).toFixed(2);
+        case "change percent":
+          return (
+            ((lastClosingPrice - firstClosingPrice) * 100) /
+            firstClosingPrice
+          ).toFixed(2);
+      }
+    }
+
+    http
+      .get(`/api/historicalPrice/${props.ticker}/?timespan=1Y`)
+      .then((result) => {
+        const priceMap = new Map(result.data.result);
+        storePriceMap(priceMap, "1Y");
+
+        lineChartData.value = mappingLineChartData(priceMap, currentTab.value);
+
+        return http.get(`/api/historicalPrice/${props.ticker}/?timespan=5Y`);
+      })
+      .then((result) => {
+        const priceMap = new Map(result.data.result);
+        storePriceMap(priceMap, "5Y");
+      });
+
+    function storePriceMap(data, timespan) {
+      priceRawMapData.value[timespan] = data;
+    }
+
+    async function getLineChartData(priceMap) {
+      const year = new Date().getFullYear();
+      const month = new Date().getMonth() + 1;
+      const date = new Date().getDate();
+      const startDateObj = {
+        ["1M"]: `${year}/${month - 1}/${date}`,
+        ["6M"]: `${year}/${month - 6}/${date}`,
+        ["YTD"]: `${year - 1}/12/31`,
+        ["1Y"]: `${year - 1}/${month}/${date}`,
+        ["5Y"]: `${year - 5}/${month}/${date}`,
+      };
+      let lineChartData = null;
+
+      if (currentTab.value !== "5D") {
+        const startDate = startDateObj[currentTab.value];
+        lineChartData = iteratePriceMapToLineChartData(priceMap, startDate);
+      } else {
+        lineChartData = mappingLineChartData(priceMap, currentTab.value);
+      }
+
+      return lineChartData;
+    }
+
+    watch(currentTab, async (newTab) => {
+      emit("switchTab", newTab);
+      if (newTab !== "5Y") {
+        lineChartData.value = await getLineChartData(
+          priceRawMapData.value["1Y"]
+        );
+      } else {
+        lineChartData.value = await getLineChartData(
+          priceRawMapData.value["5Y"]
+        );
+      }
+    });
+
+    function iteratePriceMapToLineChartData(priceMap, startDate) {
+      if (!priceMap) return;
+
+      const xAxisData = [];
+      const seriesData = [];
+
+      for (let [key, value] of priceMap.entries()) {
+        if (key === startDate) break;
+        xAxisData.push(key);
+        seriesData.push(value);
+      }
+
+      const currentTimespanLength = xAxisData.length;
+      const totalTimespanLength = priceRawMapData.value["1Y"].size;
+      const isStartDateExist = currentTimespanLength !== totalTimespanLength;
+
+      if (currentTab.value !== "1Y" && !isStartDateExist) {
+        const newStartDate = getNewStartDate(xAxisData, startDate);
+        xAxisData.length = 0;
+        seriesData.length = 0;
+
+        for (let [key, value] of priceMap.entries()) {
+          xAxisData.push(key);
+          seriesData.push(value);
+          if (key === newStartDate) break;
+        }
+      }
+
+      return {
+        xAxisData: xAxisData.reverse(),
+        seriesData: seriesData.reverse(),
+      };
+    }
+
+    function getNewStartDate(xAxisData, fullDate) {
+      console.log("fullDate", fullDate);
+      const [startYear, startMonth, startDate] = fullDate.split("/");
+      let date = startDate;
+      let month = startMonth;
+      let year = startYear;
+      let startIndex = -1;
+      let newStartDate = null;
+
+      while (startIndex === -1) {
+        const startDate = `^${year}/${month}/${date}$`;
+        const regex = new RegExp(startDate, "i");
+
+        startIndex = xAxisData.findIndex((element) => element.match(regex));
+
+        newStartDate = `${year}/${month}/${date}`;
+
+        if (date <= 1) {
+          date = 31;
+          if (month <= 1) {
+            month = 12;
+            year--;
+          } else {
+            month--;
+          }
+        } else {
+          date++;
+        }
+      }
+
+      return newStartDate;
+    }
+
+    function mappingLineChartData(priceTrend, timespan) {
+      const dataset =
+        timespan === "5D"
+          ? [...priceTrend].slice(0, 5).reverse()
+          : [...priceTrend].reverse();
+      const xAxisData = dataset.map((item) => item[0]);
+      const seriesData = dataset.map((item) => item[1]);
+      return { xAxisData, seriesData };
+    }
 
     return {
       tabs,
       currentTab,
-      xAxisData,
-      seriesData,
+      lineChartData,
+      closeChange,
+      closeChangePercent,
     };
   },
 };

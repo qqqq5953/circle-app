@@ -18,7 +18,7 @@ import {
   LegendComponent,
 } from "echarts/components";
 import VChart from "vue-echarts";
-import { onUpdated, ref, computed } from "vue";
+import { ref, watchEffect } from "vue";
 
 use([
   CanvasRenderer,
@@ -45,6 +45,11 @@ export default {
   },
   setup(props) {
     const defaultOption = ref({
+      grid: {
+        left: "0%",
+        right: "0%",
+        bottom: "3%",
+      },
       xAxis: {
         data: null,
       },
@@ -65,7 +70,7 @@ export default {
       grid: {
         left: "2%",
         right: null,
-        bottom: "3%",
+        bottom: "0%",
         containLabel: true,
       },
       xAxis: {
@@ -112,14 +117,11 @@ export default {
 
     const isLoading = ref(false);
 
-    onUpdated(() => {
+    watchEffect(() => {
       initLineChart();
 
-      const { xAxisData, seriesData, currentTab } = props;
-
-      if (currentTab === "5Y") {
-        isLoading.value = !xAxisData && !seriesData;
-      }
+      const { xAxisData, seriesData } = props;
+      isLoading.value = !xAxisData && !seriesData;
     });
 
     function initLineChart() {

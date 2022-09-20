@@ -151,12 +151,14 @@ export default {
     function setYAxis(seriesData, currentTab) {
       const min = Math.min(...seriesData);
       const max = Math.max(...seriesData);
-      const adjMin = Math.floor((min + 1) / 10) * 10;
+      const adjMin = Math.floor((min - 1) / 10) * 10;
       const adjMax = Math.ceil((max + 1) / 10) * 10;
+      const isDifferenceLessThan10 = Math.abs(max - min) <= 10;
 
       option.value.yAxis.min = adjMin;
       option.value.yAxis.max = adjMax;
-      option.value.yAxis.minInterval = currentTab === "5D" ? 5 : 10;
+      option.value.yAxis.minInterval =
+        currentTab === "5D" || isDifferenceLessThan10 ? 5 : 10;
     }
 
     function setGraphColor(seriesData) {

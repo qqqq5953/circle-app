@@ -38,7 +38,7 @@
       </span>
       <span>{{ currentTab }}</span>
     </div>
-    <div class="relative top-2 w-full -z-10">
+    <div class="relative top-2 w-full">
       <LineChart
         :xAxisData="lineChartData[currentTab]?.xAxisData"
         :seriesData="lineChartData[currentTab]?.seriesData"
@@ -148,7 +148,6 @@ export default {
     }
 
     function getNewStartDate(xAxisData, fullDate) {
-      console.log("fullDate", fullDate);
       const [startYear, startMonth, startDate] = fullDate.split("/");
       let date = startDate;
       let month = startMonth;

@@ -179,29 +179,25 @@
                 w-5/12
               "
             >
-              <div
-                class="
-                  flex flex-col
-                  lg:flex-row lg:justify-between lg:items-center
-                "
-              >
-                <p
-                  class="
-                    font-semibold
-                    mr-4
-                    px-2
-                    py-1
-                    flex-shrink-0
-                    self-start
-                    bg-red-400
-                    rounded
-                    text-white
-                    uppercase
-                  "
-                >
-                  {{ item.ticker }}
-                </p>
-                <p class="mt-2 lg:mt-0 flex-shrink truncate ...">
+              <div class="flex flex-col md:flex-row md:items-center md:gap-x-2">
+                <div class="w-1/4">
+                  <p
+                    class="
+                      inline-block
+                      font-semibold
+                      px-2
+                      py-1
+                      flex-shrink-0
+                      bg-red-400
+                      rounded
+                      text-white
+                      uppercase
+                    "
+                  >
+                    {{ item.ticker }}
+                  </p>
+                </div>
+                <p class="w-3/4 mt-2 md:mt-0 flex-shrink truncate ...">
                   {{ item.name }}
                 </p>
               </div>
@@ -228,6 +224,7 @@
                 px-0
                 lg:px-6
                 text-xs text-center
+                font-medium
                 w-3/12
                 xl:w-auto
               "

@@ -1,80 +1,97 @@
 <template>
-  <div
-    class="flex gap-10 pb-3 py-5 text-sm overflow-x-auto lg:overflow-x-visible"
-    ref="navbarRef"
-  >
-    <TabSkeleton
-      :tabs="tabs"
-      :currentTab="currentTab"
-      v-if="isWatchlistLoading"
-    />
-
-    <nav
-      class="flex gap-2.5 lg:overflow-x-auto lg:max-w-[73%] py-2"
-      ref="navRef"
-      v-else
+  <div class="overflow-y-hidden h-20">
+    <div
+      class="
+        flex
+        gap-10
+        pt-6
+        pb-4
+        text-sm
+        overflow-x-auto
+        lg:overflow-x-visible
+      "
+      ref="navbarRef"
     >
+      <TabSkeleton
+        :tabs="tabs"
+        :currentTab="currentTab"
+        v-if="isWatchlistLoading"
+      />
+      <nav class="lg:overflow-y-hidden lg:h-20 lg:max-w-[75%]" v-else>
+        <div class="flex gap-2.5 lg:overflow-x-auto py-2 lg:py-4" ref="navRef">
+          <button
+            class="border rounded p-2 w-24 relative shrink-0"
+            :class="{
+              'after:absolute after:inset-x-0 after:bottom-0 after:h-1 after:bg-blue-500 after:rounded-b-lg':
+                currentTab === tab,
+            }"
+            v-for="tab in tabs"
+            :key="tab"
+            @click="showCurrentTab(tab)"
+          >
+            {{ tab }}
+          </button>
+        </div>
+      </nav>
+
       <button
-        class="border rounded p-2 w-24 relative shrink-0"
-        :class="{
-          'after:absolute after:inset-x-0 after:bottom-0 after:h-1 after:bg-blue-500 after:rounded-b-lg':
-            currentTab === tab,
-        }"
-        v-for="tab in tabs"
-        :key="tab"
-        @click="showCurrentTab(tab)"
+        class="ml-auto shrink-0 text-blue-600"
+        @click="toggleModal(true)"
+        v-if="!isWatchlistLoading"
       >
-        {{ tab }}
+        + Add watchlist
       </button>
-    </nav>
 
-    <button class="ml-auto shrink-0 text-blue-600" @click="toggleModal(true)">
-      + Add watchlist
-    </button>
-
-    <Teleport to="body">
-      <div v-if="isModalOpen" class="fixed inset-0 z-20 bg-slate-700/60">
-        <div
-          class="
-            absolute
-            top-1/2
-            left-1/2
-            -translate-x-1/2 -translate-y-1/2
-            bg-white
-            rounded
-            p-5
-            flex flex-wrap flex-col
-            gap-4
-            w-2/3
-            lg:w-1/3
-          "
-        >
-          <h2 class="text-xl lg:text-2xl">Add watchlist</h2>
-          <div>
-            <input
-              type="text"
-              class="border rounded focus:outline-none px-4 py-4 w-full"
-              placeholder="add a tab"
-              v-model="inputListName"
-            />
-            <div class="text-red-500">
-              <ErrorDisplay :errors="errorMessage" v-if="errorMessage.length" />
+      <Teleport to="body">
+        <div v-if="isModalOpen" class="fixed inset-0 z-20 bg-slate-700/60">
+          <div
+            class="
+              absolute
+              top-1/2
+              left-1/2
+              -translate-x-1/2 -translate-y-1/2
+              bg-white
+              rounded
+              p-5
+              flex flex-wrap flex-col
+              gap-4
+              w-2/3
+              lg:w-1/3
+            "
+          >
+            <h2 class="text-xl lg:text-2xl">Add watchlist</h2>
+            <div>
+              <input
+                type="text"
+                class="border rounded focus:outline-none px-4 py-4 w-full"
+                placeholder="add a tab"
+                v-model="inputListName"
+              />
+              <div class="text-red-500">
+                <ErrorDisplay
+                  :errors="errorMessage"
+                  v-if="errorMessage.length"
+                />
+              </div>
+            </div>
+            <div class="text-right">
+              <button
+                class="text-blue-600 p-2 mr-2"
+                @click="toggleModal(false)"
+              >
+                Close
+              </button>
+              <button
+                class="border rounded p-2 bg-blue-600 text-white"
+                @click="createTab()"
+              >
+                Add
+              </button>
             </div>
           </div>
-          <div class="text-right">
-            <button class="text-blue-600 p-2 mr-2" @click="toggleModal(false)">
-              Close
-            </button>
-            <button
-              class="border rounded p-2 bg-blue-600 text-white"
-              @click="createTab()"
-            >
-              Add
-            </button>
-          </div>
         </div>
-      </div>
-    </Teleport>
+      </Teleport>
+    </div>
   </div>
 </template>
 

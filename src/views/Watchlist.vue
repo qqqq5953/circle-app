@@ -1,6 +1,6 @@
 <template>
-  <main class="flex flex-col gap-4 px-4 md:p-10 mx-auto w-full">
-    <div class="relative w-full pb-20">
+  <main class="flex flex-col gap-3 px-4 md:p-10 mx-auto w-full">
+    <div class="relative w-full pb-14">
       <SearchBar
         id="searchBar"
         @toggleSearchList="toggleSearchList"

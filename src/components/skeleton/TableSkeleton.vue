@@ -5,7 +5,6 @@
       flex flex-col
       break-words
       w-full
-      mb-6
       shadow-lg
       rounded
       bg-white

@@ -1,25 +1,27 @@
 <template>
-  <nav class="flex gap-2.5 lg:overflow-x-auto lg:max-w-[73%] animate-pulse">
-    <div
-      class="
-        bg-gray-200
-        opacity-70
-        border
-        rounded
-        p-2
-        w-24
-        relative
-        shrink-0
-        text-center
-      "
-      :class="{
-        'after:absolute after:inset-x-0 after:bottom-0 after:h-1 after:bg-blue-500':
-          currentTab === tab,
-      }"
-      v-for="tab in tabs"
-      :key="tab"
-    >
-      {{ tab }}
+  <nav class="lg:overflow-y-hidden lg:h-20 lg:max-w-[73%]">
+    <div class="flex gap-2.5 lg:overflow-x-auto animate-pulse py-2 lg:py-4">
+      <div
+        class="
+          bg-gray-200
+          opacity-70
+          border
+          rounded
+          p-2
+          w-24
+          relative
+          shrink-0
+          text-center
+        "
+        :class="{
+          'after:absolute after:inset-x-0 after:bottom-0 after:h-1 after:bg-blue-500':
+            currentTab === tab,
+        }"
+        v-for="tab in tabs"
+        :key="tab"
+      >
+        {{ tab }}
+      </div>
     </div>
   </nav>
 </template>

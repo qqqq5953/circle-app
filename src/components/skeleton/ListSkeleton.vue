@@ -79,21 +79,11 @@
               <div
                 class="
                   flex flex-col
-                  lg:flex-row lg:justify-between lg:items-center
+                  md:flex-row md:justify-between md:items-center
                 "
               >
-                <p
-                  class="
-                    font-semibold
-                    mr-4
-                    w-7
-                    h-6
-                    bg-gray-300
-                    rounded
-                    text-white
-                  "
-                ></p>
-                <p class="w-full h-5 mt-2 lg:mt-0 bg-gray-300 rounded"></p>
+                <p class="mr-4 w-7 h-6 bg-gray-300 rounded"></p>
+                <p class="w-full h-5 mt-2 md:mt-0 bg-gray-300 rounded"></p>
               </div>
             </th>
             <td

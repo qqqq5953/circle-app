@@ -20,12 +20,7 @@
               w-5/12
             "
           >
-            <div
-              class="
-                flex flex-col
-                lg:flex-row lg:justify-between lg:items-center
-              "
-            >
+            <div class="flex flex-col md:flex-row md:items-center">
               <p
                 class="
                   font-semibold
@@ -42,7 +37,7 @@
               >
                 {{ item.ticker }}
               </p>
-              <p class="mt-2 lg:mt-0 flex-shrink truncate ...">
+              <p class="mt-2 md:mt-0 flex-shrink truncate ...">
                 {{ item.name }}
               </p>
             </div>
@@ -69,6 +64,7 @@
               px-0
               lg:px-6
               text-xs
+              font-medium
               w-3/12
               xl:w-auto
             "
@@ -137,8 +133,10 @@
                   class="fas fa-plus text-lg md:text-xl hover:text-blue-600"
                 ></i>
               </a>
-              <span v-else class="">
-                <i class="fa-solid fa-check text-lg md:text-2xl lg:text-xl"></i>
+              <span v-else>
+                <i
+                  class="fa-solid fa-check text-slate-600 text-lg md:text-xl"
+                ></i>
               </span>
             </div>
           </td>

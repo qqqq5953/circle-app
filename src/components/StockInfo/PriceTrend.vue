@@ -1,6 +1,6 @@
 <template>
   <div class="relative w-full max-w-[99%]">
-    <div class="absolute top-0 w-full z-10">
+    <div class="absolute top-0 w-full">
       <Tabs
         :tabs="tabs"
         :current-tab-props="currentTab"
@@ -18,7 +18,7 @@
         gap-2
         max-w-fit
         text-xs
-        py-3
+        pb-3
         font-medium
       "
       :class="closeChange > 0 ? 'text-red-600' : 'text-green-600'"
@@ -38,10 +38,10 @@
       </span>
       <span>{{ currentTab }}</span>
     </div>
-    <div class="relative top-2 w-full">
+    <div class="relative top-2 w-full -z-10">
       <LineChart
-        :xAxisData="lineChartData?.xAxisData"
-        :seriesData="lineChartData?.seriesData"
+        :xAxisData="lineChartData[currentTab]?.xAxisData"
+        :seriesData="lineChartData[currentTab]?.seriesData"
         :currentTab="currentTab"
       />
     </div>
@@ -66,93 +66,56 @@ export default {
   setup(props, { emit }) {
     const tabs = ref(["5D", "1M", "6M", "YTD", "1Y", "5Y"]);
     const currentTab = ref("5D");
-    const lineChartData = ref(null);
+    const lineChartData = ref({});
     const priceRawMapData = ref({});
 
-    const closeChange = computed(() => {
-      if (!lineChartData.value) return;
-      return calculateClose("change");
-    });
-
-    const closeChangePercent = computed(() => {
-      if (!lineChartData.value) return;
-      return calculateClose("change percent");
-    });
-
-    function calculateClose(closeType) {
-      const { seriesData } = lineChartData.value;
-      const firstClosingPrice = seriesData[0];
-      const lastClosingPrice = seriesData[seriesData.length - 1];
-
-      switch (closeType) {
-        case "change":
-          return (lastClosingPrice - firstClosingPrice).toFixed(2);
-        case "change percent":
-          return (
-            ((lastClosingPrice - firstClosingPrice) * 100) /
-            firstClosingPrice
-          ).toFixed(2);
-      }
-    }
+    const url_1Y = `/api/historicalPrice/${props.ticker}/?timespan=1Y`;
+    const url_5Y = `/api/historicalPrice/${props.ticker}/?timespan=5Y`;
+    const year = new Date().getFullYear();
+    const month = new Date().getMonth() + 1;
+    const date = new Date().getDate();
+    const startDateObj = {
+      ["1M"]: `${year}/${month - 1}/${date}`,
+      ["6M"]: `${year}/${month - 6}/${date}`,
+      ["YTD"]: `${year - 1}/12/31`,
+      ["1Y"]: `${year - 1}/${month}/${date}`,
+      ["5Y"]: `${year - 5}/${month}/${date}`,
+    };
 
     http
-      .get(`/api/historicalPrice/${props.ticker}/?timespan=1Y`)
-      .then((result) => {
-        const priceMap = new Map(result.data.result);
+      .get(url_1Y)
+      .then((response) => {
+        const priceMap = new Map(response.data.result);
         storePriceMap(priceMap, "1Y");
+        getLineChartData(priceMap);
 
-        lineChartData.value = mappingLineChartData(priceMap, currentTab.value);
-
-        return http.get(`/api/historicalPrice/${props.ticker}/?timespan=5Y`);
+        return http.get(url_5Y);
       })
-      .then((result) => {
-        const priceMap = new Map(result.data.result);
-        storePriceMap(priceMap, "5Y");
+      .then((response) => {
+        const priceMap = new Map(response.data.result);
+        lineChartData.value["5Y"] = mappingLineChartData(priceMap, "5Y");
       });
 
-    function storePriceMap(data, timespan) {
-      priceRawMapData.value[timespan] = data;
-    }
+    function getLineChartData(priceMap) {
+      for (let i = 0; i < tabs.value.length - 1; i++) {
+        const timespan = tabs.value[i];
 
-    async function getLineChartData(priceMap) {
-      const year = new Date().getFullYear();
-      const month = new Date().getMonth() + 1;
-      const date = new Date().getDate();
-      const startDateObj = {
-        ["1M"]: `${year}/${month - 1}/${date}`,
-        ["6M"]: `${year}/${month - 6}/${date}`,
-        ["YTD"]: `${year - 1}/12/31`,
-        ["1Y"]: `${year - 1}/${month}/${date}`,
-        ["5Y"]: `${year - 5}/${month}/${date}`,
-      };
-      let lineChartData = null;
-
-      if (currentTab.value !== "5D") {
-        const startDate = startDateObj[currentTab.value];
-        lineChartData = iteratePriceMapToLineChartData(priceMap, startDate);
-      } else {
-        lineChartData = mappingLineChartData(priceMap, currentTab.value);
+        if (timespan !== "5D") {
+          const startDate = startDateObj[timespan];
+          lineChartData.value[timespan] = iteratePriceMapToLineChartData(
+            priceMap,
+            startDate
+          );
+        } else {
+          lineChartData.value[timespan] = mappingLineChartData(
+            priceMap,
+            timespan
+          );
+        }
       }
-
-      return lineChartData;
     }
-
-    watch(currentTab, async (newTab) => {
-      emit("switchTab", newTab);
-      if (newTab !== "5Y") {
-        lineChartData.value = await getLineChartData(
-          priceRawMapData.value["1Y"]
-        );
-      } else {
-        lineChartData.value = await getLineChartData(
-          priceRawMapData.value["5Y"]
-        );
-      }
-    });
 
     function iteratePriceMapToLineChartData(priceMap, startDate) {
-      if (!priceMap) return;
-
       const xAxisData = [];
       const seriesData = [];
 
@@ -163,8 +126,8 @@ export default {
       }
 
       const currentTimespanLength = xAxisData.length;
-      const totalTimespanLength = priceRawMapData.value["1Y"].size;
-      const isStartDateExist = currentTimespanLength !== totalTimespanLength;
+      const oneYearTimespanLength = priceRawMapData.value["1Y"].size;
+      const isStartDateExist = currentTimespanLength !== oneYearTimespanLength;
 
       if (currentTab.value !== "1Y" && !isStartDateExist) {
         const newStartDate = getNewStartDate(xAxisData, startDate);
@@ -226,6 +189,38 @@ export default {
       const seriesData = dataset.map((item) => item[1]);
       return { xAxisData, seriesData };
     }
+
+    function storePriceMap(data, timespan) {
+      priceRawMapData.value[timespan] = data;
+    }
+
+    const closeChange = computed(() => {
+      if (!lineChartData.value[currentTab.value]) return;
+      return calculateClose("change");
+    });
+
+    const closeChangePercent = computed(() => {
+      if (!lineChartData.value[currentTab.value]) return;
+      return calculateClose("change percent");
+    });
+
+    function calculateClose(closeType) {
+      const { seriesData } = lineChartData.value[currentTab.value];
+      const firstClosingPrice = seriesData[0];
+      const lastClosingPrice = seriesData[seriesData.length - 1];
+
+      switch (closeType) {
+        case "change":
+          return (lastClosingPrice - firstClosingPrice).toFixed(2);
+        case "change percent":
+          return (
+            ((lastClosingPrice - firstClosingPrice) * 100) /
+            firstClosingPrice
+          ).toFixed(2);
+      }
+    }
+
+    watch(currentTab, (newTab) => emit("switchTab", newTab));
 
     return {
       tabs,

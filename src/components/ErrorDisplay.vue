@@ -1,5 +1,7 @@
 <template>
-  <small v-for="(error, index) in errors" :key="index">{{ error }}</small>
+  <small class="text-red-500" v-for="(error, index) in errors" :key="index">{{
+    error
+  }}</small>
 </template>
 
 <script>

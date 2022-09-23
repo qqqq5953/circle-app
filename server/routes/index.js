@@ -348,22 +348,30 @@ router.post('/createWatchlist', async (req, res) => {
   const initTabs = await tabsRef.once('value')
   const hasSameTab = initTabs.val().includes(listName)
 
+  if (listName && initTabs.val().length && !hasSameTab) {
+    setTabs(listName)
+    return
+  }
+
   if (initTabs.val() == null) {
     setTabs(DEFAULT_TAB)
     return
   }
 
-  if (hasSameTab) {
-    const message = {
-      success: false,
-      content: '新增失敗',
-      errorMessage: '已存在相同頁籤',
-      result: null
-    }
-    res.send(message)
-    return
+  const message = {
+    success: false,
+    content: '新增失敗',
+    errorMessage: null,
+    result: null
   }
-  setTabs(listName)
+
+  if (!listName) {
+    message.errorMessage = 'input must not be empty'
+  } else if (hasSameTab) {
+    message.errorMessage = 'watchlist already exists'
+  }
+
+  res.send(message)
 
   async function setTabs(tab) {
     const tabs =
@@ -371,24 +379,26 @@ router.post('/createWatchlist', async (req, res) => {
         ? [DEFAULT_TAB, listName]
         : [...initTabs.val(), listName]
 
+    let message = null
+
     try {
       await tabsRef.set(tabs)
-      const message = {
+      message = {
         success: true,
         content: '新增成功',
         errorMessage: null,
         result: tab
       }
-      res.send(message)
     } catch (error) {
-      const message = {
+      message = {
         success: false,
         content: '新增失敗',
         errorMessage: error.message,
         result: null
       }
-      res.send(message)
     }
+
+    res.send(message)
   }
 })
 

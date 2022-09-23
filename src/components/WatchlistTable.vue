@@ -11,14 +11,14 @@
   >
     <!-- table title -->
     <div
-      class="rounded-t pl-4 lg:pl-8 py-3 flex flex-wrap items-center border-b"
+      class="rounded-t pl-4 lg:pl-8 py-3 flex items-center border-b"
       :class="{ 'border-b': watchlistDisplay }"
     >
-      <h3 class="font-semibold">{{ currentTab }}</h3>
+      <h3 class="font-semibold truncate ...">{{ currentTab }}</h3>
 
       <!-- dropdown -->
       <div
-        class="relative ml-auto h-full w-2/3"
+        class="relative ml-auto h-full w-1/5"
         v-if="currentTab?.toLowerCase() !== 'watchlist'"
       >
         <button
@@ -48,45 +48,52 @@
     </div>
 
     <Teleport to="body">
-      <div v-if="isModalOpen" class="fixed inset-0 z-20 bg-slate-700/60">
-        <div
-          class="
-            absolute
-            top-1/2
-            left-1/2
-            -translate-x-1/2 -translate-y-1/2
-            bg-white
-            rounded
-            p-5
-            flex flex-wrap flex-col
-            gap-4
-            w-2/3
-            lg:w-1/3
-          "
-        >
-          <h2 class="text-xl lg:text-2xl">Rename watchlist</h2>
-          <input
-            type="text"
-            class="border rounded p-2 w-full"
-            v-model="newListName"
-            ref="inputRename"
-          />
+      <InputModal
+        v-if="isModalOpen"
+        v-model:listName="newListName"
+        :errorMessage="errorMessage"
+        :confirmFunc="renameWatchlist"
+        :closeFunc="
+          () => {
+            isModalOpen = false;
+          }
+        "
+        ref="inputModalRef"
+      >
+        <template #title>Rename watchlist</template>
+        <template #okButton>Rename</template>
+      </InputModal>
+    </Teleport>
+
+    <Teleport to="body">
+      <Alert v-if="isAlertOpen">
+        <template #header>
+          <h2 class="text-xl lg:text-2xl break-all">
+            Delete "{{ currentTab }}"
+          </h2>
+        </template>
+        <template #body>
+          <p class="text-slate-500 font-light">
+            {{ Object.keys(watchlistDisplay).length }} items will be deleted.
+          </p>
+        </template>
+        <template #footer>
           <div class="text-right">
-            <button class="text-blue-600 p-2 mr-2" @click="isModalOpen = false">
+            <button class="text-blue-600 p-2 mr-2" @click="isAlertOpen = false">
               Close
             </button>
             <button
               class="border rounded p-2 bg-blue-600 text-white"
               @click="
-                renameWatchlist();
-                isModalOpen = false;
+                deleteWatchlist();
+                isAlertOpen = false;
               "
             >
-              Rename
+              Delete
             </button>
           </div>
-        </div>
-      </div>
+        </template>
+      </Alert>
     </Teleport>
 
     <!-- body -->
@@ -179,25 +186,25 @@
                 w-5/12
               "
             >
-              <div class="flex flex-col md:flex-row md:items-center md:gap-x-2">
-                <div class="w-1/4">
-                  <p
-                    class="
-                      inline-block
-                      font-semibold
-                      px-2
-                      py-1
-                      flex-shrink-0
-                      bg-red-400
-                      rounded
-                      text-white
-                      uppercase
-                    "
-                  >
-                    {{ item.ticker }}
-                  </p>
-                </div>
-                <p class="w-3/4 mt-2 md:mt-0 flex-shrink truncate ...">
+              <div class="flex flex-col md:flex-row md:items-center md:gap-x-3">
+                <p
+                  class="
+                    w-1/2
+                    md:w-2/5
+                    max-w-[80px]
+                    px-1
+                    py-1
+                    flex-shrink-0
+                    bg-red-400
+                    rounded
+                    text-white text-center
+                    font-semibold
+                    uppercase
+                  "
+                >
+                  {{ item.ticker }}
+                </p>
+                <p class="w-1/2 md:w-3/5 mt-2 md:mt-0 flex-shrink truncate ...">
                   {{ item.name }}
                 </p>
               </div>
@@ -305,13 +312,17 @@
 
 <script>
 import { useRouter } from "vue-router";
-import { ref, watch, nextTick } from "vue";
+import { ref, watch, nextTick, defineAsyncComponent } from "vue";
 import { storeToRefs } from "pinia";
 import useAxios from "@/composables/useAxios.js";
 import useWatchlistStore from "@/stores/watchlistStore.js";
-import useStockInfoStore from "@/stores/stockInfoStore.js";
+import InputModal from "@/components/InputModal.vue";
 
 export default {
+  components: {
+    InputModal,
+    Alert: defineAsyncComponent(() => import("@/components/Alert.vue")),
+  },
   props: {
     watchlistDisplay: {
       type: Object,
@@ -319,8 +330,6 @@ export default {
   },
   setup(props, { emit }) {
     const $watchlistStore = useWatchlistStore();
-    const $stockInfoStore = useStockInfoStore();
-
     const router = useRouter();
 
     const tickerRow = ref(null);
@@ -328,7 +337,7 @@ export default {
     const dropdownMenu = ref([
       {
         name: "delete",
-        onClick: [deleteWatchlist],
+        onClick: [openAlert],
         icon: "fa-regular fa-trash-can",
       },
       {
@@ -338,8 +347,10 @@ export default {
       },
     ]);
     const isModalOpen = ref(false);
+    const isAlertOpen = ref(false);
     const newListName = ref(null);
-    const inputRename = ref(null);
+    const inputModalRef = ref(null);
+    const errorMessage = ref([]);
     const { currentTab } = storeToRefs($watchlistStore);
 
     function toInfoPage(ticker) {
@@ -359,6 +370,10 @@ export default {
       $watchlistStore.setTabs(tab);
     };
 
+    function openAlert() {
+      isAlertOpen.value = true;
+    }
+
     function deleteWatchlist() {
       const { data, error, loading } = useAxios(
         "/api/deleteWatchlist",
@@ -375,13 +390,23 @@ export default {
     }
 
     function renameWatchlist() {
-      if ($watchlistStore.currentTab === newListName.value) return;
+      if (errorMessage.value.length) errorMessage.value.pop();
+
+      if ($watchlistStore.currentTab === newListName.value) {
+        errorMessage.value.push("Please rename watchlist");
+        return;
+      }
+      if ($watchlistStore.tabs.includes(newListName.value)) {
+        errorMessage.value.push("watchlist already exists");
+        return;
+      }
       const { data, error, loading } = useAxios("/api/editTab", "post", {
         oldTab: $watchlistStore.currentTab,
         newTab: newListName.value,
       });
 
       watch(data, (newData) => {
+        isModalOpen.value = false;
         const { newTab, allTabs } = newData.result;
         showCurrentTab(newTab);
         setTabs(allTabs);
@@ -392,7 +417,7 @@ export default {
       isModalOpen.value = true;
       newListName.value = $watchlistStore.currentTab;
       await nextTick();
-      inputRename.value.select();
+      inputModalRef.value.inputRenameRef.select();
     }
 
     function deleteTicker(ticker) {
@@ -431,14 +456,17 @@ export default {
     return {
       isDropdownOpen,
       isModalOpen,
+      isAlertOpen,
       tickerRow,
       currentTab,
       dropdownMenu,
-      inputRename,
+      inputModalRef,
       newListName,
+      errorMessage,
 
       toggleDropdown,
       openRenameModal,
+      openAlert,
       deleteTicker,
       deleteWatchlist,
       renameWatchlist,

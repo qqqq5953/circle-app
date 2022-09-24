@@ -1,6 +1,6 @@
 <template>
   <div class="relative w-full max-w-[99%]">
-    <div class="absolute top-0 w-full">
+    <div class="absolute top-2 w-full">
       <Tabs
         :tabs="tabs"
         :current-tab-props="currentTab"
@@ -12,13 +12,13 @@
     <div
       class="
         relative
-        top-11
+        top-12
         flex
         items-center
         gap-2
         max-w-fit
         text-xs
-        pb-3
+        py-3
         font-medium
       "
       :class="closeChange > 0 ? 'text-red-600' : 'text-green-600'"
@@ -85,14 +85,14 @@ export default {
     http
       .get(url_1Y)
       .then((response) => {
-        const priceMap = new Map(response.data.result);
+        const priceMap = new Map(response.data.result.close);
         storePriceMap(priceMap, "1Y");
         getLineChartData(priceMap);
 
         return http.get(url_5Y);
       })
       .then((response) => {
-        const priceMap = new Map(response.data.result);
+        const priceMap = new Map(response.data.result.close);
         lineChartData.value["5Y"] = mappingLineChartData(priceMap, "5Y");
       });
 
@@ -119,10 +119,16 @@ export default {
       const xAxisData = [];
       const seriesData = [];
 
-      for (let [key, value] of priceMap.entries()) {
-        if (key === startDate) break;
-        xAxisData.push(key);
-        seriesData.push(value);
+      console.log("startDate", startDate.split("/")[2]);
+      const endOfYear = startDate.split("/")[1] + startDate.split("/")[2];
+
+      for (let [fullDate, price] of priceMap.entries()) {
+        const [year, month, date] = fullDate.split("/");
+
+        if (month + date === "1231") break;
+        xAxisData.push(fullDate);
+        seriesData.push(price);
+        if (fullDate === startDate) break;
       }
 
       const currentTimespanLength = xAxisData.length;
@@ -131,6 +137,8 @@ export default {
 
       if (currentTab.value !== "1Y" && !isStartDateExist) {
         const newStartDate = getNewStartDate(xAxisData, startDate);
+        console.log("newStartDate", newStartDate);
+
         xAxisData.length = 0;
         seriesData.length = 0;
 

@@ -4,7 +4,7 @@
     -->
     <StockInfoSkeleton v-if="isSkeletonLoading" />
     <div
-      class="flex flex-col gap-6 px-4 md:p-10 mx-auto w-full"
+      class="flex flex-col gap-2 px-4 md:p-10 mx-auto w-full"
       v-if="!isSkeletonLoading"
     >
       <header>

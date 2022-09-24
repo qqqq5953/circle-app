@@ -764,7 +764,9 @@ router.get('/historicalPrice/:ticker', async (req, res) => {
         success: true,
         content: '取得成功',
         errorMessage: null,
-        result: [...priceMap]
+        result: {
+          close: [...priceMap]
+        }
       }
 
       res.send(message)

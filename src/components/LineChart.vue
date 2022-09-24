@@ -215,7 +215,7 @@ export default {
         ? "1%"
         : currentTab === "5D"
         ? "10%"
-        : "4%";
+        : "1%";
     }
 
     function setMinMaxLabel(currentTab) {

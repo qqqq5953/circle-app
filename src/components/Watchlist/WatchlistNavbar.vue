@@ -36,14 +36,23 @@
     class="
       text-sm
       hidden
-      lg:flex lg:justify-between lg:items-center lg:h-14 lg:overflow-y-hidden
+      lg:flex lg:items-center lg:h-14 lg:overflow-y-hidden
       relative
     "
     v-if="!isWatchlistLoading"
   >
-    <div class="flex gap-2.5 overflow-x-auto max-w-[85%] py-6" ref="navRefLg">
+    <div class="flex gap-2.5 overflow-x-auto max-w-[85%] py-7" ref="navRefLg">
       <button
-        class="border rounded p-2 min-w-[96px] shrink-0 relative last:mr-5"
+        class="
+          border
+          rounded
+          p-2
+          min-w-[96px]
+          shrink-0
+          relative
+          last:mr-5
+          hover:shadow hover:shadow-zinc-200
+        "
         :class="{
           'after:absolute after:inset-x-0 after:bottom-0 after:h-1 after:bg-blue-500 after:rounded-b-lg':
             currentTab === tab,
@@ -58,12 +67,13 @@
     <button
       class="relative -ml-2 bg-white border py-2 px-3.5 rounded-full"
       @click="setScrolling(navRefLg, 'right')"
+      v-if="navRefLg?.scrollWidth > navRefLg?.offsetWidth"
     >
       <i class="fa-solid fa-chevron-right"></i>
     </button>
 
     <button
-      class="shrink-0 text-blue-500 py-6 ml-8"
+      class="shrink-0 text-blue-500 py-6 ml-auto"
       @click="
         isModalOpen = true;
         clearInput();
@@ -128,7 +138,7 @@
 </template>
 
 <script>
-import { ref, watch, defineAsyncComponent, nextTick } from "vue";
+import { ref, watch, defineAsyncComponent } from "vue";
 import useAxios from "@/composables/useAxios.js";
 import TabSkeleton from "@/components/skeleton/TabSkeleton.vue";
 import useWatchlistStore from "@/stores/watchlistStore.js";

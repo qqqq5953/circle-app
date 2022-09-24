@@ -191,7 +191,7 @@
                   class="
                     w-1/2
                     md:w-2/5
-                    max-w-[80px]
+                    max-w-[70px]
                     px-1
                     py-1
                     flex-shrink-0
@@ -204,7 +204,7 @@
                 >
                   {{ item.ticker }}
                 </p>
-                <p class="w-1/2 md:w-3/5 mt-2 md:mt-0 flex-shrink truncate ...">
+                <p class="w-1/2 md:w-3/5 mt-2 md:mt-0 truncate ...">
                   {{ item.name }}
                 </p>
               </div>

@@ -76,14 +76,23 @@
               v-for="item in tableContent.tableBody.th"
               :key="item"
             >
-              <div
-                class="
-                  flex flex-col
-                  md:flex-row md:justify-between md:items-center
-                "
-              >
-                <p class="mr-4 w-7 h-6 bg-gray-300 rounded"></p>
-                <p class="w-full h-5 mt-2 md:mt-0 bg-gray-300 rounded"></p>
+              <div class="flex flex-col md:flex-row md:items-center md:gap-x-3">
+                <p
+                  class="
+                    w-1/2
+                    md:w-2/5
+                    max-w-[70px]
+                    px-1
+                    py-1
+                    flex-shrink-0
+                    bg-gray-300
+                    rounded
+                    h-6
+                  "
+                ></p>
+                <p
+                  class="w-1/2 md:w-3/5 h-5 mt-2 md:mt-0 bg-gray-300 rounded"
+                ></p>
               </div>
             </th>
             <td

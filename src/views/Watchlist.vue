@@ -86,10 +86,10 @@ import axios from "axios";
 import useAxios from "@/composables/useAxios.js";
 
 import SearchList from "@/components/SearchList.vue";
-import WatchlistTable from "@/components/WatchlistTable.vue";
+import WatchlistTable from "@/components/Watchlist/WatchlistTable.vue";
 import ListSkeleton from "@/components/skeleton/ListSkeleton.vue";
 import SearchBar from "@/components/SearchBar.vue";
-import WatchlistNavbar from "@/components/WatchlistNavbar.vue";
+import WatchlistNavbar from "@/components/Watchlist/WatchlistNavbar.vue";
 
 import useWatchlistStore from "@/stores/watchlistStore.js";
 import { storeToRefs } from "pinia";

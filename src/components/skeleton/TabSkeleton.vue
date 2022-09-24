@@ -33,7 +33,7 @@
       lg:flex lg:justify-between lg:items-center lg:h-14 lg:overflow-y-hidden
     "
   >
-    <div class="flex gap-2.5 overflow-x-auto max-w-[85%] py-6 animate-pulse">
+    <div class="flex gap-2.5 overflow-x-auto max-w-[85%] py-7 animate-pulse">
       <div
         class="
           bg-gray-200

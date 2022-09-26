@@ -50,7 +50,7 @@
     <Teleport to="body">
       <InputModal
         v-if="isModalOpen"
-        v-model:listName="newListName"
+        v-model:listName.trim="newListName"
         :errorMessage="errorMessage"
         :confirmFunc="renameWatchlist"
         :closeFunc="
@@ -353,6 +353,8 @@ export default {
     const errorMessage = ref([]);
     const { currentTab } = storeToRefs($watchlistStore);
 
+    const clearErrorMessage = () => errorMessage.value.pop();
+
     function toInfoPage(ticker) {
       router.push({
         name: "stockInfo",
@@ -390,26 +392,23 @@ export default {
     }
 
     function renameWatchlist() {
-      if (errorMessage.value.length) errorMessage.value.pop();
+      if (errorMessage.value.length) clearErrorMessage();
 
-      if ($watchlistStore.currentTab === newListName.value) {
-        errorMessage.value.push("Please rename watchlist");
-        return;
-      }
-      if ($watchlistStore.tabs.includes(newListName.value)) {
-        errorMessage.value.push("watchlist already exists");
-        return;
-      }
       const { data, error, loading } = useAxios("/api/editTab", "post", {
         oldTab: $watchlistStore.currentTab,
         newTab: newListName.value,
       });
 
-      watch(data, (newData) => {
-        isModalOpen.value = false;
-        const { newTab, allTabs } = newData.result;
-        showCurrentTab(newTab);
-        setTabs(allTabs);
+      watch(data, (newList) => {
+        if (!newList.success) {
+          errorMessage.value.push(newList.errorMessage);
+          inputModalRef.value.inputRef.select();
+        } else {
+          isModalOpen.value = false;
+          const { newTab, tabsInfo } = newList.result;
+          showCurrentTab(newTab);
+          setTabs(tabsInfo);
+        }
       });
     }
 
@@ -417,7 +416,7 @@ export default {
       isModalOpen.value = true;
       newListName.value = $watchlistStore.currentTab;
       await nextTick();
-      inputModalRef.value.inputRenameRef.select();
+      inputModalRef.value.inputRef.select();
     }
 
     function deleteTicker(ticker) {
@@ -438,6 +437,9 @@ export default {
     watch(currentTab, (newTab) => {
       isDropdownOpen.value = false;
     });
+
+    // 動態清除錯誤訊息
+    watch(newListName, () => clearErrorMessage());
 
     // show deleted ticker when added
     watch(

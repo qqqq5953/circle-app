@@ -346,14 +346,15 @@ router.post('/createWatchlist', async (req, res) => {
   const DEFAULT_TAB = 'Watchlist'
 
   const initTabs = await tabsRef.once('value')
-  const hasSameTab = initTabs.val().includes(listName)
+  const hasTabsArray = initTabs.val()?.length
+  const hasSameTab = initTabs.val()?.includes(listName)
 
-  if (listName && initTabs.val().length && !hasSameTab) {
+  if (listName && hasTabsArray && !hasSameTab) {
     setTabs(listName)
     return
   }
 
-  if (initTabs.val() == null) {
+  if (!hasTabsArray) {
     setTabs(DEFAULT_TAB)
     return
   }
@@ -366,19 +367,19 @@ router.post('/createWatchlist', async (req, res) => {
   }
 
   if (!listName) {
-    message.errorMessage = 'input must not be empty'
+    message.errorMessage = 'Input must not be empty'
   } else if (hasSameTab) {
-    message.errorMessage = 'watchlist already exists'
+    message.errorMessage = 'Watchlist already exists'
   }
 
   res.send(message)
 
-  async function setTabs(tab) {
+  async function setTabs(newTab) {
     const tabs =
       initTabs.val() == null
         ? [DEFAULT_TAB, listName]
         : [...initTabs.val(), listName]
-
+    const tabsInfo = await getTabsInfo(tabs)
     let message = null
 
     try {
@@ -387,7 +388,7 @@ router.post('/createWatchlist', async (req, res) => {
         success: true,
         content: '新增成功',
         errorMessage: null,
-        result: tab
+        result: { newTab, tabsInfo }
       }
     } catch (error) {
       message = {
@@ -407,6 +408,7 @@ router.post('/deleteWatchlist', async (req, res) => {
     const { currentTab } = req.body
     const tabs = await tabsRef.once('value')
     const newTabs = tabs.val().filter((tab) => tab !== currentTab)
+    const tabsInfo = await getTabsInfo(newTabs)
 
     await tabsRef.set(newTabs)
     await watchlistRef.child(currentTab).remove()
@@ -415,7 +417,7 @@ router.post('/deleteWatchlist', async (req, res) => {
       success: true,
       content: '刪除成功',
       errorMessage: null,
-      result: newTabs
+      result: tabsInfo
     }
 
     res.send(message)
@@ -432,20 +434,21 @@ router.post('/deleteWatchlist', async (req, res) => {
 
 router.get('/getTabs', async (req, res) => {
   try {
-    let refreshTabs
     const DEFAULT_TAB = 'Watchlist'
     const initTabs = await tabsRef.once('value')
 
+    let tabsInfo = await getTabsInfo(initTabs.val())
+
     if (initTabs.val() == null) {
       await tabsRef.set([DEFAULT_TAB])
-      refreshTabs = await tabsRef.once('value')
+      tabsInfo = { name: DEFAULT_TAB, number: 0 }
     }
 
     const message = {
       success: true,
       content: '成功獲得所有頁籤',
       errorMessage: null,
-      result: initTabs.val() || refreshTabs.val()
+      result: tabsInfo
     }
     res.send(message)
   } catch (error) {
@@ -460,26 +463,56 @@ router.get('/getTabs', async (req, res) => {
 })
 
 router.post('/editTab', async (req, res) => {
+  const { oldTab, newTab } = req.body
+  const emptyInput = !newTab || newTab.length === 0
+
+  let message = {
+    success: false,
+    content: '編輯失敗',
+    errorMessage: null,
+    result: null
+  }
+
+  if (oldTab === newTab) {
+    message.errorMessage = 'Please rename watchlist'
+    res.send(message)
+    return
+  }
+  if (emptyInput) {
+    message.errorMessage = 'Input must not be empty'
+    res.send(message)
+    return
+  }
+
   try {
-    const { oldTab, newTab } = req.body
     const tabs = await tabsRef.once('value')
     const allTabs = tabs.val()
+    const isTabRepeated = allTabs.includes(newTab)
+
+    if (isTabRepeated) {
+      message.errorMessage = 'Watchlist already exists'
+      res.send(message)
+      return
+    }
+
     const idx = allTabs.indexOf(oldTab)
     allTabs.splice(idx, 1, newTab)
+    await tabsRef.set(allTabs)
 
     const targetList = await watchlistRef.child(oldTab).once('value')
+    const isTargetListEmpty = targetList.val() == null
 
-    if (targetList.val() !== null) {
+    if (!isTargetListEmpty) {
       await watchlistRef.child(oldTab).remove()
       await watchlistRef.child(newTab).set(targetList.val())
     }
-    await tabsRef.set(allTabs)
 
-    const message = {
+    const tabsInfo = await getTabsInfo(allTabs)
+    message = {
       success: true,
       content: '編輯成功',
       errorMessage: null,
-      result: { newTab, allTabs }
+      result: { newTab, tabsInfo }
     }
 
     res.send(message)
@@ -493,6 +526,26 @@ router.post('/editTab', async (req, res) => {
     res.send(message)
   }
 })
+
+async function getTabsInfo(tabs) {
+  const DEFAULT_TAB = 'Watchlist'
+  const watchlistsRef = await watchlistRef.once('value')
+
+  const tabsInfo = tabs.map((tab) => {
+    const list =
+      tab !== DEFAULT_TAB
+        ? watchlistsRef.val()[tab]
+        : watchlistsRef.val()['default']
+    const listLength = list ? Object.keys(list).length : 0
+
+    return {
+      name: tab,
+      listLength
+    }
+  })
+
+  return tabsInfo
+}
 
 // stockInfo
 router.get('/financialData/:ticker', async (req, res) => {

@@ -6,27 +6,42 @@
   />
 
   <nav class="overflow-y-hidden h-16 lg:hidden" v-if="!isWatchlistLoading">
-    <div class="flex gap-2.5 text-sm overflow-x-auto py-6" ref="navRefBelowLg">
+    <div class="flex gap-2.5 text-sm overflow-x-auto py-6" ref="navBelowLgRef">
       <button
-        class="border rounded p-2 min-w-[96px] shrink-0 relative"
+        class="
+          flex
+          items-center
+          border
+          rounded
+          p-2
+          min-w-[150px]
+          shrink-0
+          relative
+          text-slate-700
+          hover:shadow hover:shadow-slate-300
+        "
         :class="{
           'after:absolute after:inset-x-0 after:bottom-0 after:h-1 after:bg-blue-500 after:rounded-b-lg':
-            currentTab === tab,
+            currentTab === tab.name,
         }"
         v-for="tab in tabs"
-        :key="tab"
-        @click="showCurrentTab(tab)"
+        :key="tab.name"
+        @click="showCurrentTab(tab.name)"
       >
-        {{ tab }}
+        <i
+          class="
+            fa-solid fa-list-ul
+            mr-2.5
+            p-1
+            text-slate-500
+            bg-gray-100
+            rounded
+          "
+        ></i>
+        <span class="mr-5">{{ tab.name }}</span>
+        <span class="ml-auto text-slate-500 text-xs">{{ tab.listLength }}</span>
       </button>
-      <button
-        class="shrink-0 text-blue-600 p-2 ml-3"
-        @click="
-          isModalOpen = true;
-          clearInput();
-        "
-        v-if="!isWatchlistLoading"
-      >
+      <button class="shrink-0 text-blue-600 p-2 ml-3" @click="openCreateModal">
         + Create
       </button>
     </div>
@@ -41,115 +56,97 @@
     "
     v-if="!isWatchlistLoading"
   >
-    <div class="flex gap-2.5 overflow-x-auto max-w-[85%] py-7" ref="navRefLg">
+    <div
+      class="flex gap-2.5 overflow-x-auto max-w-[85%] py-7 pr-8"
+      ref="navLgRef"
+    >
       <button
         class="
+          flex
+          items-center
           border
           rounded
           p-2
-          min-w-[96px]
+          min-w-[150px]
           shrink-0
           relative
-          last:mr-5
-          hover:shadow hover:shadow-zinc-200
+          text-slate-700
+          hover:shadow hover:shadow-slate-300
         "
         :class="{
           'after:absolute after:inset-x-0 after:bottom-0 after:h-1 after:bg-blue-500 after:rounded-b-lg':
-            currentTab === tab,
+            currentTab === tab.name,
         }"
         v-for="tab in tabs"
-        :key="tab"
-        @click="showCurrentTab(tab)"
+        :key="tab.name"
+        @click="showCurrentTab(tab.name)"
       >
-        {{ tab }}
+        <i
+          class="
+            fa-solid fa-list-ul
+            mr-2.5
+            p-1
+            text-slate-500
+            bg-gray-100
+            rounded
+          "
+        ></i>
+        <span class="mr-5">{{ tab.name }}</span>
+        <span class="ml-auto text-slate-500 text-xs">{{ tab.listLength }}</span>
       </button>
     </div>
     <button
-      class="relative -ml-2 bg-white border py-2 px-3.5 rounded-full"
-      @click="setScrolling(navRefLg, 'right')"
-      v-if="navRefLg?.scrollWidth > navRefLg?.offsetWidth"
+      class="
+        relative
+        -ml-6
+        bg-white
+        border
+        py-2
+        px-3.5
+        rounded-full
+        hover:shadow hover:shadow-slate-300
+      "
+      @click="setScrolling(navLgRef, 'right')"
+      v-if="navLgRef?.scrollWidth > navLgRef?.offsetWidth"
     >
       <i class="fa-solid fa-chevron-right"></i>
     </button>
 
     <button
       class="shrink-0 text-blue-500 py-6 ml-auto"
-      @click="
-        isModalOpen = true;
-        clearInput();
-      "
+      @click="openCreateModal"
     >
       + Create
     </button>
   </nav>
 
-  <!-- <div class="overflow-y-hidden h-16 hidden lg:block">
-    <div
-      class="flex gap-8 pt-6 pb-4 text-sm overflow-x-auto lg:overflow-x-visible"
-      ref="navRefBelowLg"
-    >
-      <TabSkeleton
-        :tabs="tabs"
-        :currentTab="currentTab"
-        v-if="isWatchlistLoading"
-      />
-      <nav class="lg:overflow-y-hidden lg:h-16 lg:max-w-[75%]" v-else>
-        <div class="flex gap-2.5 lg:overflow-x-auto lg:py-4" ref="navRefLg">
-          <button
-            class="border rounded p-2 min-w-[96px] relative shrink-0"
-            :class="{
-              'after:absolute after:inset-x-0 after:bottom-0 after:h-1 after:bg-blue-500 after:rounded-b-lg':
-                currentTab === tab,
-            }"
-            v-for="tab in tabs"
-            :key="tab"
-            @click="showCurrentTab(tab)"
-          >
-            {{ tab }}
-          </button>
-        </div>
-      </nav>
-
-      <button
-        class="shrink-0 text-blue-600"
-        @click="
-          isModalOpen = true;
-          clearInput();
-        "
-        v-if="!isWatchlistLoading"
-      >
-        + Create
-      </button>
-    </div>
-  </div> -->
   <Teleport to="body">
     <InputModal
       v-if="isModalOpen"
-      v-model:listName="inputListName"
+      v-model:listName.trim="inputListName"
       :confirmFunc="createWatchlist"
       :closeFunc="closeModal"
       :errorMessage="errorMessage"
       ref="inputModalRef"
     >
-      <template #title>Add watchlist</template>
-      <template #okButton>Add</template>
+      <template #title>Create watchlist</template>
+      <template #okButton>Create</template>
     </InputModal>
   </Teleport>
 </template>
 
 <script>
-import { ref, watch, defineAsyncComponent } from "vue";
+import { ref, watch, nextTick } from "vue";
 import useAxios from "@/composables/useAxios.js";
 import TabSkeleton from "@/components/skeleton/TabSkeleton.vue";
+import InputModal from "@/components/InputModal.vue";
 import useWatchlistStore from "@/stores/watchlistStore.js";
 import { storeToRefs } from "pinia";
 
 export default {
   components: {
     TabSkeleton,
-    InputModal: defineAsyncComponent(() =>
-      import("@/components/InputModal.vue")
-    ),
+    InputModal,
   },
   props: {
     isWatchlistLoading: {
@@ -161,12 +158,14 @@ export default {
 
     const isModalOpen = ref(false);
     const inputListName = ref(null);
-    const navRefBelowLg = ref(null);
-    const navRefLg = ref(null);
+    const navBelowLgRef = ref(null);
+    const navLgRef = ref(null);
+    const inputModalRef = ref(null);
     const errorMessage = ref([]);
     const { currentTab, tabs } = storeToRefs($store);
 
     const clearInput = () => (inputListName.value = null);
+    const clearErrorMessage = () => errorMessage.value.pop();
 
     const showCurrentTab = (tab) => $store.showCurrentTab(tab);
 
@@ -178,6 +177,8 @@ export default {
     };
 
     const createWatchlist = () => {
+      if (errorMessage.value.length) clearErrorMessage();
+
       const { data, error, loading } = useAxios(
         `/api/createWatchlist`,
         "post",
@@ -187,38 +188,46 @@ export default {
       );
 
       watch(data, (newList) => {
-        if (!newList.result) {
+        if (!newList.success) {
           errorMessage.value.push(newList.errorMessage);
         } else {
-          setTabs(newList.result);
-          showCurrentTab(newList.result);
+          const { newTab, tabsInfo } = newList.result;
+          setTabs(tabsInfo);
+          showCurrentTab(newTab);
           closeModal();
         }
       });
     };
+
+    async function openCreateModal() {
+      isModalOpen.value = true;
+      await nextTick();
+      clearInput();
+      inputModalRef.value.inputRef.focus();
+    }
 
     const { data, error, loading } = useAxios(`/api/getTabs`, "get");
 
     watch(data, (newData) => setTabs(newData.result));
 
     // 動態清除錯誤訊息
-    watch(inputListName, () => errorMessage.value.pop());
+    watch(inputListName, () => clearErrorMessage());
 
     // 滾動效果
     watch(
       currentTab,
       (newTab) => {
         const indexOflastTab = tabs.value.length - 1;
-        const isTabsNew = tabs.value[indexOflastTab] === newTab;
+        const isTabsNew = tabs.value[indexOflastTab].name === newTab;
 
         if (isTabsNew) {
-          setScrolling(navRefBelowLg.value, "right");
-          setScrolling(navRefLg.value, "right");
+          setScrolling(navBelowLgRef.value, "right");
+          setScrolling(navLgRef.value, "right");
         }
 
         if (newTab === "Watchlist") {
-          setScrolling(navRefBelowLg.value, "left");
-          setScrolling(navRefLg.value, "left");
+          setScrolling(navBelowLgRef.value, "left");
+          setScrolling(navLgRef.value, "left");
         }
       },
       {
@@ -237,17 +246,18 @@ export default {
 
     return {
       isModalOpen,
-      navRefBelowLg,
-      navRefLg,
+      navBelowLgRef,
+      navLgRef,
+      inputModalRef,
       inputListName,
       errorMessage,
       currentTab,
       tabs,
 
       createWatchlist,
+      openCreateModal,
       showCurrentTab,
       closeModal,
-      clearInput,
       setScrolling,
     };
   },

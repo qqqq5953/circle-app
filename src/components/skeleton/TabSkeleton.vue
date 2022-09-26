@@ -3,58 +3,62 @@
     <div class="flex gap-2.5 text-sm overflow-x-auto py-6 animate-pulse">
       <button
         class="
+          flex
+          items-center
           bg-gray-200
           opacity-70
           border
           rounded
           p-2
-          min-w-[96px]
+          min-w-[150px]
           relative
           shrink-0
-          text-center
         "
         :class="{
           'after:absolute after:inset-x-0 after:bottom-0 after:h-1 after:bg-blue-500 after:rounded-b-lg':
-            currentTab === tab,
+            currentTab === tab.name,
         }"
         v-for="tab in tabs"
-        :key="tab"
+        :key="tab.name"
       >
-        {{ tab }}
+        <i class="fa-solid fa-list-ul mr-2.5 bg-gray-300 rounded p-1"></i>
+        <span>{{ tab.name }}</span>
+        <span class="ml-auto text-slate-500 text-xs">{{ tab.listLength }}</span>
       </button>
-      <button class="shrink-0 text-blue-600 p-2 ml-3">+ Create</button>
     </div>
   </nav>
 
   <nav
-    class="
-      text-sm
-      hidden
-      lg:flex lg:justify-between lg:items-center lg:h-14 lg:overflow-y-hidden
-    "
+    class="text-sm hidden lg:flex lg:items-center lg:h-14 lg:overflow-y-hidden"
   >
     <div class="flex gap-2.5 overflow-x-auto max-w-[85%] py-7 animate-pulse">
       <div
         class="
+          flex
+          items-center
           bg-gray-200
           opacity-70
           border
           rounded
           p-2
-          min-w-[96px]
+          min-w-[150px]
           relative
           shrink-0
-          text-center
         "
         :class="{
           'after:absolute after:inset-x-0 after:bottom-0 after:h-1 after:bg-blue-500 after:rounded-b-lg':
-            currentTab === tab,
+            currentTab === tab.name,
         }"
         v-for="tab in tabs"
-        :key="tab"
+        :key="tab.name"
       >
-        {{ tab }}
+        <i class="fa-solid fa-list-ul mr-2.5 bg-gray-300 rounded p-1"></i>
+        <span>{{ tab.name }}</span>
+        <span class="ml-auto text-slate-500 text-xs">{{ tab.listLength }}</span>
       </div>
+    </div>
+    <div class="relative -ml-6 bg-gray-100 border py-2 px-3.5 rounded-full">
+      <i class="fa-solid fa-chevron-right"></i>
     </div>
   </nav>
 

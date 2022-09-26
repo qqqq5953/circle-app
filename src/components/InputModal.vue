@@ -12,7 +12,7 @@
           class="border rounded p-2 w-full focus:outline-blue-600"
           :value="listName"
           @input="$emit('update:listName', $event.target.value)"
-          ref="inputRenameRef"
+          ref="inputRef"
         />
         <ErrorDisplay :errors="errorMessage" v-if="errorMessage.length" />
       </div>
@@ -61,9 +61,9 @@ export default {
   emits: ["update:listName", "closeModal"],
   setup() {
     const isModalOpen = ref(false);
-    const inputRenameRef = ref(false);
+    const inputRef = ref(false);
 
-    return { isModalOpen, inputRenameRef };
+    return { isModalOpen, inputRef };
   },
 };
 </script>

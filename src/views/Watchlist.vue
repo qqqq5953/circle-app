@@ -72,6 +72,7 @@
 
     <WatchlistTable
       :watchlistDisplay="watchlistDisplay"
+      :watchlistInDB="watchlistInDB"
       @loadWatchlist="loadWatchlist"
       @toggleAddButtonSpinner="toggleAddButtonSpinner"
       @toggleWatchlistSkeleton="toggleWatchlistSkeleton"

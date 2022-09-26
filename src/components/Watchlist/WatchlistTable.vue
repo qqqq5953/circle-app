@@ -14,7 +14,9 @@
       class="rounded-t pl-4 lg:pl-8 py-3 flex items-center border-b"
       :class="{ 'border-b': watchlistDisplay }"
     >
-      <h3 class="font-semibold truncate ...">{{ currentTab }}</h3>
+      <h3 class="font-semibold truncate ...">
+        {{ currentTab }}
+      </h3>
 
       <!-- dropdown -->
       <div
@@ -173,7 +175,7 @@
             :key="item.ticker"
             @click="toInfoPage(item.ticker)"
             :id="index"
-            ref="tickerRow"
+            ref="tickerRows"
           >
             <th
               class="
@@ -327,12 +329,15 @@ export default {
     watchlistDisplay: {
       type: Object,
     },
+    watchlistInDB: {
+      type: Object,
+    },
   },
   setup(props, { emit }) {
-    const $watchlistStore = useWatchlistStore();
+    const $store = useWatchlistStore();
     const router = useRouter();
 
-    const tickerRow = ref(null);
+    const tickerRows = ref(null);
     const isDropdownOpen = ref(false);
     const dropdownMenu = ref([
       {
@@ -351,9 +356,15 @@ export default {
     const newListName = ref(null);
     const inputModalRef = ref(null);
     const errorMessage = ref([]);
-    const { currentTab } = storeToRefs($watchlistStore);
+    const { currentTab } = storeToRefs($store);
 
     const clearErrorMessage = () => errorMessage.value.pop();
+
+    const showCurrentTab = (tab) => $store.showCurrentTab(tab);
+
+    const setTabs = (tab) => $store.setTabs(tab);
+
+    const toggleDropdown = () => (isDropdownOpen.value = !isDropdownOpen.value);
 
     function toInfoPage(ticker) {
       router.push({
@@ -361,16 +372,6 @@ export default {
         params: { ticker },
       });
     }
-
-    const showCurrentTab = (tab) => {
-      $watchlistStore.showCurrentTab(tab);
-    };
-
-    const toggleDropdown = () => (isDropdownOpen.value = !isDropdownOpen.value);
-
-    const setTabs = (tab) => {
-      $watchlistStore.setTabs(tab);
-    };
 
     function openAlert() {
       isAlertOpen.value = true;
@@ -381,13 +382,13 @@ export default {
         "/api/deleteWatchlist",
         "post",
         {
-          currentTab: $watchlistStore.currentTab,
+          currentTab: $store.currentTab,
         }
       );
 
       watch(data, (newData) => {
         setTabs(newData.result);
-        showCurrentTab($watchlistStore.DEFAULT_TAB);
+        showCurrentTab($store.DEFAULT_TAB);
       });
     }
 
@@ -395,7 +396,7 @@ export default {
       if (errorMessage.value.length) clearErrorMessage();
 
       const { data, error, loading } = useAxios("/api/editTab", "post", {
-        oldTab: $watchlistStore.currentTab,
+        oldTab: $store.currentTab,
         newTab: newListName.value,
       });
 
@@ -414,7 +415,7 @@ export default {
 
     async function openRenameModal() {
       isModalOpen.value = true;
-      newListName.value = $watchlistStore.currentTab;
+      newListName.value = $store.currentTab;
       await nextTick();
       inputModalRef.value.inputRef.select();
     }
@@ -423,7 +424,7 @@ export default {
       const { data, error, loading } = useAxios(
         "/api/deleteFromWatchlist",
         "post",
-        { ticker, currentTab: $watchlistStore.currentTab }
+        { ticker, currentTab: $store.currentTab }
       );
 
       watch(data, (newData) => {
@@ -434,24 +435,46 @@ export default {
       });
     }
 
-    watch(currentTab, (newTab) => {
-      isDropdownOpen.value = false;
-    });
+    watch(currentTab, () => (isDropdownOpen.value = false));
 
     // 動態清除錯誤訊息
     watch(newListName, () => clearErrorMessage());
 
-    // show deleted ticker when added
+    // 新增後顯示個數
     watch(
       () => props.watchlistDisplay,
       () => {
-        if (!tickerRow.value) return;
+        if (!tickerRows.value) return;
 
-        tickerRow.value.forEach((item) => {
+        const shownRows = tickerRows.value.filter((item) => {
+          // show deleted ticker when added
           if (item.classList.contains("hidden")) {
             item.classList.remove("hidden");
           }
+          return !item.classList.contains("hidden");
         });
+
+        $store.setTabsInfo(currentTab.value, shownRows.length);
+      },
+      {
+        flush: "post",
+      }
+    );
+
+    // 刪除後顯示個數
+    watch(
+      () => props.watchlistInDB,
+      () => {
+        if (!tickerRows.value) return;
+
+        const shownRows = tickerRows.value.filter(
+          (row) => !row.classList.contains("hidden")
+        );
+
+        $store.setTabsInfo(currentTab.value, shownRows.length);
+      },
+      {
+        flush: "post",
       }
     );
 
@@ -459,7 +482,7 @@ export default {
       isDropdownOpen,
       isModalOpen,
       isAlertOpen,
-      tickerRow,
+      tickerRows,
       currentTab,
       dropdownMenu,
       inputModalRef,

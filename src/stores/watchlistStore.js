@@ -1,22 +1,21 @@
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 
 const useWatchlistStore = defineStore('watchlist', () => {
   const currentTab = ref(null)
   const DEFAULT_TAB = ref('Watchlist')
   const tabs = ref([])
 
-  const setTabs = (tab) => {
-    console.log('setTabs', typeof tab)
+  const setTabsInfo = (tab, listLength) => {
+    const idx = tabs.value.findIndex((item) => item.name === tab)
+    tabs.value[idx].listLength = listLength
+  }
 
+  const setTabs = (tab) => {
+    console.log('setTabs', tab)
     if (typeof tab === 'object') {
       tabs.value.length = 0
       tabs.value.push(...tab)
-      return
-    }
-
-    if (typeof tab === 'string') {
-      tabs.value.push(tab)
       return
     }
   }
@@ -33,7 +32,8 @@ const useWatchlistStore = defineStore('watchlist', () => {
     currentTab,
     tabs,
     showCurrentTab,
-    setTabs
+    setTabs,
+    setTabsInfo
   }
 })
 

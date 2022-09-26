@@ -19,6 +19,7 @@
           relative
           text-slate-700
           hover:shadow hover:shadow-slate-300
+          focus:shadow-none
         "
         :class="{
           'after:absolute after:inset-x-0 after:bottom-0 after:h-1 after:bg-blue-500 after:rounded-b-lg':
@@ -72,6 +73,7 @@
           relative
           text-slate-700
           hover:shadow hover:shadow-slate-300
+          focus:shadow-none
         "
         :class="{
           'after:absolute after:inset-x-0 after:bottom-0 after:h-1 after:bg-blue-500 after:rounded-b-lg':

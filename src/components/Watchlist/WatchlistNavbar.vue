@@ -58,7 +58,7 @@
     v-if="!isWatchlistLoading"
   >
     <div
-      class="flex gap-2.5 overflow-x-auto max-w-[85%] py-7 pr-8"
+      class="flex gap-2.5 overflow-x-auto max-w-[85%] pt-10 pb-6 pr-8"
       ref="navLgRef"
     >
       <button

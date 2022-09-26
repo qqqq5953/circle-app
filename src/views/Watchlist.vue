@@ -72,7 +72,6 @@
 
     <WatchlistTable
       :watchlistDisplay="watchlistDisplay"
-      :watchlistInDB="watchlistInDB"
       @loadWatchlist="loadWatchlist"
       @toggleAddButtonSpinner="toggleAddButtonSpinner"
       @toggleWatchlistSkeleton="toggleWatchlistSkeleton"
@@ -187,6 +186,7 @@ export default {
     const watchlistInDB = ref(null);
 
     const toggleWatchlistSkeleton = (isLoading) => {
+      console.log("isLoading", isLoading);
       isWatchlistLoading.value = isLoading;
     };
 
@@ -221,12 +221,10 @@ export default {
         setSkeletonTableRow(allPromises.length);
 
         const result = await getWatchlist(allPromises);
-
         if (!isTickerDelete) watchlistDisplay.value = result;
         watchlistInDB.value = result;
 
         toggleAddButtonSpinner(newLoading);
-        toggleWatchlistSkeleton(newLoading);
       });
     }
 

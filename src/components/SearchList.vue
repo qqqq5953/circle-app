@@ -20,24 +20,25 @@
               w-5/12
             "
           >
-            <div class="flex flex-col md:flex-row md:items-center">
+            <div class="flex flex-col md:flex-row md:items-center md:gap-x-3">
               <p
                 class="
-                  font-semibold
-                  mr-4
-                  px-2
+                  w-1/2
+                  md:w-2/5
+                  max-w-[70px]
+                  px-1
                   py-1
-                  flex-shrink-0
-                  self-start
+                  shrink-0
                   bg-red-400
                   rounded
-                  text-white
+                  text-white text-center
+                  font-semibold
                   uppercase
                 "
               >
                 {{ item.ticker }}
               </p>
-              <p class="mt-2 md:mt-0 flex-shrink truncate ...">
+              <p class="w-full md:w-3/5 mt-2 md:mt-0 truncate ...">
                 {{ item.name }}
               </p>
             </div>

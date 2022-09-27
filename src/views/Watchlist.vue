@@ -162,9 +162,7 @@ export default {
     // tabs
     const { currentTab } = storeToRefs($store);
 
-    watch(currentTab, (newVal) => {
-      loadWatchlist();
-    });
+    watch(currentTab, () => loadWatchlist());
 
     // watchlist section
     const watchlistTableSkeletonContent = ref({
@@ -186,7 +184,6 @@ export default {
     const watchlistInDB = ref(null);
 
     const toggleWatchlistSkeleton = (isLoading) => {
-      console.log("isLoading", isLoading);
       isWatchlistLoading.value = isLoading;
     };
 

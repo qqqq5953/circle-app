@@ -175,7 +175,7 @@
             :key="item.ticker"
             @click="toInfoPage(item.ticker)"
             :id="index"
-            ref="tickerRows"
+            ref="tickerRowsRef"
           >
             <th
               class="
@@ -333,9 +333,32 @@ export default {
   setup(props, { emit }) {
     const $store = useWatchlistStore();
     const router = useRouter();
+    const { currentTab } = storeToRefs($store);
 
-    const tickerRows = ref(null);
     const isDropdownOpen = ref(false);
+    const isModalOpen = ref(false);
+    const isAlertOpen = ref(false);
+
+    const tickerRowsRef = ref(null);
+    const inputModalRef = ref(null);
+
+    const errorMessage = ref([]);
+    const newListName = ref(null);
+
+    const showCurrentTab = (tab) => $store.showCurrentTab(tab);
+    const setTabs = (tab) => $store.setTabs(tab);
+
+    const clearErrorMessage = () => errorMessage.value.pop();
+
+    // dropdown menu
+    const toggleDropdown = () => (isDropdownOpen.value = !isDropdownOpen.value);
+    const openAlert = () => (isAlertOpen.value = true);
+    const openRenameModal = async () => {
+      isModalOpen.value = true;
+      newListName.value = $store.currentTab;
+      await nextTick();
+      inputModalRef.value.inputRef.select();
+    };
     const dropdownMenu = ref([
       {
         name: "delete",
@@ -348,30 +371,12 @@ export default {
         icon: "fa-regular fa-pen-to-square",
       },
     ]);
-    const isModalOpen = ref(false);
-    const isAlertOpen = ref(false);
-    const newListName = ref(null);
-    const inputModalRef = ref(null);
-    const errorMessage = ref([]);
-    const { currentTab } = storeToRefs($store);
-
-    const clearErrorMessage = () => errorMessage.value.pop();
-
-    const showCurrentTab = (tab) => $store.showCurrentTab(tab);
-
-    const setTabs = (tab) => $store.setTabs(tab);
-
-    const toggleDropdown = () => (isDropdownOpen.value = !isDropdownOpen.value);
 
     function toInfoPage(ticker) {
       router.push({
         name: "stockInfo",
         params: { ticker },
       });
-    }
-
-    function openAlert() {
-      isAlertOpen.value = true;
     }
 
     function deleteWatchlist() {
@@ -410,14 +415,15 @@ export default {
       });
     }
 
-    async function openRenameModal() {
-      isModalOpen.value = true;
-      newListName.value = $store.currentTab;
-      await nextTick();
-      inputModalRef.value.inputRef.select();
-    }
-
+    // 刪除後tab顯示個數
     let deleteCount = 0;
+
+    function calculateRows(action) {
+      const numbersOfRows = Object.keys(props.watchlistDisplay).length;
+      deleteCount = action === "delete" ? deleteCount + 1 : 0;
+
+      $store.setTabsInfo(currentTab.value, numbersOfRows - deleteCount);
+    }
 
     function deleteTicker(ticker) {
       const { data, error, loading } = useAxios(
@@ -428,12 +434,11 @@ export default {
 
       watch(
         data,
-        (newData) => {
+        () => {
           const deletedTickerRow = document.getElementById(ticker);
           deletedTickerRow.classList.add("hidden");
 
-          deleteCount++;
-          calculateRows({ count: deleteCount });
+          calculateRows("delete");
           emit("loadWatchlist", true);
         },
         {
@@ -442,26 +447,16 @@ export default {
       );
     }
 
-    function calculateRows({ rows, count }) {
-      const numbersOfRows = rows || Object.keys(props.watchlistDisplay).length;
-      const deleteCount = count || 0;
-
-      $store.setTabsInfo(currentTab.value, numbersOfRows - deleteCount);
-    }
-
-    // 動態清除錯誤訊息
-    watch(newListName, () => clearErrorMessage());
-
-    // 新增後顯示個數
+    // 新增後tab顯示個數
     watch(
       () => props.watchlistDisplay,
       () => {
-        if (!tickerRows.value) return;
+        if (!tickerRowsRef.value) return;
 
-        calculateRows({});
+        calculateRows("reset");
         emit("toggleWatchlistSkeleton", false);
 
-        const shownRows = tickerRows.value.filter((item) => {
+        const shownRows = tickerRowsRef.value.filter((item) => {
           // show deleted ticker when added
           if (item.classList.contains("hidden")) {
             item.classList.remove("hidden");
@@ -476,13 +471,16 @@ export default {
       }
     );
 
+    // 動態清除錯誤訊息
+    watch(newListName, () => clearErrorMessage());
+
     watch(currentTab, () => (isDropdownOpen.value = false));
 
     return {
       isDropdownOpen,
       isModalOpen,
       isAlertOpen,
-      tickerRows,
+      tickerRowsRef,
       currentTab,
       dropdownMenu,
       inputModalRef,

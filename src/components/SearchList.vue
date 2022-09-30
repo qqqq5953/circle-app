@@ -128,7 +128,7 @@
                 href="#"
                 class="text-gray-300"
                 @click.stop.prevent="addToWatchlist(item.ticker, item.name)"
-                v-if="!isTickerInWatchlistDB"
+                v-if="!isTickerInCachedList"
               >
                 <i
                   class="fas fa-plus text-lg md:text-xl hover:text-blue-600"
@@ -152,7 +152,7 @@ import { useRouter } from "vue-router";
 import useAxios from "@/composables/useAxios.js";
 import { watch, computed } from "vue";
 import useWatchlistStore from "@/stores/watchlistStore.js";
-import useStockInfoStore from "@/stores/stockInfoStore.js";
+import { storeToRefs } from "pinia";
 
 export default {
   props: {
@@ -160,27 +160,28 @@ export default {
       type: Array,
       default: null,
     },
-    watchlistInDB: {
-      type: Object,
-    },
     isAddingProcess: {
       type: Boolean,
     },
   },
   setup(props, { emit }) {
-    const $watchlistStore = useWatchlistStore();
-    const $stockInfoStore = useStockInfoStore();
+    const $store = useWatchlistStore();
+    const { currentTab, cachedList } = storeToRefs($store);
     const router = useRouter();
 
-    const isTickerInWatchlistDB = computed(() => {
-      const watchlistInDB = props.watchlistInDB;
-      const ticker = props.searchList[0]?.ticker;
+    const isTickerInCachedList = computed(() => {
+      if (!Object.keys(cachedList.value).length) return;
 
-      if (!watchlistInDB) return;
-      return watchlistInDB.hasOwnProperty(ticker);
+      const ticker = props.searchList[0]?.ticker;
+      const currentWatchlist = {
+        ...cachedList.value[currentTab.value].currentWatchlist,
+      };
+
+      return currentWatchlist.hasOwnProperty(ticker);
     });
 
     function toInfoPage(ticker) {
+      if (props.isAddingProcess) return;
       router.push({
         name: "stockInfo",
         params: { ticker },
@@ -188,22 +189,19 @@ export default {
     }
 
     function addToWatchlist(ticker, name) {
-      if (isTickerInWatchlistDB.value) return;
+      if (isTickerInCachedList.value) return;
 
       const { data, error, loading } = useAxios("/api/addToWatchlist", "post", {
         ticker,
         name,
-        currentTab: $watchlistStore.currentTab,
+        currentTab: $store.currentTab,
       });
 
-      watch([data, loading], () => {
-        console.log("SEARCHLIST");
-        emit("loadWatchlist");
-      });
+      watch(data, () => emit("loadWatchlist", { status: "addTicker" }));
     }
 
     return {
-      isTickerInWatchlistDB,
+      isTickerInCachedList,
       addToWatchlist,
       toInfoPage,
     };

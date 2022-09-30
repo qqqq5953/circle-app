@@ -333,7 +333,7 @@ export default {
   setup(props, { emit }) {
     const $store = useWatchlistStore();
     const router = useRouter();
-    const { currentTab } = storeToRefs($store);
+    const { currentTab, deleteCount, tempTime } = storeToRefs($store);
 
     const isDropdownOpen = ref(false);
     const isModalOpen = ref(false);
@@ -416,16 +416,34 @@ export default {
     }
 
     // 刪除後tab顯示個數
-    let deleteCount = 0;
+    function calculateRows({ action, shownRows, newTotalRows }) {
+      const numbersOfRows =
+        newTotalRows == undefined
+          ? Object.keys(props.watchlistDisplay).length
+          : newTotalRows;
 
-    function calculateRows(action) {
-      const numbersOfRows = Object.keys(props.watchlistDisplay).length;
-      deleteCount = action === "delete" ? deleteCount + 1 : 0;
+      switch (action) {
+        case "delete":
+          deleteCount.value++;
+          break;
 
-      $store.setTabsInfo(currentTab.value, numbersOfRows - deleteCount);
+        default:
+          deleteCount.value = 0;
+          break;
+      }
+      console.log("numbersOfRows", numbersOfRows);
+      console.log("deleteCount.value", deleteCount.value);
+
+      const listLength = shownRows || numbersOfRows - deleteCount.value;
+      console.log("listLength", listLength);
+
+      $store.setTabsInfo(currentTab.value, listLength);
     }
 
     function deleteTicker(ticker) {
+      tempTime.value.push(Date.now());
+      deleteCount.value++;
+
       const { data, error, loading } = useAxios(
         "/api/deleteFromWatchlist",
         "post",
@@ -438,8 +456,12 @@ export default {
           const deletedTickerRow = document.getElementById(ticker);
           deletedTickerRow.classList.add("hidden");
 
-          calculateRows("delete");
-          emit("loadWatchlist", true);
+          const newTotalRows = tickerRowsRef.value.filter((item) => {
+            return !item.classList.contains("hidden");
+          });
+
+          $store.setTabsInfo(currentTab.value, newTotalRows.length);
+          emit("loadWatchlist", { status: "deleteTicker" });
         },
         {
           flush: "post",
@@ -451,10 +473,11 @@ export default {
     watch(
       () => props.watchlistDisplay,
       () => {
-        if (!tickerRowsRef.value) return;
+        console.log("props.watchlistDisplay", props.watchlistDisplay);
 
-        calculateRows("reset");
         emit("toggleWatchlistSkeleton", false);
+
+        if (!tickerRowsRef.value) return;
 
         const shownRows = tickerRowsRef.value.filter((item) => {
           // show deleted ticker when added
@@ -465,6 +488,12 @@ export default {
         });
 
         $store.setTabsInfo(currentTab.value, shownRows.length);
+
+        console.log(
+          `%c setTabsInfo ${shownRows.length}`,
+          "background:#f50; color:#333"
+        );
+        // calculateRows({ shownRows: shownRows.length });
       },
       {
         flush: "post",

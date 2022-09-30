@@ -17,7 +17,6 @@
           />
           <SearchList
             :searchList="searchList"
-            :watchlistInDB="watchlistInDB"
             :isAddingProcess="isAddingProcess"
             @loadWatchlist="loadWatchlist"
             @toggleWatchlistSkeleton="toggleWatchlistSkeleton"
@@ -37,7 +36,10 @@
     </div>
 
     <!-- tabs -->
-    <WatchlistNavbar :isWatchlistLoading="isWatchlistLoading" />
+    <WatchlistNavbar
+      :isWatchlistLoading="isWatchlistLoading"
+      :isDeletingTicker="isDeletingTicker"
+    />
 
     <!-- table -->
     <ListSkeleton
@@ -143,9 +145,7 @@ export default {
           : [tickerObject];
     };
 
-    function hasParentElement(event, element) {
-      return event.target.closest(element);
-    }
+    const hasParentElement = (event, element) => event.target.closest(element);
 
     document.addEventListener("click", (e) => {
       const isAddButtonClick = e.target.nodeName === "I";
@@ -160,9 +160,9 @@ export default {
     });
 
     // tabs
-    const { currentTab } = storeToRefs($store);
-
-    watch(currentTab, () => loadWatchlist());
+    const { tabs, currentTab, cachedList, deleteCount, tempTime } =
+      storeToRefs($store);
+    watch(currentTab, () => loadWatchlist({ status: "switch" }));
 
     // watchlist section
     const watchlistTableSkeletonContent = ref({
@@ -179,12 +179,16 @@ export default {
       },
     });
     const isWatchlistLoading = ref(null);
+    const isDeletingTicker = ref(null);
     const isAddingProcess = ref(false);
     const watchlistDisplay = ref(null);
-    const watchlistInDB = ref(null);
 
     const toggleWatchlistSkeleton = (isLoading) => {
       isWatchlistLoading.value = isLoading;
+    };
+
+    const toggleTabSkeleton = (isLoading) => {
+      isDeletingTicker.value = isLoading;
     };
 
     const toggleAddButtonSpinner = (isLoading) => {
@@ -195,37 +199,176 @@ export default {
       watchlistTableSkeletonContent.value.tableBody.tr = rowNumber;
     };
 
-    function loadWatchlist(isTickerDelete = false) {
+    // function wrap(watchlistTickers, loadStatus) {
+    //   const finalDelay = loadStatus !== "deleteTicker" ? 1000 : 1000;
+    //   const updateWatchlist = debounce(async (watchlistTickers) => {
+    //     const currentWatchlist = await getCurrentWatchlist(watchlistTickers);
+
+    //     cachedList.value[currentTab.value] = {
+    //       isEmpty: Object.keys(currentWatchlist).length === 0,
+    //       currentWatchlist,
+    //     };
+
+    //     console.log("loadStatus", loadStatus);
+    //     console.log("currentWatchlist", currentWatchlist);
+
+    //     if (loadStatus !== "deleteTicker") {
+    //       watchlistDisplay.value = currentWatchlist;
+    //     }
+
+    //     toggleTabSkeleton(false);
+    //     toggleAddButtonSpinner(false);
+    //   }, finalDelay);
+
+    //   updateWatchlist(watchlistTickers);
+    // }
+
+    const DEBOUNCE_DELAY = 1000;
+
+    function reset() {
+      toggleTabSkeleton(false);
+      toggleAddButtonSpinner(false);
+      tempTime.value.length = 0;
+      deleteCount.value = 0;
+    }
+
+    function debounce(cb, delay = DEBOUNCE_DELAY) {
+      let timeout;
+
+      return (...args) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          cb(...args);
+        }, delay);
+      };
+    }
+
+    const updateWatchlist = debounce(async (watchlistTickers) => {
+      const currentWatchlist = await getCurrentWatchlist(watchlistTickers);
+
+      cachedList.value[currentTab.value] = {
+        isEmpty: Object.keys(currentWatchlist).length === 0,
+        currentWatchlist,
+      };
+
+      const end = tempTime.value[tempTime.value.length - 1];
+      const start = tempTime.value[0];
+      const diff = end - start;
+      const isConsecutiveClick = diff <= DEBOUNCE_DELAY;
+
+      console.log(`%c diff ${diff}`, "background:#666; color:#efefef");
+
+      if (isConsecutiveClick) {
+        console.log(`%c 連續點擊`, "background:red; color:#efefef");
+        reset();
+      } else {
+        console.log(`%c 慢速點擊`, "background:red; color:#efefef");
+        if (deleteCount.value !== 0) {
+          deleteCount.value--;
+          console.log(
+            `%c 執行完 deleteCount ${deleteCount.value}`,
+            "background:red; color:#efefef"
+          );
+        }
+        if (deleteCount.value === 0) {
+          reset();
+        }
+      }
+    });
+
+    // status: init, switch, deleteTicker, addTicker
+    async function loadWatchlist({ status }) {
+      console.log(`%c${status}`, "background:#f50; color:#333");
+      const isTabsRendered = tabs.value.length !== 0;
+      const isInitOrSwitch = status === "init" || status === "switch";
+
+      // 檢查 list 沒內容時停止執行後續
+      if (isTabsRendered && isInitOrSwitch) {
+        const currentTabInfo = tabs.value.find((tab) => {
+          return tab.name === currentTab.value;
+        });
+
+        if (currentTabInfo.listLength === 0) {
+          watchlistDisplay.value = {};
+          cachedList.value[currentTab.value] = {
+            isEmpty: true,
+            currentWatchlist: {},
+          };
+          console.log("if 加入", cachedList.value[currentTab.value]);
+
+          return;
+        }
+      }
+
+      toggleAddButtonSpinner(true);
+
+      if (status !== "deleteTicker") {
+        toggleWatchlistSkeleton(true);
+      } else {
+        toggleTabSkeleton(true);
+      }
+
+      const allTabs = Object.keys(cachedList.value);
+      const isCurrentTabInTabs = allTabs.includes(currentTab.value);
+
+      // switch 時用 cache
+      if (status === "switch" && isCurrentTabInTabs) {
+        const currentWatchlist = {
+          ...cachedList.value[currentTab.value].currentWatchlist,
+        };
+        console.log(`%c switch 時用 cache`, "background:yellow; color:#333");
+        console.log("currentWatchlist", currentWatchlist);
+
+        watchlistDisplay.value = currentWatchlist;
+        toggleAddButtonSpinner(false);
+        return;
+      }
+
       const { data, error, loading } = useAxios(
         `/api/getWatchlist/${currentTab.value}`,
         "get"
       );
 
-      toggleAddButtonSpinner(loading.value);
-
       watch([data, loading], async ([newData, newLoading]) => {
-        const allPromises = [];
+        // 如果載入的 tab 沒內容則後面不用打 api
 
-        for (let ticker in newData.result) {
-          allPromises.push(axios.get(`/api/quote/${ticker}`));
+        const watchlistTickers = newData.result;
+        const rows = watchlistTickers
+          ? Object.keys(watchlistTickers)?.length
+          : 0;
+        setSkeletonTableRow(rows);
+
+        if (status !== "deleteTicker") {
+          const currentWatchlist = await getCurrentWatchlist(watchlistTickers);
+
+          console.log("currentWatchlist", currentWatchlist);
+
+          cachedList.value[currentTab.value] = {
+            isEmpty: Object.keys(currentWatchlist).length === 0,
+            currentWatchlist,
+          };
+
+          watchlistDisplay.value = currentWatchlist;
+          toggleTabSkeleton(false);
+          toggleAddButtonSpinner(false);
+        } else {
+          updateWatchlist(watchlistTickers);
         }
 
-        // 刪除到最後一個時不會閃一下
-        if (allPromises.length !== 0 && !isTickerDelete) {
-          toggleWatchlistSkeleton(true);
-        }
-
-        setSkeletonTableRow(allPromises.length);
-
-        const result = await getWatchlist(allPromises);
-        if (!isTickerDelete) watchlistDisplay.value = result;
-        watchlistInDB.value = result;
-
-        toggleAddButtonSpinner(newLoading);
+        // updateWatchlist(watchlistTickers);
+        // wrap(watchlistTickers, status);
       });
     }
 
-    async function getWatchlist(allPromises) {
+    loadWatchlist({ status: "init" });
+
+    async function getCurrentWatchlist(watchlistTickers) {
+      const allPromises = [];
+
+      for (let ticker in watchlistTickers) {
+        allPromises.push(axios.get(`/api/quote/${ticker}`));
+      }
+
       try {
         const response = await Promise.allSettled(allPromises);
         return response
@@ -242,8 +385,6 @@ export default {
       }
     }
 
-    loadWatchlist();
-
     return {
       searchListSkeletonContent,
       searchList,
@@ -255,9 +396,9 @@ export default {
 
       loadWatchlist,
       watchlistDisplay,
-      watchlistInDB,
       watchlistTableSkeletonContent,
       isWatchlistLoading,
+      isDeletingTicker,
       isAddingProcess,
       toggleAddButtonSpinner,
       toggleWatchlistSkeleton,

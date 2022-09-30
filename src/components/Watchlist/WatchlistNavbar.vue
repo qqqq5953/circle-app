@@ -2,10 +2,12 @@
   <TabSkeleton
     :tabs="tabs"
     :currentTab="currentTab"
-    v-if="isWatchlistLoading"
+    v-if="isWatchlistLoading || isDeletingTicker"
   />
-
-  <nav class="overflow-y-hidden h-16 lg:hidden" v-if="!isWatchlistLoading">
+  <nav
+    class="overflow-y-hidden h-16 lg:hidden"
+    v-if="!isWatchlistLoading && !isDeletingTicker"
+  >
     <div class="flex gap-2.5 text-sm overflow-x-auto py-6" ref="navBelowLgRef">
       <button
         class="
@@ -55,7 +57,7 @@
       lg:flex lg:items-center lg:h-14 lg:overflow-y-hidden
       relative
     "
-    v-if="!isWatchlistLoading"
+    v-if="!isWatchlistLoading && !isDeletingTicker"
   >
     <div
       class="flex gap-2.5 overflow-x-auto max-w-[85%] pt-10 pb-6 pr-8"
@@ -152,6 +154,9 @@ export default {
   },
   props: {
     isWatchlistLoading: {
+      type: Boolean,
+    },
+    isDeletingTicker: {
       type: Boolean,
     },
   },

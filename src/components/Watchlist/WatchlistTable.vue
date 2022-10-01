@@ -290,6 +290,11 @@
                 w-1/12
               "
             >
+              <span class="hidden text-gray-300">
+                <i
+                  class="fa-solid fa-spinner text-lg md:text-xl animate-spin"
+                ></i>
+              </span>
               <a
                 href="#"
                 class="text-gray-300"
@@ -329,11 +334,14 @@ export default {
     watchlistDisplay: {
       type: Object,
     },
+    isDeletingTicker: {
+      type: Boolean,
+    },
   },
   setup(props, { emit }) {
     const $store = useWatchlistStore();
     const router = useRouter();
-    const { currentTab, deleteCount, tempTime } = storeToRefs($store);
+    const { currentTab, deleteCount, intervalQueue } = storeToRefs($store);
 
     const isDropdownOpen = ref(false);
     const isModalOpen = ref(false);
@@ -415,33 +423,8 @@ export default {
       });
     }
 
-    // 刪除後tab顯示個數
-    function calculateRows({ action, shownRows, newTotalRows }) {
-      const numbersOfRows =
-        newTotalRows == undefined
-          ? Object.keys(props.watchlistDisplay).length
-          : newTotalRows;
-
-      switch (action) {
-        case "delete":
-          deleteCount.value++;
-          break;
-
-        default:
-          deleteCount.value = 0;
-          break;
-      }
-      console.log("numbersOfRows", numbersOfRows);
-      console.log("deleteCount.value", deleteCount.value);
-
-      const listLength = shownRows || numbersOfRows - deleteCount.value;
-      console.log("listLength", listLength);
-
-      $store.setTabsInfo(currentTab.value, listLength);
-    }
-
     function deleteTicker(ticker) {
-      tempTime.value.push(Date.now());
+      intervalQueue.value.push(Date.now());
       deleteCount.value++;
 
       const { data, error, loading } = useAxios(
@@ -450,12 +433,22 @@ export default {
         { ticker, currentTab: $store.currentTab }
       );
 
+      const deletedTickerRow = document.getElementById(ticker);
+
+      const deleteBtn = deletedTickerRow.lastChild;
+
+      const spinnerIcon = deleteBtn.childNodes[0];
+
+      const deleteIcon = deleteBtn.childNodes[1];
+
+      spinnerIcon.classList.remove("hidden");
+      deleteIcon.classList.add("hidden");
+
+      deletedTickerRow.classList.add("hidden");
+
       watch(
         data,
         () => {
-          const deletedTickerRow = document.getElementById(ticker);
-          deletedTickerRow.classList.add("hidden");
-
           const newTotalRows = tickerRowsRef.value.filter((item) => {
             return !item.classList.contains("hidden");
           });
@@ -473,8 +466,6 @@ export default {
     watch(
       () => props.watchlistDisplay,
       () => {
-        console.log("props.watchlistDisplay", props.watchlistDisplay);
-
         emit("toggleWatchlistSkeleton", false);
 
         if (!tickerRowsRef.value) return;
@@ -483,6 +474,13 @@ export default {
           // show deleted ticker when added
           if (item.classList.contains("hidden")) {
             item.classList.remove("hidden");
+
+            const lastChild = item.lastChild;
+            const spinnerIcon = lastChild.childNodes[0];
+            const crossIcon = lastChild.childNodes[1];
+
+            spinnerIcon.classList.add("hidden");
+            crossIcon.classList.remove("hidden");
           }
           return !item.classList.contains("hidden");
         });

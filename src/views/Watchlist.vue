@@ -74,6 +74,7 @@
 
     <WatchlistTable
       :watchlistDisplay="watchlistDisplay"
+      :isDeletingTicker="isDeletingTicker"
       @loadWatchlist="loadWatchlist"
       @toggleAddButtonSpinner="toggleAddButtonSpinner"
       @toggleWatchlistSkeleton="toggleWatchlistSkeleton"
@@ -160,7 +161,7 @@ export default {
     });
 
     // tabs
-    const { tabs, currentTab, cachedList, deleteCount, tempTime } =
+    const { tabs, currentTab, cachedList, deleteCount, intervalQueue } =
       storeToRefs($store);
     watch(currentTab, () => loadWatchlist({ status: "switch" }));
 
@@ -179,7 +180,7 @@ export default {
       },
     });
     const isWatchlistLoading = ref(null);
-    const isDeletingTicker = ref(null);
+    const isDeletingTicker = ref(false);
     const isAddingProcess = ref(false);
     const watchlistDisplay = ref(null);
 
@@ -199,36 +200,12 @@ export default {
       watchlistTableSkeletonContent.value.tableBody.tr = rowNumber;
     };
 
-    // function wrap(watchlistTickers, loadStatus) {
-    //   const finalDelay = loadStatus !== "deleteTicker" ? 1000 : 1000;
-    //   const updateWatchlist = debounce(async (watchlistTickers) => {
-    //     const currentWatchlist = await getCurrentWatchlist(watchlistTickers);
-
-    //     cachedList.value[currentTab.value] = {
-    //       isEmpty: Object.keys(currentWatchlist).length === 0,
-    //       currentWatchlist,
-    //     };
-
-    //     console.log("loadStatus", loadStatus);
-    //     console.log("currentWatchlist", currentWatchlist);
-
-    //     if (loadStatus !== "deleteTicker") {
-    //       watchlistDisplay.value = currentWatchlist;
-    //     }
-
-    //     toggleTabSkeleton(false);
-    //     toggleAddButtonSpinner(false);
-    //   }, finalDelay);
-
-    //   updateWatchlist(watchlistTickers);
-    // }
-
     const DEBOUNCE_DELAY = 1000;
 
     function reset() {
       toggleTabSkeleton(false);
       toggleAddButtonSpinner(false);
-      tempTime.value.length = 0;
+      intervalQueue.value.length = 0;
       deleteCount.value = 0;
     }
 
@@ -239,6 +216,10 @@ export default {
         clearTimeout(timeout);
         timeout = setTimeout(() => {
           cb(...args);
+          console.log(
+            `%c 執行 updateWatchlist`,
+            "background:blue; color:#efefef"
+          );
         }, delay);
       };
     }
@@ -251,42 +232,48 @@ export default {
         currentWatchlist,
       };
 
-      const end = tempTime.value[tempTime.value.length - 1];
-      const start = tempTime.value[0];
-      const diff = end - start;
-      const isConsecutiveClick = diff <= DEBOUNCE_DELAY;
+      const endIdx = intervalQueue.value.length - 1;
+      const startIdx = endIdx - 1 < 0 ? 0 : endIdx - 1;
+      const end = intervalQueue.value[endIdx];
+      const start = intervalQueue.value[startIdx];
 
-      console.log(`%c diff ${diff}`, "background:#666; color:#efefef");
+      const timeDifference = end - start;
+      const isConsecutiveClick = timeDifference <= DEBOUNCE_DELAY;
+
+      console.log(
+        `%c timeDifference ${timeDifference}`,
+        "background:#666; color:#efefef"
+      );
 
       if (isConsecutiveClick) {
         console.log(`%c 連續點擊`, "background:red; color:#efefef");
         reset();
-      } else {
-        console.log(`%c 慢速點擊`, "background:red; color:#efefef");
-        if (deleteCount.value !== 0) {
-          deleteCount.value--;
-          console.log(
-            `%c 執行完 deleteCount ${deleteCount.value}`,
-            "background:red; color:#efefef"
-          );
-        }
-        if (deleteCount.value === 0) {
-          reset();
-        }
+        return;
       }
+
+      console.log(`%c 慢速點擊`, "background:red; color:#efefef");
+      if (deleteCount.value !== 0) {
+        deleteCount.value--;
+        console.log(
+          `%c 執行完 deleteCount ${deleteCount.value}`,
+          "background:red; color:#efefef"
+        );
+      }
+      if (deleteCount.value === 0) reset();
     });
 
     // status: init, switch, deleteTicker, addTicker
     async function loadWatchlist({ status }) {
       console.log(`%c${status}`, "background:#f50; color:#333");
+
       const isTabsRendered = tabs.value.length !== 0;
       const isInitOrSwitch = status === "init" || status === "switch";
 
       // 檢查 list 沒內容時停止執行後續
       if (isTabsRendered && isInitOrSwitch) {
-        const currentTabInfo = tabs.value.find((tab) => {
-          return tab.name === currentTab.value;
-        });
+        const currentTabInfo = tabs.value.find(
+          (tab) => tab.name === currentTab.value
+        );
 
         if (currentTabInfo.listLength === 0) {
           watchlistDisplay.value = {};
@@ -294,8 +281,6 @@ export default {
             isEmpty: true,
             currentWatchlist: {},
           };
-          console.log("if 加入", cachedList.value[currentTab.value]);
-
           return;
         }
       }
@@ -341,22 +326,20 @@ export default {
         if (status !== "deleteTicker") {
           const currentWatchlist = await getCurrentWatchlist(watchlistTickers);
 
-          console.log("currentWatchlist", currentWatchlist);
-
           cachedList.value[currentTab.value] = {
             isEmpty: Object.keys(currentWatchlist).length === 0,
             currentWatchlist,
           };
 
           watchlistDisplay.value = currentWatchlist;
+
+          console.log("currentWatchlist", currentWatchlist);
+
           toggleTabSkeleton(false);
           toggleAddButtonSpinner(false);
         } else {
           updateWatchlist(watchlistTickers);
         }
-
-        // updateWatchlist(watchlistTickers);
-        // wrap(watchlistTickers, status);
       });
     }
 

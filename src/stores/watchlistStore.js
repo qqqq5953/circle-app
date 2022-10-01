@@ -7,7 +7,7 @@ const useWatchlistStore = defineStore('watchlist', () => {
   const tabs = ref([])
   const cachedList = ref({})
   const deleteCount = ref(0)
-  const tempTime = ref([])
+  const intervalQueue = ref([])
 
   const setTabsInfo = (tab, listLength) => {
     // console.log('tabs.value', tabs.value)
@@ -56,7 +56,7 @@ const useWatchlistStore = defineStore('watchlist', () => {
     tabs,
     cachedList,
     deleteCount,
-    tempTime,
+    intervalQueue,
     showCurrentTab,
     setTabs,
     setTabsInfo

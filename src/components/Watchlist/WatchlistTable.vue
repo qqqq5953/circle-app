@@ -14,7 +14,7 @@
       class="relative rounded-t pl-4 lg:pl-8 py-3 flex items-center border-b"
       :class="{ 'border-b': watchlistDisplay }"
     >
-      <h3 class="font-semibold truncate ...">
+      <h3 class="font-semibold truncate w-3/4">
         {{ currentTab }}
       </h3>
 

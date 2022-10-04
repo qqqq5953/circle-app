@@ -36,10 +36,7 @@
     </div>
 
     <!-- tabs -->
-    <WatchlistNavbar
-      :isWatchlistLoading="isWatchlistLoading"
-      :isDeletingTicker="isDeletingTicker"
-    />
+    <WatchlistNavbar :isWatchlistLoading="isWatchlistLoading" />
 
     <!-- table -->
     <ListSkeleton
@@ -84,7 +81,6 @@
 
 <script>
 import { ref, watch, defineAsyncComponent } from "vue";
-import axios from "axios";
 import useAxios from "@/composables/useAxios.js";
 
 import SearchList from "@/components/SearchList.vue";
@@ -186,7 +182,6 @@ export default {
       },
     });
     const isWatchlistLoading = ref(null);
-    const isDeletingTicker = ref(false);
     const isAddingProcess = ref(false);
     const watchlistDisplay = ref(null);
 
@@ -202,10 +197,13 @@ export default {
       watchlistTableSkeletonContent.value.tableBody.tr = rowNumber;
     };
 
+    const toggleLoadingEffect = (isActivate) => {
+      toggleAddButtonSpinner(isActivate);
+      toggleWatchlistSkeleton(isActivate);
+    };
+
     // status: init, switch, deleteTicker, addTicker
     async function loadWatchlist({ status }) {
-      console.log(`%c${status}`, "background:#f50; color:#333");
-
       // 檢查 list 沒內容時停止執行後續
       if (status === "init" || status === "switch") {
         const currentTabInfo = tabs.value.find(
@@ -219,8 +217,7 @@ export default {
         }
       }
 
-      toggleAddButtonSpinner(true);
-      toggleWatchlistSkeleton(true);
+      toggleLoadingEffect(true);
 
       const allTabs = Object.keys(cachedList.value);
       const isCurrentTabInTabs = allTabs.includes(currentTab.value);
@@ -229,9 +226,7 @@ export default {
       if (status === "switch" && isCurrentTabInTabs) {
         watchlistDisplay.value = getCacheList(currentTab.value);
 
-        toggleAddButtonSpinner(false);
-        toggleWatchlistSkeleton(false);
-
+        toggleLoadingEffect(false);
         return;
       }
 
@@ -251,8 +246,7 @@ export default {
         watchlistDisplay.value = currentWatchlist;
         cachedList.value[currentTab.value] = setCacheList(currentWatchlist);
 
-        toggleWatchlistSkeleton(false);
-        toggleAddButtonSpinner(false);
+        toggleLoadingEffect(false);
       });
     }
 
@@ -298,7 +292,6 @@ export default {
       watchlistDisplay,
       watchlistTableSkeletonContent,
       isWatchlistLoading,
-      isDeletingTicker,
       isAddingProcess,
       toggleAddButtonSpinner,
       toggleWatchlistSkeleton,

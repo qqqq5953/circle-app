@@ -11,7 +11,7 @@
   >
     <!-- table title -->
     <div
-      class="rounded-t pl-4 lg:pl-8 py-3 flex items-center border-b"
+      class="relative rounded-t pl-4 lg:pl-8 py-3 flex items-center border-b"
       :class="{ 'border-b': watchlistDisplay }"
     >
       <h3 class="font-semibold truncate ...">
@@ -19,33 +19,40 @@
       </h3>
 
       <!-- dropdown -->
-      <div
-        class="relative ml-auto h-full w-1/5"
-        v-if="currentTab?.toLowerCase() !== 'watchlist'"
-      >
+      <div class="absolute right-2" v-if="deleteArr.length">
         <button
-          class="absolute top-0 right-2 px-3 rounded-full active:rounded-full"
-          @click="toggleDropdown"
+          class="text-xs bg-white rounded px-2 py-1.5 border"
+          @click="deleteTicker"
         >
-          <i class="fa-solid fa-ellipsis-vertical"></i>
+          DELETE
         </button>
-        <Transition>
-          <ul
-            class="absolute right-0 -bottom-28 p-3 shadow rounded bg-white"
-            v-show="isDropdownOpen"
+      </div>
+      <div class="ml-auto h-full w-1/5" v-else>
+        <div class="relative" v-if="currentTab?.toLowerCase() !== 'watchlist'">
+          <button
+            class="absolute top-0 right-2 px-3 rounded-full active:rounded-full"
             @click="toggleDropdown"
           >
-            <li
-              class="flex gap-3 items-center py-1 cursor-pointer"
-              v-for="list in dropdownMenu"
-              :key="list.name"
-              @click="list.onClick"
+            <i class="fa-solid fa-ellipsis-vertical"></i>
+          </button>
+          <Transition>
+            <ul
+              class="absolute right-0 -bottom-28 p-3 shadow rounded bg-white"
+              v-show="isDropdownOpen"
+              @click="toggleDropdown"
             >
-              <i :class="list.icon"></i>
-              <span>{{ list.name }}</span>
-            </li>
-          </ul>
-        </Transition>
+              <li
+                class="flex gap-3 items-center py-1 cursor-pointer"
+                v-for="list in dropdownMenu"
+                :key="list.name"
+                @click="list.onClick"
+              >
+                <i :class="list.icon"></i>
+                <span>{{ list.name }}</span>
+              </li>
+            </ul>
+          </Transition>
+        </div>
       </div>
     </div>
 
@@ -76,7 +83,7 @@
         </template>
         <template #body>
           <p class="text-slate-500 font-light">
-            {{ Object.keys(watchlistDisplay).length }} items will be deleted.
+            {{ calculateListItems }} items will be deleted.
           </p>
         </template>
         <template #footer>
@@ -165,7 +172,9 @@
             >
               Change
             </td>
-            <td class="w-1/12"></td>
+            <td
+              class="border-t-0 border-x-0 py-3 sm:py-4 pr-3 lg:pr-4 w-1/12"
+            ></td>
           </tr>
         </thead>
         <tbody>
@@ -173,9 +182,9 @@
             class="hover:bg-slate-100 hover:cursor-pointer"
             v-for="(item, index) in watchlistDisplay"
             :key="item.ticker"
-            @click="toInfoPage(item.ticker)"
             :id="index"
             ref="tickerRowsRef"
+            @click="toInfoPage(item.ticker)"
           >
             <th
               class="
@@ -289,26 +298,35 @@
                 text-xs text-center
                 w-1/12
               "
+              @click.stop
             >
-              <span class="hidden text-gray-300">
-                <i
-                  class="fa-solid fa-spinner text-lg md:text-xl animate-spin"
-                ></i>
-              </span>
-              <a
-                href="#"
-                class="text-gray-300"
-                @click.stop.prevent="deleteTicker(item.ticker)"
-              >
+              <label :for="item.name" @click.stop="toggleChecked(item.ticker)">
                 <i
                   class="
-                    fa-solid fa-xmark
+                    fa-solid fa-square-check
                     text-lg
                     md:text-xl
                     hover:text-blue-600
                   "
+                  v-if="item.isDelete"
                 ></i>
-              </a>
+                <i
+                  class="
+                    fa-regular fa-square
+                    text-lg
+                    md:text-xl
+                    hover:text-blue-600
+                  "
+                  v-else
+                ></i>
+              </label>
+              <input
+                class="hidden"
+                :id="item.name"
+                :value="item.ticker"
+                type="checkbox"
+                v-model="deleteArr"
+              />
             </td>
           </tr>
         </tbody>
@@ -319,7 +337,7 @@
 
 <script>
 import { useRouter } from "vue-router";
-import { ref, watch, nextTick, defineAsyncComponent } from "vue";
+import { ref, watch, nextTick, defineAsyncComponent, computed } from "vue";
 import { storeToRefs } from "pinia";
 import useAxios from "@/composables/useAxios.js";
 import useWatchlistStore from "@/stores/watchlistStore.js";
@@ -333,40 +351,45 @@ export default {
   props: {
     watchlistDisplay: {
       type: Object,
-    },
-    isDeletingTicker: {
-      type: Boolean,
+      default: {},
     },
   },
   setup(props, { emit }) {
     const $store = useWatchlistStore();
     const router = useRouter();
-    const { currentTab, deleteCount, intervalQueue } = storeToRefs($store);
+    const { currentTab } = storeToRefs($store);
 
     const isDropdownOpen = ref(false);
     const isModalOpen = ref(false);
     const isAlertOpen = ref(false);
 
-    const tickerRowsRef = ref(null);
-    const inputModalRef = ref(null);
-
-    const errorMessage = ref([]);
-    const newListName = ref(null);
-
-    const showCurrentTab = (tab) => $store.showCurrentTab(tab);
     const setTabs = (tab) => $store.setTabs(tab);
+    const showCurrentTab = (tab) => $store.showCurrentTab(tab);
+
+    // Modal & dropdown menu
+    const inputModalRef = ref(null);
+    const newListName = ref(null);
+    const errorMessage = ref([]);
+
+    const calculateListItems = computed(() => {
+      return props.watchlistDisplay
+        ? Object.keys(props.watchlistDisplay).length
+        : 0;
+    });
 
     const clearErrorMessage = () => errorMessage.value.pop();
 
-    // dropdown menu
     const toggleDropdown = () => (isDropdownOpen.value = !isDropdownOpen.value);
+
     const openAlert = () => (isAlertOpen.value = true);
+
     const openRenameModal = async () => {
       isModalOpen.value = true;
       newListName.value = $store.currentTab;
       await nextTick();
       inputModalRef.value.inputRef.select();
     };
+
     const dropdownMenu = ref([
       {
         name: "delete",
@@ -380,14 +403,7 @@ export default {
       },
     ]);
 
-    function toInfoPage(ticker) {
-      router.push({
-        name: "stockInfo",
-        params: { ticker },
-      });
-    }
-
-    function deleteWatchlist() {
+    const deleteWatchlist = () => {
       const { data, error, loading } = useAxios(
         "/api/deleteWatchlist",
         "post",
@@ -400,9 +416,9 @@ export default {
         setTabs(newData.result);
         showCurrentTab($store.DEFAULT_TAB);
       });
-    }
+    };
 
-    function renameWatchlist() {
+    const renameWatchlist = () => {
       if (errorMessage.value.length) clearErrorMessage();
 
       const { data, error, loading } = useAxios("/api/editTab", "post", {
@@ -417,34 +433,43 @@ export default {
         } else {
           isModalOpen.value = false;
           const { newTab, tabsInfo } = newList.result;
-          showCurrentTab(newTab);
           setTabs(tabsInfo);
+          showCurrentTab(newTab);
         }
       });
-    }
+    };
 
-    function deleteTicker(ticker) {
-      intervalQueue.value.push(Date.now());
-      deleteCount.value++;
+    // delete ticker
+    const deleteArr = ref([]);
+    const tickerRowsRef = ref(null);
+
+    const toggleChecked = (ticker) => {
+      props.watchlistDisplay[ticker].isDelete =
+        !props.watchlistDisplay[ticker].isDelete;
+    };
+
+    const deleteTicker = () => {
+      if (deleteArr.value.length === 0) return;
+
+      emit("toggleWatchlistSkeleton", true);
 
       const { data, error, loading } = useAxios(
         "/api/deleteFromWatchlist",
         "post",
-        { ticker, currentTab: $store.currentTab }
+        {
+          tickers: deleteArr.value,
+          currentTab: $store.currentTab,
+        }
       );
 
-      const deletedTickerRow = document.getElementById(ticker);
+      const ids = deleteArr.value.map((ticker) => "#" + ticker);
 
-      const deleteBtn = deletedTickerRow.lastChild;
+      const deletedTickerRow = document.querySelectorAll([...ids]);
 
-      const spinnerIcon = deleteBtn.childNodes[0];
-
-      const deleteIcon = deleteBtn.childNodes[1];
-
-      spinnerIcon.classList.remove("hidden");
-      deleteIcon.classList.add("hidden");
-
-      deletedTickerRow.classList.add("hidden");
+      Array.from(deletedTickerRow).forEach((row) => {
+        row.classList.add("hidden");
+        deleteArr.value.pop();
+      });
 
       watch(
         data,
@@ -460,38 +485,30 @@ export default {
           flush: "post",
         }
       );
+    };
+
+    function toInfoPage(ticker) {
+      router.push({
+        name: "stockInfo",
+        params: { ticker },
+      });
     }
 
     // 新增後tab顯示個數
     watch(
       () => props.watchlistDisplay,
       () => {
-        emit("toggleWatchlistSkeleton", false);
-
         if (!tickerRowsRef.value) return;
 
         const shownRows = tickerRowsRef.value.filter((item) => {
           // show deleted ticker when added
           if (item.classList.contains("hidden")) {
             item.classList.remove("hidden");
-
-            const lastChild = item.lastChild;
-            const spinnerIcon = lastChild.childNodes[0];
-            const crossIcon = lastChild.childNodes[1];
-
-            spinnerIcon.classList.add("hidden");
-            crossIcon.classList.remove("hidden");
           }
           return !item.classList.contains("hidden");
         });
 
         $store.setTabsInfo(currentTab.value, shownRows.length);
-
-        console.log(
-          `%c setTabsInfo ${shownRows.length}`,
-          "background:#f50; color:#333"
-        );
-        // calculateRows({ shownRows: shownRows.length });
       },
       {
         flush: "post",
@@ -501,7 +518,10 @@ export default {
     // 動態清除錯誤訊息
     watch(newListName, () => clearErrorMessage());
 
-    watch(currentTab, () => (isDropdownOpen.value = false));
+    watch(currentTab, () => {
+      isDropdownOpen.value = false;
+      deleteArr.value.length = 0;
+    });
 
     return {
       isDropdownOpen,
@@ -522,6 +542,9 @@ export default {
       renameWatchlist,
 
       toInfoPage,
+      deleteArr,
+      toggleChecked,
+      calculateListItems,
     };
   },
 };

@@ -49,7 +49,8 @@ router.get('/quote/:ticker', async (req, res) => {
       regularMarketTime,
       price,
       previousCloseChange,
-      previousCloseChangePercent
+      previousCloseChangePercent,
+      isDelete: false
     }
 
     const msg = {
@@ -243,36 +244,51 @@ router.post('/addStock', async (req, res) => {
   //   })
 })
 
+// watchlist
 router.post('/addToWatchlist', async (req, res) => {
-  const { ticker, name, currentTab } = req.body
-
+  const { ticker, name, currentTab, searchList } = req.body
   const list = currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
 
-  await watchlistRef.child(list).child(ticker).set(name)
+  try {
+    await watchlistRef.child(list).child(ticker).set(searchList)
 
-  message = {
-    success: true,
-    content: '標的新增成功',
-    errorMessage: null,
-    result: { [ticker]: name }
+    const message = {
+      success: true,
+      content: '標的新增成功',
+      errorMessage: null,
+      result: { [ticker]: name }
+    }
+    res.send(message)
+  } catch (error) {
+    const message = {
+      success: true,
+      content: '標的新增失敗',
+      errorMessage: error.message,
+      result: null
+    }
+    res.send(message)
   }
-  res.send(message)
 })
 
 router.post('/deleteFromWatchlist', async (req, res) => {
   try {
-    const { ticker, currentTab } = req.body
+    const { tickers, currentTab } = req.body
+
+    if (tickers.length === 0) return
 
     const list =
       currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
 
-    await watchlistRef.child(list).child(ticker).remove()
+    for (let i = 0; i < tickers.length; i++) {
+      const ticker = tickers[i]
+      await watchlistRef.child(list).child(ticker).remove()
+    }
 
     const message = {
       success: true,
       content: '刪除成功',
       errorMessage: null,
-      result: { ticker }
+      result: tickers
     }
     res.send(message)
   } catch (error) {
@@ -285,8 +301,6 @@ router.post('/deleteFromWatchlist', async (req, res) => {
     res.send(message)
   }
 })
-
-// watchlist
 
 router.get('/getWatchlist/:tab', async (req, res) => {
   const currentTab = req.params.tab
@@ -458,6 +472,7 @@ router.get('/getTabs', async (req, res) => {
       errorMessage: error.message,
       result: null
     }
+    console.log('error.message', error.message)
     res.send(message)
   }
 })
@@ -534,8 +549,8 @@ async function getTabsInfo(tabs) {
   const tabsInfo = tabs.map((tab) => {
     const list =
       tab !== DEFAULT_TAB
-        ? watchlistsRef.val()[tab]
-        : watchlistsRef.val()['default']
+        ? watchlistsRef.val()?.[tab]
+        : watchlistsRef.val()?.['default']
     const listLength = list ? Object.keys(list).length : 0
 
     return {

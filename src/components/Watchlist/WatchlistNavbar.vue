@@ -213,10 +213,6 @@ export default {
       inputModalRef.value.inputRef.focus();
     }
 
-    const { data, error, loading } = useAxios(`/api/getTabs`, "get");
-
-    watch(data, (newData) => setTabs(newData.result));
-
     // 動態清除錯誤訊息
     watch(inputListName, () => clearErrorMessage());
 

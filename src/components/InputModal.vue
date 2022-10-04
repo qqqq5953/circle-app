@@ -60,10 +60,9 @@ export default {
   },
   emits: ["update:listName", "closeModal"],
   setup() {
-    const isModalOpen = ref(false);
     const inputRef = ref(false);
 
-    return { isModalOpen, inputRef };
+    return { inputRef };
   },
 };
 </script>

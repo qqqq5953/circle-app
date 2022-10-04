@@ -22,7 +22,7 @@
       <div class="absolute right-2" v-if="deleteArr.length">
         <button
           class="text-xs bg-white rounded px-2 py-1.5 border"
-          @click="deleteTicker"
+          @click="openAlert($event, 'deleteTicker')"
         >
           DELETE
         </button>
@@ -75,34 +75,16 @@
     </Teleport>
 
     <Teleport to="body">
-      <Alert v-if="isAlertOpen">
-        <template #header>
-          <h2 class="text-xl lg:text-2xl break-all">
-            Delete "{{ currentTab }}"
-          </h2>
+      <DeleteAlert
+        v-if="isAlertOpen"
+        :confirmFunc="switchAlert"
+        :closeFunc="closeAlert"
+      >
+        <template #title>
+          <div v-html="alertTitle"></div>
         </template>
-        <template #body>
-          <p class="text-slate-500 font-light">
-            {{ calculateListItems }} items will be deleted.
-          </p>
-        </template>
-        <template #footer>
-          <div class="text-right">
-            <button class="text-blue-600 p-2 mr-2" @click="isAlertOpen = false">
-              Close
-            </button>
-            <button
-              class="border rounded p-2 bg-blue-600 text-white"
-              @click="
-                deleteWatchlist();
-                isAlertOpen = false;
-              "
-            >
-              Delete
-            </button>
-          </div>
-        </template>
-      </Alert>
+        <template #content>{{ alertContent }}</template>
+      </DeleteAlert>
     </Teleport>
 
     <!-- body -->
@@ -342,11 +324,13 @@ import { storeToRefs } from "pinia";
 import useAxios from "@/composables/useAxios.js";
 import useWatchlistStore from "@/stores/watchlistStore.js";
 import InputModal from "@/components/InputModal.vue";
+import DeleteAlert from "@/components/DeleteAlert.vue";
 
 export default {
   components: {
     InputModal,
-    Alert: defineAsyncComponent(() => import("@/components/Alert.vue")),
+    Alert: defineAsyncComponent(() => import("@/components/BaseAlert.vue")),
+    DeleteAlert,
   },
   props: {
     watchlistDisplay: {
@@ -359,14 +343,54 @@ export default {
     const router = useRouter();
     const { currentTab } = storeToRefs($store);
 
-    const isDropdownOpen = ref(false);
-    const isModalOpen = ref(false);
-    const isAlertOpen = ref(false);
-
     const setTabs = (tab) => $store.setTabs(tab);
     const showCurrentTab = (tab) => $store.showCurrentTab(tab);
 
+    // delete alert
+    const isAlertOpen = ref(false);
+    const alertTitle = ref('<span class="bg-red-300">test</span>');
+    const alertContent = ref(null);
+    const alertAction = ref(null);
+
+    const switchAlert = () => {
+      switch (alertAction.value) {
+        case "deleteWatchlist":
+          deleteWatchlist();
+          break;
+
+        case "deleteTicker":
+          deleteTicker();
+          break;
+      }
+    };
+
+    const openAlert = (e, action = "deleteWatchlist") => {
+      isAlertOpen.value = true;
+      alertAction.value = action;
+
+      switch (action) {
+        case "deleteWatchlist":
+          alertTitle.value = `Delete "${currentTab.value}"`;
+          alertContent.value = `${calculateListItems.value} items will be deleted.`;
+          break;
+
+        case "deleteTicker":
+          let str = "";
+          deleteArr.value.forEach((item) => {
+            str += `<span class="max-w-fit px-2 rounded bg-red-400 text-white text-base">${item}</span>`;
+          });
+          alertTitle.value = `<div class="flex items-center gap-2 flex-wrap">Delete ${str}</div>`;
+
+          alertContent.value = `${deleteArr.value.length} items will be deleted.`;
+          break;
+      }
+    };
+
+    const closeAlert = () => (isAlertOpen.value = false);
+
     // Modal & dropdown menu
+    const isDropdownOpen = ref(false);
+    const isModalOpen = ref(false);
     const inputModalRef = ref(null);
     const newListName = ref(null);
     const errorMessage = ref([]);
@@ -380,8 +404,6 @@ export default {
     const clearErrorMessage = () => errorMessage.value.pop();
 
     const toggleDropdown = () => (isDropdownOpen.value = !isDropdownOpen.value);
-
-    const openAlert = () => (isAlertOpen.value = true);
 
     const openRenameModal = async () => {
       isModalOpen.value = true;
@@ -415,6 +437,7 @@ export default {
       watch(data, (newData) => {
         setTabs(newData.result);
         showCurrentTab($store.DEFAULT_TAB);
+        closeAlert();
       });
     };
 
@@ -480,12 +503,16 @@ export default {
 
           $store.setTabsInfo(currentTab.value, newTotalRows.length);
           emit("loadWatchlist", { status: "deleteTicker" });
+
+          closeAlert();
         },
         {
           flush: "post",
         }
       );
     };
+
+    const clearDeleteArr = () => (deleteArr.value.length = 0);
 
     function toInfoPage(ticker) {
       router.push({
@@ -509,6 +536,8 @@ export default {
         });
 
         $store.setTabsInfo(currentTab.value, shownRows.length);
+
+        clearDeleteArr();
       },
       {
         flush: "post",
@@ -520,7 +549,7 @@ export default {
 
     watch(currentTab, () => {
       isDropdownOpen.value = false;
-      deleteArr.value.length = 0;
+      clearDeleteArr();
     });
 
     return {
@@ -536,7 +565,6 @@ export default {
 
       toggleDropdown,
       openRenameModal,
-      openAlert,
       deleteTicker,
       deleteWatchlist,
       renameWatchlist,
@@ -545,6 +573,12 @@ export default {
       deleteArr,
       toggleChecked,
       calculateListItems,
+
+      switchAlert,
+      alertTitle,
+      alertContent,
+      openAlert,
+      closeAlert,
     };
   },
 };

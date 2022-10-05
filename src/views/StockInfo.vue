@@ -224,6 +224,7 @@ export default {
 
         if (price.quoteType === "Equity") {
           stock.value.financialData = await getFinancialData();
+          console.log("financialData", stock.value.financialData);
         }
 
         toggleSkeleton(false);

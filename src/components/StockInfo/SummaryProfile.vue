@@ -2,10 +2,7 @@
   <section class="border rounded p-3 text-sm">
     <h2 class="text-2xl mb-2">Profile</h2>
     <ul>
-      <li
-        class="relative pb-3"
-        :class="{ 'border-b': stock.price?.quoteType === 'Equity' }"
-      >
+      <li class="relative pb-3">
         <div class="flex justify-between items-center text-slate-600">
           <h3>Summary</h3>
           <span v-if="isChevronShow">
@@ -47,7 +44,10 @@
         ></div>
       </li>
       <template v-if="stock.price?.quoteType === 'Equity'">
-        <li class="flex items-center justify-between py-3 border-b">
+        <li
+          class="flex items-center justify-between py-3"
+          :class="{ 'border-t': stock.price?.quoteType === 'Equity' }"
+        >
           <span class="text-slate-600">Website</span>
           <span class="text-right font-medium">
             <a
@@ -58,13 +58,16 @@
             </a>
           </span>
         </li>
-        <li class="flex items-center justify-between py-3 border-b">
+        <li class="flex items-center justify-between py-3 border-t">
           <span class="text-slate-600">Address</span>
           <span class="text-right font-medium">{{
             stock.profile?.address
           }}</span>
         </li>
-        <li class="flex items-center justify-between py-3">
+        <li
+          class="flex items-center justify-between py-3 border-t"
+          v-if="stock.profile?.fullTimeEmployees"
+        >
           <span class="text-slate-600">Employees</span>
           <span class="text-right font-medium">{{
             stock.profile?.fullTimeEmployees

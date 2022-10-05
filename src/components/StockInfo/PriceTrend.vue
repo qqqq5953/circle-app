@@ -102,6 +102,7 @@ export default {
 
         if (timespan !== "5D") {
           const startDate = startDateObj[timespan];
+
           lineChartData.value[timespan] = iteratePriceMapToLineChartData(
             priceMap,
             startDate
@@ -116,16 +117,17 @@ export default {
     }
 
     function iteratePriceMapToLineChartData(priceMap, startDate) {
+      const [_, m, d] = startDate.split("/");
       const xAxisData = [];
       const seriesData = [];
 
-      console.log("startDate", startDate.split("/")[2]);
-      const endOfYear = startDate.split("/")[1] + startDate.split("/")[2];
-
       for (let [fullDate, price] of priceMap.entries()) {
-        const [year, month, date] = fullDate.split("/");
+        // 找 YTD
+        const [_, month, date] = fullDate.split("/");
+        const isEndOfYear = m + d === "1231" && month + date === "1231";
+        if (isEndOfYear) break;
 
-        if (month + date === "1231") break;
+        // YTD 以外
         xAxisData.push(fullDate);
         seriesData.push(price);
         if (fullDate === startDate) break;
@@ -135,9 +137,9 @@ export default {
       const oneYearTimespanLength = priceRawMapData.value["1Y"].size;
       const isStartDateExist = currentTimespanLength !== oneYearTimespanLength;
 
+      // 重新找開始日期
       if (currentTab.value !== "1Y" && !isStartDateExist) {
         const newStartDate = getNewStartDate(xAxisData, startDate);
-        console.log("newStartDate", newStartDate);
 
         xAxisData.length = 0;
         seriesData.length = 0;

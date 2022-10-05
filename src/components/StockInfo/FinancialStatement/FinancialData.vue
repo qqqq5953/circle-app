@@ -53,56 +53,57 @@
         </li>
       </ul>
     </details>
-    <details
-      class="py-3 border-b last:border-0 group"
-      v-for="(item, title) in financialIndicators"
-      :key="title"
-      :ref="
-        (el) => {
-          detailsRefs[title] = el;
-        }
-      "
-    >
-      <summary class="list-none text-slate-700 relative">
-        <h2 class="font-semibold">{{ title }}</h2>
-        <span class="absolute top-1/2 -translate-y-1/2 right-0 z-10">
-          <input class="hidden peer" :id="title" type="checkbox" />
-          <label
-            class="cursor-pointer peer-checked:[&>i]:rotate-180"
-            :for="title"
-            @click="toggleDetails(title)"
+    <template v-for="(data, title) in financialIndicators" :key="title">
+      <details
+        class="py-3 border-b last:border-0 group"
+        v-if="Object.keys(data).length"
+        :ref="
+          (el) => {
+            detailsRefs[title] = el;
+          }
+        "
+      >
+        <summary class="list-none text-slate-700 relative">
+          <h2 class="font-semibold">{{ title }}</h2>
+          <span class="absolute top-1/2 -translate-y-1/2 right-0 z-10">
+            <input class="hidden peer" :id="title" type="checkbox" />
+            <label
+              class="cursor-pointer peer-checked:[&>i]:rotate-180"
+              :for="title"
+              @click="toggleDetails(title)"
+            >
+              <i
+                class="
+                  fa-solid fa-chevron-down
+                  transition-transform
+                  duration-200
+                  ease-in-out
+                "
+              ></i>
+            </label>
+          </span>
+        </summary>
+        <ul class="pt-2 group-open:duration-200 group-open:ease-in-out">
+          <li
+            class="
+              flex
+              items-center
+              justify-between
+              py-3
+              border-b
+              last:border-0 last:pb-0
+            "
+            v-for="(number, indicator) in data"
+            :key="number"
           >
-            <i
-              class="
-                fa-solid fa-chevron-down
-                transition-transform
-                duration-200
-                ease-in-out
-              "
-            ></i>
-          </label>
-        </span>
-      </summary>
-      <ul class="pt-2 group-open:duration-200 group-open:ease-in-out">
-        <li
-          class="
-            flex
-            items-center
-            justify-between
-            py-3
-            border-b
-            last:border-0 last:pb-0
-          "
-          v-for="(number, indicator) in item"
-          :key="number"
-        >
-          <span class="text-slate-600">{{ indicator }}</span>
-          <span class="font-medium">{{
-            parseFloat(number.toFixed(2)).toLocaleString("en-Us")
-          }}</span>
-        </li>
-      </ul>
-    </details>
+            <span class="text-slate-600">{{ indicator }}</span>
+            <span class="font-medium">{{
+              parseFloat(number.toFixed(2)).toLocaleString("en-Us")
+            }}</span>
+          </li>
+        </ul>
+      </details>
+    </template>
   </section>
 </template>
 

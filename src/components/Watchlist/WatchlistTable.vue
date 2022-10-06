@@ -162,11 +162,11 @@
         <tbody>
           <tr
             class="hover:bg-slate-100 hover:cursor-pointer"
-            v-for="(item, index) in watchlistDisplay"
-            :key="item.ticker"
-            :id="index"
+            v-for="item in watchlistDisplay"
+            :key="item.tempTicker"
+            :id="item.id"
             ref="tickerRowsRef"
-            @click="toInfoPage(item.ticker)"
+            @click="toInfoPage(item.ticker, item.tempTicker)"
           >
             <th
               class="
@@ -182,9 +182,8 @@
               <div class="flex flex-col md:flex-row md:items-center md:gap-x-3">
                 <p
                   class="
-                    w-1/2
                     md:w-2/5
-                    max-w-[70px]
+                    max-w-[80px]
                     px-1
                     py-1
                     shrink-0
@@ -282,7 +281,10 @@
               "
               @click.stop
             >
-              <label :for="item.name" @click.stop="toggleChecked(item.ticker)">
+              <label
+                :for="item.name"
+                @click.stop="toggleChecked(item.tempTicker)"
+              >
                 <i
                   class="
                     fa-solid fa-square-check
@@ -475,49 +477,55 @@ export default {
       if (deleteArr.value.length === 0) return;
 
       emit("toggleWatchlistSkeleton", true);
+      closeAlert();
+
+      const tickers = deleteArr.value.map((ticker) =>
+        ticker.includes(".") ? ticker.split(".")[0] : ticker
+      );
 
       const { data, error, loading } = useAxios(
         "/api/deleteFromWatchlist",
         "post",
         {
-          tickers: deleteArr.value,
+          tickers,
           currentTab: $store.currentTab,
         }
       );
 
-      const ids = deleteArr.value.map((ticker) => "#" + ticker);
+      // const ids = tickers.map((ticker) => {
+      //   return `#${props.watchlistDisplay[ticker].id}`;
+      // });
 
-      const deletedTickerRow = document.querySelectorAll([...ids]);
+      // // const ids = tickers.map((ticker) => "#" + ticker);
 
-      Array.from(deletedTickerRow).forEach((row) => {
-        row.classList.add("hidden");
-        deleteArr.value.pop();
-      });
+      // const deletedTickerRow = document.querySelectorAll([...ids]);
+
+      // Array.from(deletedTickerRow).forEach((row) => {
+      //   row.classList.add("hidden");
+      //   deleteArr.value.pop();
+      // });
 
       watch(
         data,
         () => {
-          const newTotalRows = tickerRowsRef.value.filter((item) => {
-            return !item.classList.contains("hidden");
-          });
+          // const newTotalRows = tickerRowsRef.value.filter((item) => {
+          //   return !item.classList.contains("hidden");
+          // });
+          // $store.setTabsInfo(currentTab.value, newTotalRows.length);
 
-          $store.setTabsInfo(currentTab.value, newTotalRows.length);
+          $store.setTabsInfo(currentTab.value, tickerRowsRef.value.length);
           emit("loadWatchlist", { status: "deleteTicker" });
-
-          closeAlert();
         },
-        {
-          flush: "post",
-        }
+        { flush: "post" }
       );
     };
 
     const clearDeleteArr = () => (deleteArr.value.length = 0);
 
-    function toInfoPage(ticker) {
+    function toInfoPage(ticker, tempTicker) {
       router.push({
         name: "stockInfo",
-        params: { ticker },
+        params: { ticker, tempTicker },
       });
     }
 
@@ -527,15 +535,16 @@ export default {
       () => {
         if (!tickerRowsRef.value) return;
 
-        const shownRows = tickerRowsRef.value.filter((item) => {
-          // show deleted ticker when added
-          if (item.classList.contains("hidden")) {
-            item.classList.remove("hidden");
-          }
-          return !item.classList.contains("hidden");
-        });
+        // const shownRows = tickerRowsRef.value.filter((item) => {
+        //   // show deleted ticker when added
+        //   if (item.classList.contains("hidden")) {
+        //     item.classList.remove("hidden");
+        //   }
+        //   return !item.classList.contains("hidden");
+        // });
+        // $store.setTabsInfo(currentTab.value, shownRows.length);
 
-        $store.setTabsInfo(currentTab.value, shownRows.length);
+        $store.setTabsInfo(currentTab.value, tickerRowsRef.value.length);
 
         clearDeleteArr();
       },

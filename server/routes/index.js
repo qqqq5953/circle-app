@@ -246,17 +246,17 @@ router.post('/addStock', async (req, res) => {
 
 // watchlist
 router.post('/addToWatchlist', async (req, res) => {
-  const { ticker, name, currentTab, searchList } = req.body
+  const { name, currentTab, searchList } = req.body
   const list = currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
 
   try {
-    await watchlistRef.child(list).child(ticker).set(searchList)
+    await watchlistRef.child(list).child(searchList.tempTicker).set(searchList)
 
     const message = {
       success: true,
       content: '標的新增成功',
       errorMessage: null,
-      result: { [ticker]: name }
+      result: { [searchList.ticker]: name }
     }
     res.send(message)
   } catch (error) {
@@ -310,6 +310,8 @@ router.get('/getWatchlist/:tab', async (req, res) => {
   try {
     const watchlistChildRef = await watchlistRef.child(list).once('value')
     const watchlist = watchlistChildRef.val()
+
+    // console.log('watchlist', watchlist)
 
     const msg = {
       success: true,

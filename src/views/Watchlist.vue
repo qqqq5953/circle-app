@@ -134,12 +134,15 @@ export default {
     };
 
     const getSearchList = (tickerObject) => {
-      searchList.value =
-        tickerObject === undefined // 無搜尋結果
-          ? undefined
-          : tickerObject === null // 輸入不符格式
-          ? null
-          : [tickerObject];
+      if (tickerObject === undefined) {
+        searchList.value = undefined; // 無搜尋結果
+      } else if (tickerObject === null) {
+        searchList.value = null; // 輸入不符格式
+      } else {
+        const ticker = tickerObject.ticker;
+        const tempTicker = ticker.includes(".") ? ticker.split(".")[0] : ticker;
+        searchList.value = [{ ...tickerObject, tempTicker }];
+      }
     };
 
     const hasParentElement = (event, element) => event.target.closest(element);

@@ -7,7 +7,7 @@
           class="hover:bg-slate-100 hover:cursor-pointer"
           v-for="item in searchList"
           :key="item.ticker"
-          @click="toInfoPage(item.ticker)"
+          @click="toInfoPage(item.ticker, item.tempTicker)"
         >
           <th
             class="
@@ -23,9 +23,8 @@
             <div class="flex flex-col md:flex-row md:items-center md:gap-x-3">
               <p
                 class="
-                  w-1/2
                   md:w-2/5
-                  max-w-[70px]
+                  max-w-[80px]
                   px-1
                   py-1
                   shrink-0
@@ -170,7 +169,7 @@ export default {
     const router = useRouter();
 
     const isTickerInCachedList = computed(() => {
-      const ticker = props.searchList[0]?.ticker;
+      const ticker = props.searchList[0]?.tempTicker;
       const currentWatchlist = {
         ...cachedList.value[currentTab.value].currentWatchlist,
       };
@@ -178,22 +177,27 @@ export default {
       return currentWatchlist.hasOwnProperty(ticker);
     });
 
-    function toInfoPage(ticker) {
+    function toInfoPage(ticker, tempTicker) {
       if (props.isAddingProcess) return;
       router.push({
         name: "stockInfo",
-        params: { ticker },
+        params: { ticker, tempTicker },
       });
     }
 
     function addToWatchlist(ticker, name) {
       if (isTickerInCachedList.value) return;
 
+      const tempTicker = ticker.includes(".") ? ticker.split(".")[0] : ticker;
+
+      const id = ticker.includes(".")
+        ? ticker.split(".")[1] + ticker.split(".")[0]
+        : ticker;
+
       const { data, error, loading } = useAxios("/api/addToWatchlist", "post", {
-        ticker,
         name,
         currentTab: $store.currentTab,
-        searchList: props.searchList[0],
+        searchList: { ...props.searchList[0], tempTicker, id },
       });
 
       watch(data, () => emit("loadWatchlist", { status: "addTicker" }));

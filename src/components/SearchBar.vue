@@ -13,7 +13,7 @@
         bg-white
         rounded-l
         shadow
-        focus:ring-blue-300/80 focus:ring-inset focus:ring-1 focus:outline-0
+        focus:ring-blue-300/60 focus:ring-inset focus:ring-2 focus:outline-0
         grow
       "
       type="search"
@@ -21,7 +21,6 @@
       :placeholder="selectedCountry.placeholder"
       @focus="toggleSearchList(true)"
       v-model.trim="searchTicker"
-      v-toUpperCase
       ref="searchTickerRef"
     />
     <button
@@ -33,6 +32,7 @@
         justify-between
         bg-zinc-50
         rounded-r
+        border
         py-2
         px-3
         text-xs
@@ -77,7 +77,7 @@
           'bg-slate-600 text-white': country.name === selectedCountry.name,
         }"
         v-for="country in countries"
-        :key="country.id"
+        :key="country.code"
         @click="selectCountry(country)"
       >
         {{ country.name }}
@@ -87,7 +87,7 @@
 </template>
 
 <script>
-import { nextTick, ref, watch, watchEffect } from "vue";
+import { ref, watch, watchEffect } from "vue";
 import axios from "axios";
 
 export default {
@@ -110,80 +110,65 @@ export default {
     const toggleDropdown = () => (isDropdownOpen.value = !isDropdownOpen.value);
 
     const countries = ref([
-      { id: "us", name: "US Stocks", placeholder: "Ex: AAPL", maxLength: "5" },
       {
-        id: "tw",
+        code: "us",
+        name: "US Stocks",
+        placeholder: "Ex: AAPL",
+        maxLength: "5",
+        style: "bg-sky-500",
+        rule: /^[a-z\-?]{1,5}$/i,
+      },
+      {
+        code: "tw",
         name: "TW Stocks",
         placeholder: "Ex: 0050.TW",
         maxLength: "8",
+        style: "bg-slate-700",
+        rule: /^\d{4,5}\.tw$/i,
       },
       {
-        id: "uk",
+        code: "uk",
         name: "UK Stocks",
         placeholder: "Ex: SHEL.L",
         maxLength: "6",
+        style: "bg-red-500",
+        rule: /^[a-z]{4}\.l$/i,
       },
       {
-        id: "hk",
+        code: "hk",
         name: "HK Stocks",
         placeholder: "Ex: 1299.HK",
         maxLength: "7",
+        style: "bg-teal-600/70",
+        rule: /^\d{4}\.hk$/i,
       },
       {
-        id: "ks",
+        code: "ks",
         name: "KR Stocks",
         placeholder: "Ex: 005930.KS",
         maxLength: "9",
+        style: "bg-orange-500",
+        rule: /^\d{6}\.ks$/i,
       },
       {
-        id: "mf",
+        code: "mf",
         name: "Mutual Funds",
         placeholder: "Ex: TRGIX",
         maxLength: "5",
+        style: "bg-indigo-600",
+        rule: /^[a-z]{5}$/i,
       },
     ]);
-    const selectedCountry = ref(countries.value[1]);
+    const selectedCountry = ref(countries.value[0]);
 
     function selectCountry(country) {
       selectedCountry.value = country;
       toggleDropdown();
     }
 
-    function getMatchRules(newCountry) {
-      let rule = null;
-
-      switch (newCountry.id) {
-        case "us":
-          rule = /^[a-z\-?]{1,5}$/i;
-          break;
-        case "uk":
-          rule = /^[a-z]{4}\.l$/i;
-          break;
-        case "tw":
-          rule = /^\d{4,5}\.tw$/i;
-          break;
-        case "hk":
-          rule = /^\d{4}\.hk$/i;
-          break;
-        case "ks":
-          rule = /^\d{6}\.ks$/i;
-          break;
-        case "mf":
-          rule = /^[a-z]{5}$/i;
-          break;
-        default:
-          rule = /^[a-z\-?]{1,5}$/i;
-          break;
-      }
-
-      return rule;
-    }
-
-    const matchRules = ref(null);
-
-    watchEffect(
+    watch(
+      selectedCountry,
       () => {
-        matchRules.value = getMatchRules(selectedCountry.value);
         searchTicker.value = "";
         searchTickerRef.value.focus();
       },
@@ -195,7 +180,8 @@ export default {
       const oldLen = oldSearch?.length || 0;
       const newLen = newSearch?.length;
       const isTyping = newLen > oldLen;
-      const isTickerMatch = matchRules.value.test(newSearch);
+      const isTickerMatch = selectedCountry.value.rule.test(newSearch);
+      console.log("isTickerMatch", isTickerMatch);
 
       if (!isTickerMatch) {
         if (newSearch === "") {
@@ -232,19 +218,23 @@ export default {
 
       try {
         let invalidCount = 0;
+        const { code, style } = selectedCountry.value;
 
         const response = await Promise.allSettled(allPromises);
         const results = response
           .map((item) => item.value.data.result)
           .filter((item) => {
             if (isTickerValid(item)) {
-              setCacheValidTicker(item.ticker.toLowerCase(), item);
+              setCacheValidTicker(item.ticker.toLowerCase(), {
+                ...item,
+                code,
+                style,
+              });
               return isTickerValid(item);
             } else {
               invalidCount++;
             }
           });
-        // console.log("results", results);
 
         const isGettingAllResults =
           results.length === allPromises.length - invalidCount;

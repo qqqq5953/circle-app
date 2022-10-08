@@ -28,12 +28,12 @@
                   px-1
                   py-1
                   shrink-0
-                  bg-red-400
                   rounded
                   text-white text-center
                   font-semibold
                   uppercase
                 "
+                :class="item.style"
               >
                 {{ item.ticker }}
               </p>
@@ -83,9 +83,11 @@
                   v-if="item.previousCloseChange > 0"
                 ></i>
                 <i class="fas fa-arrow-down" v-else></i>
-                <span class=""
-                  >{{ Math.abs(item.previousCloseChangePercent) }} %</span
-                >
+                <span>{{
+                  item.previousCloseChangePercent[0] === "-"
+                    ? item.previousCloseChangePercent.slice(1)
+                    : item.previousCloseChangePercent
+                }}</span>
               </div>
             </div>
           </td>

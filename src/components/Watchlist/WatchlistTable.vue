@@ -187,12 +187,12 @@
                     px-1
                     py-1
                     shrink-0
-                    bg-red-400
                     rounded
                     text-white text-center
                     font-semibold
                     uppercase
                   "
+                  :class="item.style"
                 >
                   {{ item.ticker }}
                 </p>
@@ -229,12 +229,26 @@
               "
             >
               <div class="flex m-auto">
+                <!-- 'text-white bg-pink-500'
+                      'text-white bg-teal-400' -->
+
+                <!-- 'text-red-600 bg-red-100'
+                      'text-green-600 bg-green-100' -->
                 <div
-                  class="flex items-center gap-2 m-auto px-3 py-2 rounded"
+                  class="
+                    flex
+                    items-center
+                    gap-2
+                    m-auto
+                    px-3
+                    py-2
+                    rounded
+                    font-medium
+                  "
                   :class="
                     item.previousCloseChange > 0
                       ? 'text-red-600 bg-red-100'
-                      : 'text-green-600 bg-green-100'
+                      : 'text-green-700 bg-green-200/60'
                   "
                 >
                   <i
@@ -258,13 +272,16 @@
                 text-xs text-center
                 hidden
                 lg:table-cell lg:w-auto
+                font-medium
               "
             >
+              <!-- 'text-pink-500'
+            'text-teal-400' -->
               <span
                 :class="
                   item.previousCloseChange > 0
                     ? 'text-red-600'
-                    : 'text-green-600'
+                    : 'text-green-700'
                 "
                 >{{ item.previousCloseChange }}</span
               >
@@ -377,11 +394,16 @@ export default {
           break;
 
         case "deleteTicker":
-          let str = "";
-          deleteArr.value.forEach((item) => {
-            str += `<span class="max-w-fit px-2 rounded bg-red-400 text-white text-base">${item}</span>`;
-          });
-          alertTitle.value = `<div class="flex items-center gap-2 flex-wrap">Delete ${str}</div>`;
+          let tickers = "";
+
+          for (const tempTicker in props.watchlistDisplay) {
+            const tickerObj = props.watchlistDisplay[tempTicker];
+            if (deleteArr.value.indexOf(tickerObj.ticker) !== -1) {
+              tickers += `<span class="max-w-fit px-2 rounded ${tickerObj.style} text-white text-base">${tickerObj.ticker}</span>`;
+            }
+          }
+
+          alertTitle.value = `<div class="flex items-center gap-2 flex-wrap">Delete ${tickers}</div>`;
 
           alertContent.value = `${deleteArr.value.length} items will be deleted.`;
           break;

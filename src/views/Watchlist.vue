@@ -1,5 +1,8 @@
 <template>
   <main class="flex flex-col gap-3 px-4 md:p-10 mx-auto w-full">
+    <span class="bg-teal-600/70 text-white rounded px-2 py-1 max-w-fit"
+      >123</span
+    >
     <div class="relative w-full pb-14">
       <SearchBar
         id="searchBar"
@@ -134,14 +137,19 @@ export default {
     };
 
     const getSearchList = (tickerObject) => {
-      if (tickerObject === undefined) {
-        searchList.value = undefined; // 無搜尋結果
-      } else if (tickerObject === null) {
-        searchList.value = null; // 輸入不符格式
-      } else {
-        const ticker = tickerObject.ticker;
-        const tempTicker = ticker.includes(".") ? ticker.split(".")[0] : ticker;
-        searchList.value = [{ ...tickerObject, tempTicker }];
+      switch (tickerObject) {
+        case undefined:
+          searchList.value = undefined; // 無搜尋結果
+          break;
+        case null:
+          searchList.value = null; // 輸入不符格式
+          break;
+        default:
+          const { code, ticker } = tickerObject;
+          const tempTicker =
+            code !== "us" || code !== "mf" ? ticker.split(".")[0] : ticker;
+
+          searchList.value = [{ ...tickerObject, tempTicker }];
       }
     };
 
@@ -245,6 +253,8 @@ export default {
           ? Object.keys(currentWatchlist)?.length
           : 0;
         setSkeletonTableRow(rows);
+
+        console.log("currentWatchlist", currentWatchlist);
 
         watchlistDisplay.value = currentWatchlist;
         cachedList.value[currentTab.value] = setCacheList(currentWatchlist);

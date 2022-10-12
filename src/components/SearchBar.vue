@@ -17,6 +17,7 @@
         grow
       "
       type="search"
+      autofocus
       :maxlength="selectedCountry.maxLength"
       :placeholder="selectedCountry.placeholder"
       @focus="toggleSearchList(true)"
@@ -147,7 +148,7 @@ export default {
         name: "KR Stocks",
         placeholder: "Ex: 005930.KS",
         maxLength: "9",
-        style: "bg-orange-500",
+        style: "bg-yellow-500",
         rule: /^\d{6}\.ks$/i,
       },
       {
@@ -295,6 +296,3 @@ export default {
   },
 };
 </script>
-
-<style>
-</style>

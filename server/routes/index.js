@@ -6,6 +6,7 @@ const firebaseDb = require('../firebase/index.js')
 
 const holdingRef = firebaseDb.ref('/holding/')
 const watchlistRef = firebaseDb.ref('/watchlist/')
+const templistRef = firebaseDb.ref('/templist/')
 const tabsRef = firebaseDb.ref('/tabs/')
 
 const getHoldingsTradeInfo = require('../actions/getHoldingsTradeInfo')
@@ -245,18 +246,50 @@ router.post('/addStock', async (req, res) => {
 })
 
 // watchlist
-router.post('/addToWatchlist', async (req, res) => {
-  const { name, currentTab, searchList } = req.body
+router.get('/tempList/:tab', async (req, res) => {
+  const currentTab = req.params.tab
+
   const list = currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
 
   try {
-    await watchlistRef.child(list).child(searchList.tempTicker).set(searchList)
+    const templistChildRef = await templistRef.child(list).once('value')
+    const templist = templistChildRef.val()
+
+    const msg = {
+      success: true,
+      content: '獲得 watchlist',
+      errorMessage: null,
+      result: templist
+    }
+
+    res.send(msg)
+  } catch (error) {
+    console.log('error', error.message)
+    const msg = {
+      success: false,
+      content: '獲得標的失敗',
+      errorMessage: error.message,
+      result: null
+    }
+    res.send(msg)
+  }
+})
+
+router.post('/tempList', async (req, res) => {
+  const { ticker, tempTicker, name, currentTab, style } = req.body
+  const list = currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
+
+  try {
+    await templistRef
+      .child(list)
+      .child(tempTicker)
+      .set({ ticker, tempTicker, style })
 
     const message = {
       success: true,
       content: '標的新增成功',
       errorMessage: null,
-      result: { [searchList.ticker]: name }
+      result: { [ticker]: name }
     }
     res.send(message)
   } catch (error) {
@@ -268,11 +301,13 @@ router.post('/addToWatchlist', async (req, res) => {
     }
     res.send(message)
   }
+  templistRef
 })
 
-router.post('/deleteFromWatchlist', async (req, res) => {
+router.delete('/tempList/:currentTab/:tickers', async (req, res) => {
   try {
-    const { tickers, currentTab } = req.body
+    const currentTab = req.params.currentTab
+    const tickers = JSON.parse(req.params.tickers)
 
     if (tickers.length === 0) return
 
@@ -282,6 +317,7 @@ router.post('/deleteFromWatchlist', async (req, res) => {
     for (let i = 0; i < tickers.length; i++) {
       const ticker = tickers[i]
       await watchlistRef.child(list).child(ticker).remove()
+      await templistRef.child(list).child(ticker).remove()
     }
 
     const message = {
@@ -302,14 +338,115 @@ router.post('/deleteFromWatchlist', async (req, res) => {
   }
 })
 
-router.get('/getWatchlist/:tab', async (req, res) => {
+router.post('/addToWatchlist', async (req, res) => {
+  const { currentTab, watchlist } = req.body
+  const list = currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
+
+  try {
+    await watchlistRef
+      .child(list)
+      .child(watchlist.code)
+      .child(watchlist.tempTicker)
+      .set(watchlist)
+
+    const message = {
+      success: true,
+      content: '標的新增成功',
+      errorMessage: null,
+      result: { [watchlist.ticker]: watchlist.name }
+    }
+    res.send(message)
+  } catch (error) {
+    const message = {
+      success: true,
+      content: '標的新增失敗',
+      errorMessage: error.message,
+      result: null
+    }
+    res.send(message)
+  }
+})
+
+router.post('/deleteFromWatchlist', async (req, res) => {
+  try {
+    const { deleteInfoArr, currentTab } = req.body
+    const tickers = deleteInfoArr.map((obj) => obj.tempTicker)
+    const codes = deleteInfoArr.map((obj) => obj.code)
+
+    if (deleteInfoArr.length === 0) return
+
+    const list =
+      currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
+
+    for (let i = 0; i < tickers.length; i++) {
+      const ticker = tickers[i]
+      const code = codes[i]
+      await watchlistRef.child(list).child(code).child(ticker).remove()
+    }
+
+    const message = {
+      success: true,
+      content: '刪除成功',
+      errorMessage: null,
+      result: tickers
+    }
+    res.send(message)
+  } catch (error) {
+    const message = {
+      success: false,
+      content: '刪除失敗',
+      errorMessage: error.message,
+      result: null
+    }
+    res.send(message)
+  }
+})
+
+router.put('/watchlist/:currentTab/:code/:ticker', async (req, res) => {
+  const { currentTab, code, ticker } = req.params
+  const { newItem } = req.body
+
+  const list = currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
+
+  await watchlistRef.child(list).child(code).child(ticker).update(newItem)
+
+  const watchlistChildRef = await watchlistRef.child(list).once('value')
+
+  const watchlist = Object.values(watchlistChildRef.val()).reduce(
+    (obj, tickerByCode) => {
+      return {
+        ...obj,
+        ...tickerByCode
+      }
+    },
+    {}
+  )
+
+  const msg = {
+    success: true,
+    content: '更新 watchlist',
+    errorMessage: null,
+    result: watchlist
+  }
+  res.send(msg)
+})
+
+router.get('/watchlist/:tab', async (req, res) => {
   const currentTab = req.params.tab
 
   const list = currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
 
   try {
     const watchlistChildRef = await watchlistRef.child(list).once('value')
-    const watchlist = watchlistChildRef.val()
+    const watchlist = Object.values(watchlistChildRef.val()).reduce(
+      (obj, tickerByCode) => {
+        return {
+          ...obj,
+          ...tickerByCode
+        }
+      },
+      {}
+    )
 
     // console.log('watchlist', watchlist)
 
@@ -323,30 +460,6 @@ router.get('/getWatchlist/:tab', async (req, res) => {
     res.send(msg)
   } catch (error) {
     console.log('error', error.message)
-    const msg = {
-      success: false,
-      content: '獲得標的失敗',
-      errorMessage: error.message,
-      result: null
-    }
-    res.send(msg)
-  }
-})
-
-router.get('/getAllWatchlists', async (req, res) => {
-  try {
-    const watchlistsRef = await watchlistRef.once('value')
-    const watchlists = watchlistsRef.val()
-
-    const msg = {
-      success: true,
-      content: '獲得 watchlist',
-      errorMessage: null,
-      result: watchlists
-    }
-
-    res.send(msg)
-  } catch (error) {
     const msg = {
       success: false,
       content: '獲得標的失敗',
@@ -850,6 +963,47 @@ router.get('/historicalPrice/:ticker', async (req, res) => {
 
       res.send(message)
     }
+  }
+})
+
+router.get('/previousClose/:ticker', async (req, res) => {
+  // const quoteOptions = {
+  //   symbols: [ticker],
+  //   to: getFormattedDate(0),
+  //   from: getFormattedDate(2),
+  //   period: 'd'
+  // }
+
+  // const response = await yahooFinance.historical(quoteOptions)
+  // console.log('response', response)
+  // const quotes = response[ticker][0]
+
+  const quoteOptions1 = {
+    symbol: req.params.ticker,
+    modules: ['price']
+  }
+
+  try {
+    const { price } = await yahooFinance.quote(quoteOptions1)
+
+    const message = {
+      success: true,
+      content: '取得成功',
+      errorMessage: null,
+      result: price.regularMarketPrice
+    }
+
+    res.send(message)
+  } catch (error) {
+    console.log('error', error)
+    const message = {
+      success: false,
+      content: '取得失敗',
+      errorMessage: error.message,
+      result: null
+    }
+
+    res.send(message)
   }
 })
 

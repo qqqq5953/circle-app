@@ -1,8 +1,5 @@
 <template>
   <main class="flex flex-col gap-3 px-4 md:p-10 mx-auto w-full">
-    <span class="bg-teal-600/70 text-white rounded px-2 py-1 max-w-fit"
-      >123</span
-    >
     <div class="relative w-full pb-14">
       <SearchBar
         id="searchBar"
@@ -72,6 +69,10 @@
       </template>
     </ListSkeleton>
 
+    <button class="bg-red-100 max-w-fit" @click="deleteTest">
+      delete test
+    </button>
+
     <WatchlistTable
       :watchlistDisplay="watchlistDisplay"
       @loadWatchlist="loadWatchlist"
@@ -84,7 +85,7 @@
 
 <script>
 import { ref, watch, defineAsyncComponent } from "vue";
-import useAxios from "@/composables/useAxios.js";
+import http from "../api/index";
 
 import SearchList from "@/components/SearchList.vue";
 import WatchlistTable from "@/components/Watchlist/WatchlistTable.vue";
@@ -169,10 +170,9 @@ export default {
 
     // tabs
     const setTabs = (tab) => $store.setTabs(tab);
-    const { data, error, loading } = useAxios(`/api/getTabs`, "get");
 
-    watch(data, (newData) => {
-      setTabs(newData.result);
+    http.get(`/api/getTabs`).then((res) => {
+      setTabs(res.data.result);
       loadWatchlist({ status: "init" });
     });
 
@@ -187,7 +187,7 @@ export default {
       },
       tableBody: {
         hasTableBody: true,
-        tr: 1,
+        tr: 5,
         th: 1,
         td: 3,
       },
@@ -204,14 +204,25 @@ export default {
       isAddingProcess.value = isLoading;
     };
 
-    const setSkeletonTableRow = (rowNumber) => {
-      watchlistTableSkeletonContent.value.tableBody.tr = rowNumber;
+    const setSkeletonTableRow = (tickers) => {
+      const rows = tickers ? Object.keys(tickers)?.length : 0;
+      watchlistTableSkeletonContent.value.tableBody.tr = rows;
     };
 
     const toggleLoadingEffect = (isActivate) => {
       toggleAddButtonSpinner(isActivate);
       toggleWatchlistSkeleton(isActivate);
     };
+
+    function deleteTest() {
+      http.put(`/api/watchlist/${currentTab.value}/us/A`).then((res) => {
+        console.log("res", res);
+      });
+      // const str = JSON.stringify(["A", "AA", "AAA"]);
+      // http.delete(`/api/tempList/${currentTab.value}/${str}`).then((res) => {
+      //   console.log("res", res);
+      // });
+    }
 
     // status: init, switch, deleteTicker, addTicker
     async function loadWatchlist({ status }) {
@@ -228,39 +239,154 @@ export default {
         }
       }
 
-      toggleLoadingEffect(true);
-
       const allTabs = Object.keys(cachedList.value);
       const isCurrentTabInTabs = allTabs.includes(currentTab.value);
 
       // switch 時用 cache
       if (status === "switch" && isCurrentTabInTabs) {
         watchlistDisplay.value = getCacheList(currentTab.value);
-
-        toggleLoadingEffect(false);
         return;
       }
 
-      const { data, error, loading } = useAxios(
-        `/api/getWatchlist/${currentTab.value}`,
-        "get"
-      );
+      toggleLoadingEffect(true);
 
-      watch([data], async ([newData]) => {
-        // 不用這個功能，固定顯示五列即可
-        const currentWatchlist = newData.result;
-        const rows = currentWatchlist
-          ? Object.keys(currentWatchlist)?.length
-          : 0;
-        setSkeletonTableRow(rows);
+      try {
+        const tempRes = await http.get(`/api/watchlist/${currentTab.value}`);
+        const watchlistTickers = tempRes.data.result;
 
+        // init 無法正確顯示，其餘可以
+        setSkeletonTableRow(watchlistTickers);
+
+        const currentWatchlist = await getCurrentWatchlist(watchlistTickers);
+
+        console.log("watchlistTickers", watchlistTickers);
         console.log("currentWatchlist", currentWatchlist);
 
         watchlistDisplay.value = currentWatchlist;
         cachedList.value[currentTab.value] = setCacheList(currentWatchlist);
 
         toggleLoadingEffect(false);
+      } catch (error) {
+        console.log("error", error);
+      }
+    }
+
+    async function getCurrentWatchlist(watchlistTickers) {
+      if (!watchlistTickers) return null;
+
+      // const hasNewPrice = await checkNewPrice1(watchlistTickers);
+      // console.log("hasNewPrice", hasNewPrice);
+
+      // const currentWatchlist = hasNewPrice
+      //   ? await updateList(watchlistTickers)
+      //   : watchlistTickers;
+
+      // const hasNewPrice1 = await checkNewPrice(watchlistTickers);
+      // console.log("hasNewPrice1", hasNewPrice1);
+
+      const currentWatchlist = await checkNewPrice(watchlistTickers);
+
+      return currentWatchlist;
+    }
+
+    async function checkNewPrice(watchlistTickers) {
+      const listPromises = [];
+
+      // fetch new price
+      for (const tempTicker in watchlistTickers) {
+        const ticker = watchlistTickers[tempTicker].ticker;
+        listPromises.push(http.get(`/api/previousClose/${ticker}`));
+      }
+      const res = await Promise.allSettled(listPromises);
+
+      const currentPrices = res.map((item) => item.value.data.result);
+
+      const result = [];
+
+      let i = 0;
+
+      // compare price with loop
+      for (const tempTicker in watchlistTickers) {
+        const listItem = watchlistTickers[tempTicker];
+        const { price, code } = listItem;
+        const currentPrice = currentPrices[i];
+
+        if (price !== currentPrice) {
+          const newItem = {
+            ...listItem,
+            price: parseFloat(currentPrice.toFixed(2)),
+          };
+          console.log("newItem", newItem);
+
+          const res = await http.put(
+            `/api/watchlist/${currentTab.value}/${code}/${tempTicker}`,
+            { newItem }
+          );
+          console.log("res", res.data.result);
+
+          result.push(res.data.result);
+        }
+
+        i++;
+      }
+
+      console.log("result", result);
+
+      return result.length !== 0 ? result.pop() : watchlistTickers;
+    }
+
+    async function updateList1() {}
+
+    async function updateList(watchlistTickers) {
+      console.log("updateList");
+      const tempTickers = Object.keys(watchlistTickers);
+      const allPromises = tempTickers.map((tempTicker) => {
+        const ticker = watchlistTickers[tempTicker].ticker;
+        return http.get(`/api/quote/${ticker}`);
       });
+
+      try {
+        const response = await Promise.allSettled(allPromises);
+        const updatedList = response
+          .map((item) => item.value.data.result)
+          .reduce((obj, item, i) => {
+            const tempTicker = tempTickers[i];
+            const { code, id, style } = watchlistTickers[tempTicker];
+            const newItem = { ...item, code, id, style, tempTicker };
+
+            return {
+              ...obj,
+              [tempTicker]: newItem,
+            };
+          }, {});
+
+        for (let tempTicker in updatedList) {
+          const listItem = updatedList[tempTicker];
+          await http.post("/api/addToWatchlist", {
+            name: listItem.name,
+            currentTab: currentTab.value,
+            watchlist: listItem,
+          });
+        }
+
+        return updatedList;
+      } catch (error) {
+        console.log("error", error);
+        toggleWatchlistSkeleton(false);
+      }
+    }
+
+    async function checkNewPrice1(watchlistTickers) {
+      const firstTempTicker = Object.keys(watchlistTickers)[0];
+      const firstTicker = watchlistTickers[firstTempTicker].ticker;
+      const closeRes = await http.get(`/api/previousClose/${firstTicker}`);
+      const prevClose = closeRes.data.result;
+      const dbClose = watchlistTickers[firstTempTicker].price;
+      console.log("firstTicker", firstTicker);
+      console.log("prevClose", prevClose);
+      console.log("dbClose", dbClose);
+
+      return prevClose !== dbClose;
     }
 
     function getCacheList(currentTab) {
@@ -310,6 +436,8 @@ export default {
       toggleWatchlistSkeleton,
 
       currentTab,
+
+      deleteTest,
     };
   },
 };

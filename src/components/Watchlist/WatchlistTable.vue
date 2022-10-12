@@ -161,12 +161,11 @@
         </thead>
         <tbody>
           <tr
-            class="hover:bg-slate-100 hover:cursor-pointer"
+            class="hover:bg-slate-100"
             v-for="item in watchlistDisplay"
             :key="item.tempTicker"
             :id="item.id"
             ref="tickerRowsRef"
-            @click="toInfoPage(item.ticker, item.tempTicker)"
           >
             <th
               class="
@@ -179,7 +178,17 @@
                 w-5/12
               "
             >
-              <div class="flex flex-col md:flex-row md:items-center md:gap-x-3">
+              <router-link
+                class="
+                  flex flex-col
+                  md:flex-row md:items-center md:gap-x-3
+                  hover:cursor-pointer
+                "
+                :to="{
+                  name: 'stockInfo',
+                  params: { ticker: item.ticker, tempTicker: item.tempTicker },
+                }"
+              >
                 <p
                   class="
                     md:w-2/5
@@ -187,7 +196,7 @@
                     px-1
                     py-1
                     shrink-0
-                    rounded
+                    rounded-full
                     text-white text-center
                     font-semibold
                     uppercase
@@ -199,7 +208,7 @@
                 <p class="w-full md:w-3/5 mt-2 md:mt-0 truncate ...">
                   {{ item.name }}
                 </p>
-              </div>
+              </router-link>
             </th>
             <td
               class="
@@ -233,7 +242,7 @@
                       'text-white bg-teal-400' -->
 
                 <!-- 'text-red-600 bg-red-100'
-                      'text-green-600 bg-green-100' -->
+                      'text-green-700 bg-green-200/60' -->
                 <div
                   class="
                     flex
@@ -247,8 +256,8 @@
                   "
                   :class="
                     item.previousCloseChange > 0
-                      ? 'text-red-600 bg-red-100'
-                      : 'text-green-700 bg-green-200/60'
+                      ? 'text-red-600 bg-red-100/70'
+                      : 'text-green-700 bg-green-100'
                   "
                 >
                   <i
@@ -257,7 +266,12 @@
                   ></i>
                   <i class="fas fa-arrow-down" v-else></i>
                   <span class=""
-                    >{{ Math.abs(item.previousCloseChangePercent) }} %</span
+                    >{{
+                      item.previousCloseChangePercent[0] === "-"
+                        ? item.previousCloseChangePercent.slice(1)
+                        : item.previousCloseChangePercent
+                    }}
+                    %</span
                   >
                 </div>
               </div>
@@ -277,6 +291,8 @@
             >
               <!-- 'text-pink-500'
             'text-teal-400' -->
+              <!-- 'text-red-600'
+            'text-green-700' -->
               <span
                 :class="
                   item.previousCloseChange > 0
@@ -340,6 +356,7 @@
 import { useRouter } from "vue-router";
 import { ref, watch, nextTick, defineAsyncComponent, computed } from "vue";
 import { storeToRefs } from "pinia";
+import http from "@/api/index";
 import useAxios from "@/composables/useAxios.js";
 import useWatchlistStore from "@/stores/watchlistStore.js";
 import InputModal from "@/components/InputModal.vue";
@@ -449,7 +466,7 @@ export default {
       },
     ]);
 
-    const deleteWatchlist = () => {
+    const deleteWatchlist = async () => {
       const { data, error, loading } = useAxios(
         "/api/deleteWatchlist",
         "post",
@@ -463,6 +480,18 @@ export default {
         showCurrentTab($store.DEFAULT_TAB);
         closeAlert();
       });
+
+      // try {
+      //   const res = await http.post("/api/deleteWatchlist", {
+      //     currentTab: $store.currentTab,
+      //   });
+
+      //   setTabs(res.data.result);
+      //   showCurrentTab($store.DEFAULT_TAB);
+      //   closeAlert();
+      // } catch (error) {
+      //   console.log("error", error);
+      // }
     };
 
     const renameWatchlist = () => {
@@ -495,61 +524,42 @@ export default {
         !props.watchlistDisplay[ticker].isDelete;
     };
 
-    const deleteTicker = () => {
+    const deleteTicker = async () => {
       if (deleteArr.value.length === 0) return;
 
       emit("toggleWatchlistSkeleton", true);
       closeAlert();
 
-      const tickers = deleteArr.value.map((ticker) =>
-        ticker.includes(".") ? ticker.split(".")[0] : ticker
-      );
+      const deleteInfoArr = deleteArr.value
+        .map((ticker) => (ticker.includes(".") ? ticker.split(".")[0] : ticker))
+        .map((ticker) => {
+          const { tempTicker, code } = props.watchlistDisplay[ticker];
 
-      const { data, error, loading } = useAxios(
-        "/api/deleteFromWatchlist",
-        "post",
-        {
-          tickers,
+          return { tempTicker, code };
+        });
+
+      try {
+        const result = await http.post("/api/deleteFromWatchlist", {
+          deleteInfoArr,
           currentTab: $store.currentTab,
-        }
-      );
+        });
+        console.log("delete result", result.data.result);
+        emit("loadWatchlist", { status: "deleteTicker" });
+      } catch (error) {}
 
-      // const ids = tickers.map((ticker) => {
-      //   return `#${props.watchlistDisplay[ticker].id}`;
+      // const tickersStr = JSON.stringify(tickers);
+
+      // const tempPromises = http.delete(
+      //   `/api/tempList/${currentTab.value}/${tickersStr}`
+      // );
+
+      // const deletePromises = http.post("/api/deleteFromWatchlist", {
+      //   tickers,
+      //   currentTab: $store.currentTab,
       // });
-
-      // // const ids = tickers.map((ticker) => "#" + ticker);
-
-      // const deletedTickerRow = document.querySelectorAll([...ids]);
-
-      // Array.from(deletedTickerRow).forEach((row) => {
-      //   row.classList.add("hidden");
-      //   deleteArr.value.pop();
-      // });
-
-      watch(
-        data,
-        () => {
-          // const newTotalRows = tickerRowsRef.value.filter((item) => {
-          //   return !item.classList.contains("hidden");
-          // });
-          // $store.setTabsInfo(currentTab.value, newTotalRows.length);
-
-          $store.setTabsInfo(currentTab.value, tickerRowsRef.value.length);
-          emit("loadWatchlist", { status: "deleteTicker" });
-        },
-        { flush: "post" }
-      );
     };
 
     const clearDeleteArr = () => (deleteArr.value.length = 0);
-
-    function toInfoPage(ticker, tempTicker) {
-      router.push({
-        name: "stockInfo",
-        params: { ticker, tempTicker },
-      });
-    }
 
     // 新增後tab顯示個數
     watch(
@@ -600,7 +610,6 @@ export default {
       deleteWatchlist,
       renameWatchlist,
 
-      toInfoPage,
       deleteArr,
       toggleChecked,
       calculateListItems,

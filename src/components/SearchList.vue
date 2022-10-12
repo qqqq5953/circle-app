@@ -4,10 +4,9 @@
       <slot name="thead"></slot>
       <tbody>
         <tr
-          class="hover:bg-slate-100 hover:cursor-pointer"
+          class="hover:bg-slate-100"
           v-for="item in searchList"
           :key="item.ticker"
-          @click="toInfoPage(item.ticker, item.tempTicker)"
         >
           <th
             class="
@@ -20,7 +19,14 @@
               w-5/12
             "
           >
-            <div class="flex flex-col md:flex-row md:items-center md:gap-x-3">
+            <div
+              class="
+                flex flex-col
+                md:flex-row md:items-center md:gap-x-3
+                hover:cursor-pointer
+              "
+              @click="toInfoPage(item.ticker, item.tempTicker)"
+            >
               <p
                 class="
                   md:w-2/5
@@ -28,7 +34,7 @@
                   px-1
                   py-1
                   shrink-0
-                  rounded
+                  rounded-full
                   text-white text-center
                   font-semibold
                   uppercase
@@ -71,11 +77,20 @@
           >
             <div class="flex m-auto">
               <div
-                class="flex items-center gap-2 m-auto px-3 py-2 rounded"
+                class="
+                  flex
+                  items-center
+                  gap-2
+                  m-auto
+                  px-3
+                  py-2
+                  rounded
+                  font-medium
+                "
                 :class="
                   item.previousCloseChange > 0
-                    ? 'text-red-600 bg-red-100'
-                    : 'text-green-600 bg-green-100'
+                    ? 'text-red-600 bg-red-100/70'
+                    : 'text-green-700 bg-green-100'
                 "
               >
                 <i
@@ -83,11 +98,14 @@
                   v-if="item.previousCloseChange > 0"
                 ></i>
                 <i class="fas fa-arrow-down" v-else></i>
-                <span>{{
-                  item.previousCloseChangePercent[0] === "-"
-                    ? item.previousCloseChangePercent.slice(1)
-                    : item.previousCloseChangePercent
-                }}</span>
+                <span
+                  >{{
+                    item.previousCloseChangePercent[0] === "-"
+                      ? item.previousCloseChangePercent.slice(1)
+                      : item.previousCloseChangePercent
+                  }}
+                  %</span
+                >
               </div>
             </div>
           </td>
@@ -101,11 +119,12 @@
               text-xs text-center
               hidden
               lg:table-cell lg:w-auto
+              font-medium
             "
           >
             <span
               :class="
-                item.previousCloseChange > 0 ? 'text-red-600' : 'text-green-600'
+                item.previousCloseChange > 0 ? 'text-red-600' : 'text-green-700'
               "
               >{{ item.previousCloseChange }}</span
             >
@@ -127,13 +146,11 @@
             <div v-else>
               <a
                 href="#"
-                class="text-gray-300"
-                @click.stop.prevent="addToWatchlist(item.ticker, item.name)"
+                class="text-gray-300 inline-block px-2 py-1 hover:text-blue-600"
+                @click.stop.prevent="addToWatchlist(item.ticker)"
                 v-if="!isTickerInCachedList"
               >
-                <i
-                  class="fas fa-plus text-lg md:text-xl hover:text-blue-600"
-                ></i>
+                <i class="fas fa-plus text-lg md:text-xl"></i>
               </a>
               <span v-else>
                 <i
@@ -151,6 +168,7 @@
 <script>
 import { useRouter } from "vue-router";
 import useAxios from "@/composables/useAxios.js";
+import http from "../api/index";
 import { watch, computed } from "vue";
 import useWatchlistStore from "@/stores/watchlistStore.js";
 import { storeToRefs } from "pinia";
@@ -187,7 +205,7 @@ export default {
       });
     }
 
-    function addToWatchlist(ticker, name) {
+    async function addToWatchlist(ticker) {
       if (isTickerInCachedList.value) return;
 
       const tempTicker = ticker.includes(".") ? ticker.split(".")[0] : ticker;
@@ -197,12 +215,31 @@ export default {
         : ticker;
 
       const { data, error, loading } = useAxios("/api/addToWatchlist", "post", {
-        name,
         currentTab: $store.currentTab,
-        searchList: { ...props.searchList[0], tempTicker, id },
+        watchlist: { ...props.searchList[0], tempTicker, id },
       });
 
       watch(data, () => emit("loadWatchlist", { status: "addTicker" }));
+
+      // const addPromises = http.post("/api/addToWatchlist", {
+      //   name,
+      //   currentTab: $store.currentTab,
+      //   watchlist: { ...props.searchList[0], tempTicker, id },
+      // });
+
+      // const tempPromises = http.post("/api/tempList", {
+      //   ticker,
+      //   tempTicker,
+      //   name,
+      //   currentTab: $store.currentTab,
+      //   style: props.searchList[0].style,
+      // });
+
+      // try {
+      //   const result = await Promise.allSettled([addPromises, tempPromises]);
+      //   console.log("result", result);
+      //   emit("loadWatchlist", { status: "addTicker" });
+      // } catch (error) {}
     }
 
     return {

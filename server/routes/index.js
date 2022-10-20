@@ -339,21 +339,17 @@ router.delete('/tempList/:currentTab/:tickers', async (req, res) => {
 })
 
 router.post('/addToWatchlist', async (req, res) => {
-  const { currentTab, watchlist } = req.body
+  const { currentTab, tickerItem } = req.body
   const list = currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
 
   try {
-    await watchlistRef
-      .child(list)
-      .child(watchlist.code)
-      .child(watchlist.tempTicker)
-      .set(watchlist)
+    await watchlistRef.child(list).child(tickerItem.tempTicker).set(tickerItem)
 
     const message = {
       success: true,
       content: '標的新增成功',
       errorMessage: null,
-      result: { [watchlist.ticker]: watchlist.name }
+      result: tickerItem
     }
     res.send(message)
   } catch (error) {
@@ -367,68 +363,97 @@ router.post('/addToWatchlist', async (req, res) => {
   }
 })
 
-router.post('/deleteFromWatchlist', async (req, res) => {
-  try {
-    const { deleteInfoArr, currentTab } = req.body
-    const tickers = deleteInfoArr.map((obj) => obj.tempTicker)
-    const codes = deleteInfoArr.map((obj) => obj.code)
+router.delete(
+  '/deleteFromWatchlist/:currentTab/:deleteInfoArr',
+  async (req, res) => {
+    try {
+      const currentTab = req.params.currentTab
+      const deleteInfoArr = JSON.parse(req.params.deleteInfoArr)
 
-    if (deleteInfoArr.length === 0) return
+      if (deleteInfoArr.length === 0) return
 
-    const list =
-      currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
+      const list =
+        currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
 
-    for (let i = 0; i < tickers.length; i++) {
-      const ticker = tickers[i]
-      const code = codes[i]
-      await watchlistRef.child(list).child(code).child(ticker).remove()
+      // for (let i = 0; i < deleteInfoArr.length; i++) {
+      //   const ticker = deleteInfoArr[i]
+      //   await watchlistRef.child(list).child(ticker).remove()
+      // }
+
+      const result = []
+
+      for (let i = 0; i < deleteInfoArr.length; i++) {
+        const ticker = deleteInfoArr[i]
+        const tickerRef = watchlistRef.child(list).child(ticker)
+        const t = await tickerRef.once('value')
+        result.push(t.val())
+        await watchlistRef.child(list).child(ticker).remove()
+      }
+
+      console.log('result', result)
+
+      const message = {
+        success: true,
+        content: '刪除成功',
+        errorMessage: null,
+        result: deleteInfoArr
+      }
+      res.send(message)
+    } catch (error) {
+      console.log('error', error)
+      const message = {
+        success: false,
+        content: '刪除失敗',
+        errorMessage: error.message,
+        result: null
+      }
+      res.send(message)
     }
-
-    const message = {
-      success: true,
-      content: '刪除成功',
-      errorMessage: null,
-      result: tickers
-    }
-    res.send(message)
-  } catch (error) {
-    const message = {
-      success: false,
-      content: '刪除失敗',
-      errorMessage: error.message,
-      result: null
-    }
-    res.send(message)
   }
-})
+)
 
-router.put('/watchlist/:currentTab/:code/:ticker', async (req, res) => {
-  const { currentTab, code, ticker } = req.params
+router.put('/watchlist/:currentTab/:ticker', async (req, res) => {
+  const { currentTab, ticker } = req.params
   const { newItem } = req.body
+  const { price, previousCloseChange, previousCloseChangePercent } = newItem
 
   const list = currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
 
-  await watchlistRef.child(list).child(code).child(ticker).update(newItem)
+  const tickerRef = watchlistRef.child(list).child(ticker)
+  const priceRef = tickerRef.child('price').set(price)
+  const previousCloseChangeRef = tickerRef
+    .child('previousCloseChange')
+    .set(previousCloseChange)
+  const previousCloseChangePercentRef = tickerRef
+    .child('previousCloseChangePercent')
+    .set(previousCloseChangePercent)
 
-  const watchlistChildRef = await watchlistRef.child(list).once('value')
+  try {
+    await Promise.allSettled([
+      priceRef,
+      previousCloseChangeRef,
+      previousCloseChangePercentRef
+    ])
 
-  const watchlist = Object.values(watchlistChildRef.val()).reduce(
-    (obj, tickerByCode) => {
-      return {
-        ...obj,
-        ...tickerByCode
-      }
-    },
-    {}
-  )
+    const watchlistChildRef = await watchlistRef.child(list).once('value')
+    const watchlist = watchlistChildRef.val()
 
-  const msg = {
-    success: true,
-    content: '更新 watchlist',
-    errorMessage: null,
-    result: watchlist
+    const msg = {
+      success: true,
+      content: '更新 watchlist 成功',
+      errorMessage: null,
+      result: watchlist
+    }
+    res.send(msg)
+  } catch (error) {
+    const msg = {
+      success: true,
+      content: '更新 watchlist 失敗',
+      errorMessage: error.message,
+      result: null
+    }
+    res.send(msg)
   }
-  res.send(msg)
 })
 
 router.get('/watchlist/:tab', async (req, res) => {
@@ -438,15 +463,7 @@ router.get('/watchlist/:tab', async (req, res) => {
 
   try {
     const watchlistChildRef = await watchlistRef.child(list).once('value')
-    const watchlist = Object.values(watchlistChildRef.val()).reduce(
-      (obj, tickerByCode) => {
-        return {
-          ...obj,
-          ...tickerByCode
-        }
-      },
-      {}
-    )
+    const watchlist = watchlistChildRef.val()
 
     // console.log('watchlist', watchlist)
 
@@ -966,31 +983,40 @@ router.get('/historicalPrice/:ticker', async (req, res) => {
   }
 })
 
-router.get('/previousClose/:ticker', async (req, res) => {
-  // const quoteOptions = {
-  //   symbols: [ticker],
-  //   to: getFormattedDate(0),
-  //   from: getFormattedDate(2),
-  //   period: 'd'
-  // }
-
-  // const response = await yahooFinance.historical(quoteOptions)
-  // console.log('response', response)
-  // const quotes = response[ticker][0]
-
-  const quoteOptions1 = {
+router.get('/latestPrice/:ticker', async (req, res) => {
+  const quoteOptions = {
     symbol: req.params.ticker,
     modules: ['price']
   }
 
   try {
-    const { price } = await yahooFinance.quote(quoteOptions1)
+    const { price } = await yahooFinance.quote(quoteOptions)
+
+    const {
+      regularMarketPrice: currentPrice,
+      regularMarketPreviousClose: previousClose
+    } = price
+
+    const previousCloseChange =
+      parseFloat(currentPrice - previousClose) > 0
+        ? '+' + parseFloat(currentPrice - previousClose).toFixed(2)
+        : parseFloat(currentPrice - previousClose).toFixed(2)
+
+    const previousCloseChangePercent = parseFloat(
+      ((currentPrice - previousClose) / previousClose) * 100
+    ).toFixed(2)
+
+    const obj = {
+      currentPrice: parseFloat(currentPrice.toFixed(2)),
+      previousCloseChange,
+      previousCloseChangePercent
+    }
 
     const message = {
       success: true,
-      content: '取得成功',
+      content: '取得最新價成功',
       errorMessage: null,
-      result: price.regularMarketPrice
+      result: obj
     }
 
     res.send(message)

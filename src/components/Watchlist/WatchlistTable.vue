@@ -527,36 +527,31 @@ export default {
     const deleteTicker = async () => {
       if (deleteArr.value.length === 0) return;
 
-      emit("toggleWatchlistSkeleton", true);
+      const keys = Object.keys(props.watchlistDisplay).length;
+      const rows = keys - deleteArr.value.length;
+
+      emit("toggleLoadingEffect", true);
+      emit("setSkeletonTableRow", { rows });
       closeAlert();
 
-      const deleteInfoArr = deleteArr.value
-        .map((ticker) => (ticker.includes(".") ? ticker.split(".")[0] : ticker))
-        .map((ticker) => {
-          const { tempTicker, code } = props.watchlistDisplay[ticker];
-
-          return { tempTicker, code };
-        });
+      const deleteInfoArr = deleteArr.value.map((ticker) =>
+        ticker.includes(".") ? ticker.split(".")[0] : ticker
+      );
 
       try {
-        const result = await http.post("/api/deleteFromWatchlist", {
-          deleteInfoArr,
-          currentTab: $store.currentTab,
+        await http.delete(
+          `/api/deleteFromWatchlist/${$store.currentTab}/${JSON.stringify(
+            deleteInfoArr
+          )}`
+        );
+
+        emit("loadWatchlist", {
+          status: "deleteTicker",
+          payload: deleteInfoArr,
         });
-        console.log("delete result", result.data.result);
-        emit("loadWatchlist", { status: "deleteTicker" });
-      } catch (error) {}
-
-      // const tickersStr = JSON.stringify(tickers);
-
-      // const tempPromises = http.delete(
-      //   `/api/tempList/${currentTab.value}/${tickersStr}`
-      // );
-
-      // const deletePromises = http.post("/api/deleteFromWatchlist", {
-      //   tickers,
-      //   currentTab: $store.currentTab,
-      // });
+      } catch (error) {
+        console.log("error", error);
+      }
     };
 
     const clearDeleteArr = () => (deleteArr.value.length = 0);

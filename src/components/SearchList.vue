@@ -146,7 +146,7 @@
             <div v-else>
               <a
                 href="#"
-                class="text-gray-300 inline-block px-2 py-1 hover:text-blue-600"
+                class="text-gray-300 inline-block py-1 hover:text-blue-600"
                 @click.stop.prevent="addToWatchlist(item.ticker)"
                 v-if="!isTickerInCachedList"
               >
@@ -189,12 +189,12 @@ export default {
     const router = useRouter();
 
     const isTickerInCachedList = computed(() => {
-      const ticker = props.searchList[0]?.tempTicker;
+      const tempTicker = props.searchList[0]?.tempTicker;
       const currentWatchlist = {
-        ...cachedList.value[currentTab.value].currentWatchlist,
+        ...cachedList.value[currentTab.value]?.currentWatchlist,
       };
 
-      return currentWatchlist.hasOwnProperty(ticker);
+      return currentWatchlist.hasOwnProperty(tempTicker);
     });
 
     function toInfoPage(ticker, tempTicker) {
@@ -207,6 +207,7 @@ export default {
 
     async function addToWatchlist(ticker) {
       if (isTickerInCachedList.value) return;
+      emit("toggleLoadingEffect", true);
 
       const tempTicker = ticker.includes(".") ? ticker.split(".")[0] : ticker;
 
@@ -214,32 +215,24 @@ export default {
         ? ticker.split(".")[1] + ticker.split(".")[0]
         : ticker;
 
-      const { data, error, loading } = useAxios("/api/addToWatchlist", "post", {
-        currentTab: $store.currentTab,
-        watchlist: { ...props.searchList[0], tempTicker, id },
-      });
+      try {
+        const tickerItem = {
+          ...props.searchList[0],
+          tempTicker,
+          id,
+        };
+        await http.post("/api/addToWatchlist", {
+          currentTab: $store.currentTab,
+          tickerItem,
+        });
 
-      watch(data, () => emit("loadWatchlist", { status: "addTicker" }));
-
-      // const addPromises = http.post("/api/addToWatchlist", {
-      //   name,
-      //   currentTab: $store.currentTab,
-      //   watchlist: { ...props.searchList[0], tempTicker, id },
-      // });
-
-      // const tempPromises = http.post("/api/tempList", {
-      //   ticker,
-      //   tempTicker,
-      //   name,
-      //   currentTab: $store.currentTab,
-      //   style: props.searchList[0].style,
-      // });
-
-      // try {
-      //   const result = await Promise.allSettled([addPromises, tempPromises]);
-      //   console.log("result", result);
-      //   emit("loadWatchlist", { status: "addTicker" });
-      // } catch (error) {}
+        emit("loadWatchlist", {
+          status: "addTicker",
+          payload: { [tempTicker]: tickerItem },
+        });
+      } catch (error) {
+        console.log("error", error);
+      }
     }
 
     return {

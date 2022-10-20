@@ -138,6 +138,5 @@ export default {
   props: {
     tableContent: Object,
   },
-  setup() {},
 };
 </script>

@@ -19,8 +19,7 @@
             :searchList="searchList"
             :isAddingProcess="isAddingProcess"
             @loadWatchlist="loadWatchlist"
-            @toggleWatchlistSkeleton="toggleWatchlistSkeleton"
-            @toggleAddButtonSpinner="toggleAddButtonSpinner"
+            @toggleLoadingEffect="toggleLoadingEffect"
             v-show="!isSearchListLoading"
           />
           <div
@@ -69,15 +68,11 @@
       </template>
     </ListSkeleton>
 
-    <button class="bg-red-100 max-w-fit" @click="deleteTest">
-      delete test
-    </button>
-
     <WatchlistTable
       :watchlistDisplay="watchlistDisplay"
       @loadWatchlist="loadWatchlist"
-      @toggleAddButtonSpinner="toggleAddButtonSpinner"
-      @toggleWatchlistSkeleton="toggleWatchlistSkeleton"
+      @toggleLoadingEffect="toggleLoadingEffect"
+      @setSkeletonTableRow="setSkeletonTableRow"
       v-show="!isWatchlistLoading"
     />
   </main>
@@ -187,7 +182,7 @@ export default {
       },
       tableBody: {
         hasTableBody: true,
-        tr: 5,
+        tr: 0,
         th: 1,
         td: 3,
       },
@@ -204,9 +199,13 @@ export default {
       isAddingProcess.value = isLoading;
     };
 
-    const setSkeletonTableRow = (tickers) => {
-      const rows = tickers ? Object.keys(tickers)?.length : 0;
-      watchlistTableSkeletonContent.value.tableBody.tr = rows;
+    const setSkeletonTableRow = ({ list, rows }) => {
+      if (!list) {
+        watchlistTableSkeletonContent.value.tableBody.tr = rows;
+      } else {
+        watchlistTableSkeletonContent.value.tableBody.tr =
+          Object.keys(list).length;
+      }
     };
 
     const toggleLoadingEffect = (isActivate) => {
@@ -214,18 +213,38 @@ export default {
       toggleWatchlistSkeleton(isActivate);
     };
 
-    function deleteTest() {
-      http.put(`/api/watchlist/${currentTab.value}/us/A`).then((res) => {
-        console.log("res", res);
-      });
-      // const str = JSON.stringify(["A", "AA", "AAA"]);
-      // http.delete(`/api/tempList/${currentTab.value}/${str}`).then((res) => {
-      //   console.log("res", res);
-      // });
+    function showListOnAdding(payload) {
+      const cacheList = getCacheList(currentTab.value);
+      const unorderedList = { ...payload, ...cacheList };
+      const orderedList = Object.keys(unorderedList)
+        .sort()
+        .reduce((obj, key) => {
+          obj[key] = unorderedList[key];
+          return obj;
+        }, {});
+
+      setSkeletonTableRow({ list: orderedList });
+
+      watchlistDisplay.value = orderedList;
+      cachedList.value[currentTab.value] = setCacheList(orderedList);
+    }
+
+    function showListOnDeleting(payload) {
+      let newList = null;
+      const cacheList = getCacheList(currentTab.value);
+
+      for (let i = 0; i < payload.length; i++) {
+        const ticker = payload[i];
+        const { [ticker]: _, ...rest } = newList || cacheList;
+        newList = rest;
+      }
+
+      watchlistDisplay.value = newList;
+      cachedList.value[currentTab.value] = setCacheList(newList);
     }
 
     // status: init, switch, deleteTicker, addTicker
-    async function loadWatchlist({ status }) {
+    async function loadWatchlist({ status, payload }) {
       // 檢查 list 沒內容時停止執行後續
       if (status === "init" || status === "switch") {
         const currentTabInfo = tabs.value.find(
@@ -239,28 +258,48 @@ export default {
         }
       }
 
-      const allTabs = Object.keys(cachedList.value);
-      const isCurrentTabInTabs = allTabs.includes(currentTab.value);
+      // 用 cache
+      switch (status) {
+        case "switch":
+          const allTabs = Object.keys(cachedList.value);
+          const isCurrentTabInTabs = allTabs.includes(currentTab.value);
 
-      // switch 時用 cache
-      if (status === "switch" && isCurrentTabInTabs) {
-        watchlistDisplay.value = getCacheList(currentTab.value);
-        return;
+          if (isCurrentTabInTabs) {
+            watchlistDisplay.value = getCacheList(currentTab.value);
+            return; // 第二次 switch
+          } else {
+            break; // 第一次 switch
+          }
+
+        case "addTicker": {
+          showListOnAdding(payload);
+          toggleLoadingEffect(false);
+          return;
+        }
+
+        case "deleteTicker": {
+          showListOnDeleting(payload);
+          toggleLoadingEffect(false);
+          return;
+        }
       }
-
       toggleLoadingEffect(true);
 
       try {
         const tempRes = await http.get(`/api/watchlist/${currentTab.value}`);
-        const watchlistTickers = tempRes.data.result;
+        const watchlist = tempRes.data.result;
 
-        // init 無法正確顯示，其餘可以
-        setSkeletonTableRow(watchlistTickers);
+        setSkeletonTableRow({ list: watchlist });
 
-        const currentWatchlist = await getCurrentWatchlist(watchlistTickers);
+        const tempTickers = Object.keys(watchlist);
+        const newPrices = await fetchNewPrices(tempTickers, watchlist);
+        const currentWatchlist = await updateList(
+          newPrices,
+          tempTickers,
+          watchlist
+        );
 
-        console.log("watchlistTickers", watchlistTickers);
-        console.log("currentWatchlist", currentWatchlist);
+        console.log("watchlist", watchlist);
 
         watchlistDisplay.value = currentWatchlist;
         cachedList.value[currentTab.value] = setCacheList(currentWatchlist);
@@ -271,127 +310,65 @@ export default {
       }
     }
 
-    async function getCurrentWatchlist(watchlistTickers) {
-      if (!watchlistTickers) return null;
+    async function updateList(newPrices, tempTickers, watchlist) {
+      const start = performance.now();
 
-      // const hasNewPrice = await checkNewPrice1(watchlistTickers);
-      // console.log("hasNewPrice", hasNewPrice);
+      // check new price
+      const allPromises = [];
+      let newList = null;
+      for (let i = 0; i < tempTickers.length; i++) {
+        const tempTicker = tempTickers[i];
+        const listItem = watchlist[tempTicker];
+        const { price } = listItem;
+        const {
+          currentPrice,
+          previousCloseChange,
+          previousCloseChangePercent,
+        } = newPrices[i];
 
-      // const currentWatchlist = hasNewPrice
-      //   ? await updateList(watchlistTickers)
-      //   : watchlistTickers;
+        if (price === currentPrice) continue;
 
-      // const hasNewPrice1 = await checkNewPrice(watchlistTickers);
-      // console.log("hasNewPrice1", hasNewPrice1);
+        const newItem = {
+          ...listItem,
+          price: currentPrice,
+          previousCloseChange,
+          previousCloseChangePercent,
+        };
 
-      const currentWatchlist = await checkNewPrice(watchlistTickers);
+        allPromises.push(
+          http.put(`/api/watchlist/${currentTab.value}/${tempTicker}`, {
+            newItem,
+          })
+        );
 
-      return currentWatchlist;
-    }
-
-    async function checkNewPrice(watchlistTickers) {
-      const listPromises = [];
-
-      // fetch new price
-      for (const tempTicker in watchlistTickers) {
-        const ticker = watchlistTickers[tempTicker].ticker;
-        listPromises.push(http.get(`/api/previousClose/${ticker}`));
-      }
-      const res = await Promise.allSettled(listPromises);
-
-      const currentPrices = res.map((item) => item.value.data.result);
-
-      const result = [];
-
-      let i = 0;
-
-      // compare price with loop
-      for (const tempTicker in watchlistTickers) {
-        const listItem = watchlistTickers[tempTicker];
-        const { price, code } = listItem;
-        const currentPrice = currentPrices[i];
-
-        if (price !== currentPrice) {
-          const newItem = {
-            ...listItem,
-            price: parseFloat(currentPrice.toFixed(2)),
-          };
-          console.log("newItem", newItem);
-
-          const res = await http.put(
-            `/api/watchlist/${currentTab.value}/${code}/${tempTicker}`,
-            { newItem }
-          );
-          console.log("res", res.data.result);
-
-          result.push(res.data.result);
-        }
-
-        i++;
+        newList = {
+          ...newList,
+          [tempTicker]: newItem,
+        };
       }
 
-      console.log("result", result);
+      if (allPromises.length !== 0) await Promise.allSettled(allPromises);
 
-      return result.length !== 0 ? result.pop() : watchlistTickers;
+      return newList ? { ...watchlist, ...newList } : watchlist;
     }
 
-    async function updateList1() {}
-
-    async function updateList(watchlistTickers) {
-      console.log("updateList");
-      const tempTickers = Object.keys(watchlistTickers);
-      const allPromises = tempTickers.map((tempTicker) => {
-        const ticker = watchlistTickers[tempTicker].ticker;
-        return http.get(`/api/quote/${ticker}`);
+    async function fetchNewPrices(tempTickers, watchlist) {
+      const listPromises = tempTickers.map((temTicker) => {
+        const ticker = watchlist[temTicker].ticker;
+        return http.get(`/api/latestPrice/${ticker}`);
       });
-
       try {
-        const response = await Promise.allSettled(allPromises);
-        const updatedList = response
-          .map((item) => item.value.data.result)
-          .reduce((obj, item, i) => {
-            const tempTicker = tempTickers[i];
-            const { code, id, style } = watchlistTickers[tempTicker];
-            const newItem = { ...item, code, id, style, tempTicker };
-
-            return {
-              ...obj,
-              [tempTicker]: newItem,
-            };
-          }, {});
-
-        for (let tempTicker in updatedList) {
-          const listItem = updatedList[tempTicker];
-          await http.post("/api/addToWatchlist", {
-            name: listItem.name,
-            currentTab: currentTab.value,
-            watchlist: listItem,
-          });
-        }
-
-        return updatedList;
+        const res = await Promise.allSettled(listPromises);
+        const newPrices = res.map((item) => item.value.data.result);
+        return newPrices;
       } catch (error) {
         console.log("error", error);
-        toggleWatchlistSkeleton(false);
       }
-    }
-
-    async function checkNewPrice1(watchlistTickers) {
-      const firstTempTicker = Object.keys(watchlistTickers)[0];
-      const firstTicker = watchlistTickers[firstTempTicker].ticker;
-      const closeRes = await http.get(`/api/previousClose/${firstTicker}`);
-      const prevClose = closeRes.data.result;
-      const dbClose = watchlistTickers[firstTempTicker].price;
-      console.log("firstTicker", firstTicker);
-      console.log("prevClose", prevClose);
-      console.log("dbClose", dbClose);
-
-      return prevClose !== dbClose;
     }
 
     function getCacheList(currentTab) {
       const cacheList = {
-        ...cachedList.value[currentTab].currentWatchlist,
+        ...cachedList.value[currentTab]?.currentWatchlist,
       };
 
       for (let ticker in cacheList) {
@@ -427,17 +404,14 @@ export default {
       toggleSearchList,
       toggleSearchListSkeleton,
 
+      currentTab,
       loadWatchlist,
       watchlistDisplay,
       watchlistTableSkeletonContent,
       isWatchlistLoading,
       isAddingProcess,
-      toggleAddButtonSpinner,
-      toggleWatchlistSkeleton,
-
-      currentTab,
-
-      deleteTest,
+      toggleLoadingEffect,
+      setSkeletonTableRow,
     };
   },
 };

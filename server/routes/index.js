@@ -32,7 +32,7 @@ router.get('/quote/:ticker', async (req, res) => {
       regularMarketPrice: price,
       symbol: ticker,
       regularMarketPreviousClose: previousClose,
-      regularMarketTime
+      marketState
     } = priceObj
 
     const previousCloseChange =
@@ -45,13 +45,13 @@ router.get('/quote/:ticker', async (req, res) => {
     ).toFixed(2)
 
     const obj = {
-      name,
-      ticker,
-      regularMarketTime,
-      price,
+      isDelete: false,
+      price: parseFloat(price.toFixed(2)),
       previousCloseChange,
       previousCloseChangePercent,
-      isDelete: false
+      name,
+      ticker,
+      marketState
     }
 
     const msg = {
@@ -375,22 +375,15 @@ router.delete(
       const list =
         currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
 
-      // for (let i = 0; i < deleteInfoArr.length; i++) {
-      //   const ticker = deleteInfoArr[i]
-      //   await watchlistRef.child(list).child(ticker).remove()
-      // }
-
       const result = []
 
       for (let i = 0; i < deleteInfoArr.length; i++) {
         const ticker = deleteInfoArr[i]
         const tickerRef = watchlistRef.child(list).child(ticker)
-        const t = await tickerRef.once('value')
-        result.push(t.val())
+        const tickerChildRef = await tickerRef.once('value')
+        result.push(tickerChildRef.val())
         await watchlistRef.child(list).child(ticker).remove()
       }
-
-      console.log('result', result)
 
       const message = {
         success: true,
@@ -415,7 +408,12 @@ router.delete(
 router.put('/watchlist/:currentTab/:ticker', async (req, res) => {
   const { currentTab, ticker } = req.params
   const { newItem } = req.body
-  const { price, previousCloseChange, previousCloseChangePercent } = newItem
+  const {
+    price,
+    previousCloseChange,
+    previousCloseChangePercent,
+    marketState
+  } = newItem
 
   const list = currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
 
@@ -427,22 +425,21 @@ router.put('/watchlist/:currentTab/:ticker', async (req, res) => {
   const previousCloseChangePercentRef = tickerRef
     .child('previousCloseChangePercent')
     .set(previousCloseChangePercent)
+  const previousMarketStateRef = tickerRef.child('marketState').set(marketState)
 
   try {
     await Promise.allSettled([
       priceRef,
       previousCloseChangeRef,
-      previousCloseChangePercentRef
+      previousCloseChangePercentRef,
+      previousMarketStateRef
     ])
-
-    const watchlistChildRef = await watchlistRef.child(list).once('value')
-    const watchlist = watchlistChildRef.val()
 
     const msg = {
       success: true,
       content: '更新 watchlist 成功',
       errorMessage: null,
-      result: watchlist
+      result: null
     }
     res.send(msg)
   } catch (error) {
@@ -983,7 +980,7 @@ router.get('/historicalPrice/:ticker', async (req, res) => {
   }
 })
 
-router.get('/latestPrice/:ticker', async (req, res) => {
+router.get('/latestMarketData/:ticker', async (req, res) => {
   const quoteOptions = {
     symbol: req.params.ticker,
     modules: ['price']
@@ -994,7 +991,8 @@ router.get('/latestPrice/:ticker', async (req, res) => {
 
     const {
       regularMarketPrice: currentPrice,
-      regularMarketPreviousClose: previousClose
+      regularMarketPreviousClose: previousClose,
+      marketState
     } = price
 
     const previousCloseChange =
@@ -1009,7 +1007,8 @@ router.get('/latestPrice/:ticker', async (req, res) => {
     const obj = {
       currentPrice: parseFloat(currentPrice.toFixed(2)),
       previousCloseChange,
-      previousCloseChangePercent
+      previousCloseChangePercent,
+      marketState
     }
 
     const message = {

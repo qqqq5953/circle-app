@@ -211,15 +211,10 @@ export default {
 
       const tempTicker = ticker.includes(".") ? ticker.split(".")[0] : ticker;
 
-      const id = ticker.includes(".")
-        ? ticker.split(".")[1] + ticker.split(".")[0]
-        : ticker;
-
       try {
         const tickerItem = {
           ...props.searchList[0],
           tempTicker,
-          id,
         };
         await http.post("/api/addToWatchlist", {
           currentTab: $store.currentTab,

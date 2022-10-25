@@ -1,5 +1,8 @@
 <template>
-  <main class="flex flex-col gap-3 px-4 md:p-10 mx-auto w-full">
+  <main
+    class="flex flex-col gap-3 px-4 md:p-10 mx-auto w-full"
+    @click="clickOutsideClose($event)"
+  >
     <div class="relative w-full pb-14">
       <SearchBar
         id="searchBar"
@@ -32,6 +35,22 @@
           </div>
         </div>
       </Transition>
+    </div>
+
+    <div class="text-right">
+      <button
+        class="
+          border
+          rounded
+          p-2
+          shadow
+          disabled:bg-gray-200 disabled:text-gray-400
+        "
+        @click="clickUpdate"
+        :disabled="isDisabled"
+      >
+        {{ msg }}
+      </button>
     </div>
 
     <!-- tabs -->
@@ -79,7 +98,7 @@
 </template>
 
 <script>
-import { ref, watch, defineAsyncComponent } from "vue";
+import { ref, watch, defineAsyncComponent, onUnmounted } from "vue";
 import http from "../api/index";
 
 import SearchList from "@/components/SearchList.vue";
@@ -151,7 +170,7 @@ export default {
 
     const hasParentElement = (event, element) => event.target.closest(element);
 
-    document.addEventListener("click", (e) => {
+    const clickOutsideClose = (e) => {
       const isAddButtonClick = e.target.nodeName === "I";
       const isInputFocus = e.target.nodeName === "INPUT";
       const isNavClick = hasParentElement(e, "nav");
@@ -161,7 +180,7 @@ export default {
       if (isAddButtonClick) return;
       if (!isSearchBarFocus && !isNavClick) isFocus.value = false;
       if (isSearchBarFocus) isFocus.value = true;
-    });
+    };
 
     // tabs
     const setTabs = (tab) => $store.setTabs(tab);
@@ -224,9 +243,7 @@ export default {
         }, {});
 
       setSkeletonTableRow({ list: orderedList });
-
-      watchlistDisplay.value = orderedList;
-      cachedList.value[currentTab.value] = setCacheList(orderedList);
+      showNewList(orderedList);
     }
 
     function showListOnDeleting(payload) {
@@ -239,12 +256,26 @@ export default {
         newList = rest;
       }
 
-      watchlistDisplay.value = newList;
-      cachedList.value[currentTab.value] = setCacheList(newList);
+      showNewList(newList);
     }
 
     // status: init, switch, deleteTicker, addTicker
+    const isDisabled = ref(true);
+    const msg = ref("Price up to date");
+    const resumePromises = ref([]);
+    const resumeList = ref(null);
+    const timeoutId = ref(null);
+
+    function resetResume() {
+      resumePromises.value.length = 0;
+      resumeList.value = null;
+      isDisabled.value = true;
+      clearTimeout(timeoutId.value);
+    }
+
     async function loadWatchlist({ status, payload }) {
+      resetResume();
+
       // 檢查 list 沒內容時停止執行後續
       if (status === "init" || status === "switch") {
         const currentTabInfo = tabs.value.find(
@@ -266,6 +297,7 @@ export default {
 
           if (isCurrentTabInTabs) {
             watchlistDisplay.value = getCacheList(currentTab.value);
+            checkResumeFlow(watchlistDisplay.value);
             return; // 第二次 switch
           } else {
             break; // 第一次 switch
@@ -274,12 +306,14 @@ export default {
         case "addTicker": {
           showListOnAdding(payload);
           toggleLoadingEffect(false);
+          checkResumeFlow(watchlistDisplay.value);
           return;
         }
 
         case "deleteTicker": {
           showListOnDeleting(payload);
           toggleLoadingEffect(false);
+          checkResumeFlow(watchlistDisplay.value);
           return;
         }
       }
@@ -291,31 +325,52 @@ export default {
 
         setSkeletonTableRow({ list: watchlist });
 
-        const tempTickers = Object.keys(watchlist);
-        const newPrices = await fetchNewPrices(tempTickers, watchlist);
-        const currentWatchlist = await updateList(
-          newPrices,
-          tempTickers,
-          watchlist
-        );
-
-        console.log("watchlist", watchlist);
-
-        watchlistDisplay.value = currentWatchlist;
-        cachedList.value[currentTab.value] = setCacheList(currentWatchlist);
+        const currentWatchlist = await updateList(watchlist);
+        showNewList(currentWatchlist);
 
         toggleLoadingEffect(false);
+
+        checkResumeFlow(currentWatchlist);
       } catch (error) {
         console.log("error", error);
       }
     }
 
-    async function updateList(newPrices, tempTickers, watchlist) {
-      const start = performance.now();
+    async function updateList(watchlist) {
+      const tempTickers = Object.keys(watchlist);
+      const newMarketData = await fetchMarketData(tempTickers, watchlist);
+      console.log("newMarketData", newMarketData);
+      const [allPromises, currentWatchlist] = await checkUpdate(
+        tempTickers,
+        newMarketData,
+        watchlist
+      );
 
-      // check new price
-      const allPromises = [];
+      console.log("updateList currentWatchlist", currentWatchlist);
+
+      if (allPromises.length !== 0) await updateMarketData(allPromises);
+      return currentWatchlist;
+    }
+
+    async function fetchMarketData(tempTickers, watchlist) {
+      const listPromises = tempTickers.map((tempTicker) => {
+        const ticker = watchlist[tempTicker].ticker;
+        return http.get(`/api/latestMarketData/${ticker}`);
+      });
+
+      try {
+        const res = await Promise.allSettled(listPromises);
+        const newMarketData = res.map((item) => item.value.data.result);
+        return newMarketData;
+      } catch (error) {
+        console.log("error", error);
+      }
+    }
+
+    async function checkUpdate(tempTickers, newMarketData, watchlist) {
       let newList = null;
+      const allPromises = [];
+
       for (let i = 0; i < tempTickers.length; i++) {
         const tempTicker = tempTickers[i];
         const listItem = watchlist[tempTicker];
@@ -324,7 +379,8 @@ export default {
           currentPrice,
           previousCloseChange,
           previousCloseChangePercent,
-        } = newPrices[i];
+          marketState,
+        } = newMarketData[i];
 
         if (price === currentPrice) continue;
 
@@ -333,6 +389,12 @@ export default {
           price: currentPrice,
           previousCloseChange,
           previousCloseChangePercent,
+          marketState,
+        };
+
+        newList = {
+          ...newList,
+          [tempTicker]: newItem,
         };
 
         allPromises.push(
@@ -340,30 +402,113 @@ export default {
             newItem,
           })
         );
-
-        newList = {
-          ...newList,
-          [tempTicker]: newItem,
-        };
       }
 
-      if (allPromises.length !== 0) await Promise.allSettled(allPromises);
+      const currentWatchlist = newList
+        ? { ...watchlist, ...newList }
+        : watchlist;
 
-      return newList ? { ...watchlist, ...newList } : watchlist;
+      return [allPromises, currentWatchlist];
     }
 
-    async function fetchNewPrices(tempTickers, watchlist) {
-      const listPromises = tempTickers.map((temTicker) => {
-        const ticker = watchlist[temTicker].ticker;
-        return http.get(`/api/latestPrice/${ticker}`);
+    async function updateMarketData(allPromises) {
+      await Promise.allSettled(allPromises);
+    }
+
+    function showNewList(watchlist) {
+      console.log("showNewList watchlist", watchlist);
+      watchlistDisplay.value = watchlist;
+      cachedList.value[currentTab.value] = setCacheList(watchlist);
+      msg.value = "Price up to date";
+    }
+
+    async function checkResumeFlow(watchlist) {
+      const isAllMarketClose = await checkMarketState(watchlist);
+      console.log("isAllMarketClose", isAllMarketClose);
+      if (!isAllMarketClose) await startTimer(watchlist);
+    }
+
+    // 自動倒數計時更新
+    async function checkMarketState(watchlist) {
+      const marketStateIdx = Object.values(watchlist).findIndex(
+        (item) => item.marketState === "REGULAR"
+      );
+      const isAllMarketClose = marketStateIdx === -1;
+      return isAllMarketClose;
+    }
+
+    function startTimer(watchlist) {
+      console.log(
+        `%c startTimer ${currentTab.value}`,
+        "background:blue; color:#efefef"
+      );
+      return new Promise((resolve, reject) => {
+        timeoutId.value = setTimeout(async () => {
+          await resumeFlow(watchlist);
+          resolve();
+        }, 5000);
       });
-      try {
-        const res = await Promise.allSettled(listPromises);
-        const newPrices = res.map((item) => item.value.data.result);
-        return newPrices;
-      } catch (error) {
-        console.log("error", error);
+    }
+
+    async function resumeFlow(watchlist) {
+      console.log(
+        `%c resumeFlow ${currentTab.value}`,
+        "background:red; color:#efefef"
+      );
+
+      const tempTickers = Object.keys(watchlist);
+      const newMarketData = await fetchMarketData(tempTickers, watchlist);
+
+      const [allPromises, currentWatchlist] = await checkUpdate(
+        tempTickers,
+        newMarketData,
+        watchlist
+      );
+
+      // 如果盤中價格尚未改變，重新倒數更新
+      if (allPromises.length === 0) {
+        console.log("盤中價格尚未改變，重新倒數更新");
+        checkResumeFlow(currentWatchlist);
+        return;
       }
+
+      resumePromises.value = [...allPromises];
+      resumeList.value = { ...currentWatchlist };
+    }
+
+    watch(
+      resumePromises,
+      (newPm) => {
+        if (newPm.length === 0) return;
+        console.log("有新資料", newPm);
+        msg.value = "Found new price!";
+        isDisabled.value = false;
+      },
+      { deep: true }
+    );
+
+    async function clickUpdate() {
+      if (resumePromises.value.length === 0) return;
+
+      // 有新資料
+      toggleLoadingEffect(true);
+
+      console.log("資料更新中");
+      msg.value = "Updating...";
+      isDisabled.value = true;
+
+      await Promise.allSettled(resumePromises.value);
+      resumePromises.value.length = 0;
+
+      const currentWatchlist = resumeList.value
+        ? { ...watchlistDisplay.value, ...resumeList.value }
+        : watchlistDisplay.value;
+
+      showNewList(currentWatchlist);
+
+      toggleLoadingEffect(false);
+
+      checkResumeFlow(currentWatchlist);
     }
 
     function getCacheList(currentTab) {
@@ -412,6 +557,11 @@ export default {
       isAddingProcess,
       toggleLoadingEffect,
       setSkeletonTableRow,
+
+      clickOutsideClose,
+      clickUpdate,
+      isDisabled,
+      msg,
     };
   },
 };

@@ -37,22 +37,6 @@
       </Transition>
     </div>
 
-    <div class="text-right">
-      <button
-        class="
-          border
-          rounded
-          p-2
-          shadow
-          disabled:bg-gray-200 disabled:text-gray-400
-        "
-        @click="clickUpdate"
-        :disabled="isDisabled"
-      >
-        {{ msg }}
-      </button>
-    </div>
-
     <!-- tabs -->
     <WatchlistNavbar :isWatchlistLoading="isWatchlistLoading" />
 
@@ -93,12 +77,24 @@
       @toggleLoadingEffect="toggleLoadingEffect"
       @setSkeletonTableRow="setSkeletonTableRow"
       v-show="!isWatchlistLoading"
-    />
+    >
+      <template #update-btn>
+        <div class="text-xs">
+          <button
+            class="text-amber-400 underline disabled:text-gray-400"
+            @click="clickUpdate"
+            :disabled="isDisabled"
+          >
+            {{ msg }}
+          </button>
+        </div>
+      </template>
+    </WatchlistTable>
   </main>
 </template>
 
 <script>
-import { ref, watch, defineAsyncComponent, onUnmounted } from "vue";
+import { ref, watch, defineAsyncComponent } from "vue";
 import http from "../api/index";
 
 import SearchList from "@/components/SearchList.vue";
@@ -259,7 +255,6 @@ export default {
       showNewList(newList);
     }
 
-    // status: init, switch, deleteTicker, addTicker
     const isDisabled = ref(true);
     const msg = ref("Price up to date");
     const resumePromises = ref([]);
@@ -273,6 +268,7 @@ export default {
       clearTimeout(timeoutId.value);
     }
 
+    // status: init, switch, deleteTicker, addTicker
     async function loadWatchlist({ status, payload }) {
       resetResume();
 
@@ -481,7 +477,7 @@ export default {
       (newPm) => {
         if (newPm.length === 0) return;
         console.log("有新資料", newPm);
-        msg.value = "Found new price!";
+        msg.value = "Update price!";
         isDisabled.value = false;
       },
       { deep: true }
@@ -515,12 +511,6 @@ export default {
       const cacheList = {
         ...cachedList.value[currentTab]?.currentWatchlist,
       };
-
-      for (let ticker in cacheList) {
-        if (cacheList[ticker].isDelete === true) {
-          cacheList[ticker].isDelete = false;
-        }
-      }
 
       return {
         ...cacheList,

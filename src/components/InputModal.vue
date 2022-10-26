@@ -19,9 +19,11 @@
     </template>
     <template #footer>
       <div class="text-right">
-        <button class="text-blue-600 p-2 mr-2" @click="closeFunc">Close</button>
+        <button class="text-blue-600 px-2 py-1.5 mr-2" @click="closeFunc">
+          Close
+        </button>
         <button
-          class="border rounded p-2 bg-blue-600 text-white"
+          class="border rounded px-2 py-1.5 bg-blue-600 text-white"
           @click="confirmFunc"
         >
           <slot name="okButton"></slot>

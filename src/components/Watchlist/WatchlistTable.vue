@@ -14,23 +14,49 @@
       class="relative rounded-t pl-4 lg:pl-8 py-3 flex items-center border-b"
       :class="{ 'border-b': watchlistDisplay }"
     >
-      <h3 class="font-semibold truncate w-3/4">
-        {{ currentTab }}
+      <h3 class="truncate w-3/4">
+        <span class="font-semibold">{{ currentTab }}</span>
+        <slot name="update-btn"></slot>
       </h3>
 
       <!-- dropdown -->
-      <div class="absolute right-2" v-if="deleteArr.length">
+      <div class="absolute right-2 flex gap-2" v-if="deleteArr.length">
         <button
-          class="text-xs bg-white rounded px-2 py-1.5 border"
+          class="
+            text-xs
+            bg-white
+            rounded
+            px-2
+            py-1.5
+            border border-slate-500
+            text-slate-500
+          "
+          @click="openAlert($event, 'deleteAllTicker')"
+        >
+          DELETE ALL
+        </button>
+        <button
+          class="text-xs rounded px-2 py-1.5 bg-slate-500 text-white"
           @click="openAlert($event, 'deleteTicker')"
         >
           DELETE
         </button>
       </div>
       <div class="ml-auto h-full w-1/5" v-else>
-        <div class="relative" v-if="currentTab?.toLowerCase() !== 'watchlist'">
+        <div
+          class="relative h-full"
+          v-if="currentTab?.toLowerCase() !== 'watchlist'"
+        >
           <button
-            class="absolute top-0 right-2 px-3 rounded-full active:rounded-full"
+            class="
+              absolute
+              top-1/2
+              -translate-y-1/2
+              right-2
+              px-3
+              rounded-full
+              active:rounded-full
+            "
             @click="toggleDropdown"
           >
             <i class="fa-solid fa-ellipsis-vertical"></i>
@@ -314,25 +340,22 @@
               "
               @click.stop
             >
-              <label
-                :for="item.name"
-                @click.stop="toggleChecked(item.tempTicker)"
-              >
+              <label :for="item.name">
                 <i
                   class="
                     fa-solid fa-square-check
-                    text-lg
+                    text-lg text-slate-500
+                    hover:text-blue-600 hover:cursor-pointer
                     md:text-xl
-                    hover:text-blue-600
                   "
-                  v-if="item.isDelete"
+                  v-if="deleteArr.includes(item.ticker)"
                 ></i>
                 <i
                   class="
                     fa-regular fa-square
-                    text-lg
+                    text-lg text-slate-500
+                    hover:text-blue-600 hover:cursor-pointer
                     md:text-xl
-                    hover:text-blue-600
                   "
                   v-else
                 ></i>
@@ -353,7 +376,6 @@
 </template>
 
 <script>
-import { useRouter } from "vue-router";
 import { ref, watch, nextTick, defineAsyncComponent, computed } from "vue";
 import { storeToRefs } from "pinia";
 import http from "@/api/index";
@@ -376,13 +398,17 @@ export default {
   },
   setup(props, { emit }) {
     const $store = useWatchlistStore();
-    const router = useRouter();
     const { currentTab } = storeToRefs($store);
+    const listLength = computed(() => {
+      return props.watchlistDisplay
+        ? Object.keys(props.watchlistDisplay).length
+        : 0;
+    });
 
     const setTabs = (tab) => $store.setTabs(tab);
     const showCurrentTab = (tab) => $store.showCurrentTab(tab);
 
-    // delete alert
+    // alert
     const isAlertOpen = ref(false);
     const alertTitle = ref('<span class="bg-red-300">test</span>');
     const alertContent = ref(null);
@@ -390,13 +416,20 @@ export default {
 
     const switchAlert = () => {
       switch (alertAction.value) {
-        case "deleteWatchlist":
+        case "deleteWatchlist": {
           deleteWatchlist();
           break;
+        }
 
-        case "deleteTicker":
+        case "deleteTicker": {
           deleteTicker();
           break;
+        }
+
+        case "deleteAllTicker": {
+          deleteTicker();
+          break;
+        }
       }
     };
 
@@ -405,12 +438,13 @@ export default {
       alertAction.value = action;
 
       switch (action) {
-        case "deleteWatchlist":
+        case "deleteWatchlist": {
           alertTitle.value = `Delete "${currentTab.value}"`;
-          alertContent.value = `${calculateListItems.value} items will be deleted.`;
+          alertContent.value = `${listLength.value} items will be deleted.`;
           break;
+        }
 
-        case "deleteTicker":
+        case "deleteTicker": {
           let tickers = "";
 
           for (const tempTicker in props.watchlistDisplay) {
@@ -422,12 +456,41 @@ export default {
 
           alertTitle.value = `<div class="flex items-center gap-2 flex-wrap">Delete ${tickers}</div>`;
 
-          alertContent.value = `${deleteArr.value.length} items will be deleted.`;
+          alertContent.value = `${deleteArrLength.value} items will be deleted.`;
           break;
+        }
+
+        case "deleteAllTicker": {
+          clearDeleteArr();
+          let tickers = "";
+
+          for (const tempTicker in props.watchlistDisplay) {
+            const tickerObj = props.watchlistDisplay[tempTicker];
+            const { style, ticker } = tickerObj;
+
+            deleteArr.value.push(ticker);
+
+            tickers += `<span class="max-w-fit px-2 rounded ${style} text-white text-base">${ticker}</span>`;
+          }
+
+          alertTitle.value = `<div class="flex items-center gap-2 flex-wrap">Delete ${tickers}</div>`;
+
+          alertContent.value = `${deleteArrLength.value} items will be deleted.`;
+          break;
+        }
       }
     };
 
-    const closeAlert = () => (isAlertOpen.value = false);
+    const closeAlert = () => {
+      isAlertOpen.value = false;
+
+      switch (alertAction.value) {
+        case "deleteAllTicker": {
+          clearDeleteArr();
+          break;
+        }
+      }
+    };
 
     // Modal & dropdown menu
     const isDropdownOpen = ref(false);
@@ -435,12 +498,6 @@ export default {
     const inputModalRef = ref(null);
     const newListName = ref(null);
     const errorMessage = ref([]);
-
-    const calculateListItems = computed(() => {
-      return props.watchlistDisplay
-        ? Object.keys(props.watchlistDisplay).length
-        : 0;
-    });
 
     const clearErrorMessage = () => errorMessage.value.pop();
 
@@ -467,31 +524,17 @@ export default {
     ]);
 
     const deleteWatchlist = async () => {
-      const { data, error, loading } = useAxios(
-        "/api/deleteWatchlist",
-        "post",
-        {
+      try {
+        const res = await http.post("/api/deleteWatchlist", {
           currentTab: $store.currentTab,
-        }
-      );
+        });
 
-      watch(data, (newData) => {
-        setTabs(newData.result);
+        setTabs(res.data.result);
         showCurrentTab($store.DEFAULT_TAB);
         closeAlert();
-      });
-
-      // try {
-      //   const res = await http.post("/api/deleteWatchlist", {
-      //     currentTab: $store.currentTab,
-      //   });
-
-      //   setTabs(res.data.result);
-      //   showCurrentTab($store.DEFAULT_TAB);
-      //   closeAlert();
-      // } catch (error) {
-      //   console.log("error", error);
-      // }
+      } catch (error) {
+        console.log("error", error);
+      }
     };
 
     const renameWatchlist = () => {
@@ -516,23 +559,23 @@ export default {
     };
 
     // delete ticker
-    const deleteArr = ref([]);
     const tickerRowsRef = ref(null);
-
-    const toggleChecked = (ticker) => {
-      props.watchlistDisplay[ticker].isDelete =
-        !props.watchlistDisplay[ticker].isDelete;
-    };
+    const deleteArr = ref([]);
+    const deleteArrLength = computed({
+      get() {
+        return deleteArr.value.length;
+      },
+      set(newLength) {
+        deleteArr.value.length = newLength;
+      },
+    });
 
     const deleteTicker = async () => {
-      if (deleteArr.value.length === 0) return;
-
-      const keys = Object.keys(props.watchlistDisplay).length;
-      const rows = keys - deleteArr.value.length;
+      const rows = listLength.value - deleteArrLength.value;
 
       emit("toggleLoadingEffect", true);
       emit("setSkeletonTableRow", { rows });
-      closeAlert();
+      isAlertOpen.value = false;
 
       const deleteInfoArr = deleteArr.value.map((ticker) =>
         ticker.includes(".") ? ticker.split(".")[0] : ticker
@@ -549,27 +592,20 @@ export default {
           status: "deleteTicker",
           payload: deleteInfoArr,
         });
+
+        clearDeleteArr();
       } catch (error) {
         console.log("error", error);
       }
     };
 
-    const clearDeleteArr = () => (deleteArr.value.length = 0);
+    const clearDeleteArr = () => (deleteArrLength.value = 0);
 
     // 新增後tab顯示個數
     watch(
       () => props.watchlistDisplay,
       () => {
         if (!tickerRowsRef.value) return;
-
-        // const shownRows = tickerRowsRef.value.filter((item) => {
-        //   // show deleted ticker when added
-        //   if (item.classList.contains("hidden")) {
-        //     item.classList.remove("hidden");
-        //   }
-        //   return !item.classList.contains("hidden");
-        // });
-        // $store.setTabsInfo(currentTab.value, shownRows.length);
 
         $store.setTabsInfo(currentTab.value, tickerRowsRef.value.length);
 
@@ -606,8 +642,7 @@ export default {
       renameWatchlist,
 
       deleteArr,
-      toggleChecked,
-      calculateListItems,
+      listLength,
 
       switchAlert,
       alertTitle,

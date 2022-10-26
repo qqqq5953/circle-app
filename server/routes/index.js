@@ -45,7 +45,6 @@ router.get('/quote/:ticker', async (req, res) => {
     ).toFixed(2)
 
     const obj = {
-      isDelete: false,
       price: parseFloat(price.toFixed(2)),
       previousCloseChange,
       previousCloseChangePercent,

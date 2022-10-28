@@ -21,7 +21,8 @@
 
       <!-- dropdown -->
       <div class="absolute right-2 flex gap-2" v-if="deleteArr.length">
-        <button
+        <label
+          for="selectAll"
           class="
             text-xs
             bg-white
@@ -31,10 +32,16 @@
             border border-slate-500
             text-slate-500
           "
-          @click="openAlert($event, 'deleteAllTicker')"
         >
-          DELETE ALL
-        </button>
+          <span v-if="deleteArrLength === listLength">UNDO</span>
+          <span v-else>SELECT ALL</span>
+        </label>
+        <input
+          id="selectAll"
+          class="hidden"
+          type="checkbox"
+          v-model="selectAll"
+        />
         <button
           class="text-xs rounded px-2 py-1.5 bg-slate-500 text-white"
           @click="openAlert($event, 'deleteTicker')"
@@ -425,11 +432,6 @@ export default {
           deleteTicker();
           break;
         }
-
-        case "deleteAllTicker": {
-          deleteTicker();
-          break;
-        }
       }
     };
 
@@ -459,38 +461,10 @@ export default {
           alertContent.value = `${deleteArrLength.value} items will be deleted.`;
           break;
         }
-
-        case "deleteAllTicker": {
-          clearDeleteArr();
-          let tickers = "";
-
-          for (const tempTicker in props.watchlistDisplay) {
-            const tickerObj = props.watchlistDisplay[tempTicker];
-            const { style, ticker } = tickerObj;
-
-            deleteArr.value.push(ticker);
-
-            tickers += `<span class="max-w-fit px-2 rounded ${style} text-white text-base">${ticker}</span>`;
-          }
-
-          alertTitle.value = `<div class="flex items-center gap-2 flex-wrap">Delete ${tickers}</div>`;
-
-          alertContent.value = `${deleteArrLength.value} items will be deleted.`;
-          break;
-        }
       }
     };
 
-    const closeAlert = () => {
-      isAlertOpen.value = false;
-
-      switch (alertAction.value) {
-        case "deleteAllTicker": {
-          clearDeleteArr();
-          break;
-        }
-      }
-    };
+    const closeAlert = () => (isAlertOpen.value = false);
 
     // Modal & dropdown menu
     const isDropdownOpen = ref(false);
@@ -569,13 +543,30 @@ export default {
         deleteArr.value.length = newLength;
       },
     });
+    const selectAll = computed({
+      get() {
+        return deleteArrLength.value === listLength.value;
+      },
+      set(value) {
+        const selected = [];
+
+        if (value) {
+          for (const tempTicker in props.watchlistDisplay) {
+            const tickerObj = props.watchlistDisplay[tempTicker];
+            selected.push(tickerObj.ticker);
+          }
+        }
+
+        deleteArr.value = selected;
+      },
+    });
 
     const deleteTicker = async () => {
       const rows = listLength.value - deleteArrLength.value;
 
       emit("toggleLoadingEffect", true);
       emit("setSkeletonTableRow", { rows });
-      isAlertOpen.value = false;
+      closeAlert();
 
       const deleteInfoArr = deleteArr.value.map((ticker) =>
         ticker.includes(".") ? ticker.split(".")[0] : ticker
@@ -642,6 +633,7 @@ export default {
       renameWatchlist,
 
       deleteArr,
+      deleteArrLength,
       listLength,
 
       switchAlert,
@@ -649,6 +641,8 @@ export default {
       alertContent,
       openAlert,
       closeAlert,
+
+      selectAll,
     };
   },
 };

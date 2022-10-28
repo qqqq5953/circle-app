@@ -79,15 +79,27 @@
       v-show="!isWatchlistLoading"
     >
       <template #update-btn>
-        <div class="text-xs">
-          <button
-            class="text-amber-400 underline disabled:text-gray-400"
-            @click="clickUpdate"
-            :disabled="isDisabled"
-          >
-            {{ msg }}
-          </button>
-        </div>
+        <button
+          class="
+            py-0.5
+            px-1.5
+            block
+            text-xs
+            rounded
+            border border-slate-400
+            text-slate-400
+            hover:bg-slate-400 hover:text-white
+            disabled:border
+            disabled:px-0
+            disabled:border-white
+            disabled:bg-white
+            disabled:text-slate-400
+          "
+          @click="clickUpdate"
+          :disabled="isDisabled"
+        >
+          {{ msg }}
+        </button>
       </template>
     </WatchlistTable>
   </main>
@@ -256,7 +268,7 @@ export default {
     }
 
     const isDisabled = ref(true);
-    const msg = ref("Price up to date");
+    const msg = ref("Latest price");
     const resumePromises = ref([]);
     const resumeList = ref(null);
     const timeoutId = ref(null);
@@ -326,7 +338,7 @@ export default {
 
         toggleLoadingEffect(false);
 
-        checkResumeFlow(currentWatchlist);
+        await checkResumeFlow(currentWatchlist);
       } catch (error) {
         console.log("error", error);
       }
@@ -335,8 +347,8 @@ export default {
     async function updateList(watchlist) {
       const tempTickers = Object.keys(watchlist);
       const newMarketData = await fetchMarketData(tempTickers, watchlist);
-      console.log("newMarketData", newMarketData);
-      const [allPromises, currentWatchlist] = await checkUpdate(
+      console.log("updateList newMarketData", newMarketData);
+      const [allPromises, currentWatchlist] = checkUpdate(
         tempTickers,
         newMarketData,
         watchlist
@@ -363,7 +375,7 @@ export default {
       }
     }
 
-    async function checkUpdate(tempTickers, newMarketData, watchlist) {
+    function checkUpdate(tempTickers, newMarketData, watchlist) {
       let newList = null;
       const allPromises = [];
 
@@ -415,17 +427,17 @@ export default {
       console.log("showNewList watchlist", watchlist);
       watchlistDisplay.value = watchlist;
       cachedList.value[currentTab.value] = setCacheList(watchlist);
-      msg.value = "Price up to date";
+      msg.value = "Latest price";
     }
 
     async function checkResumeFlow(watchlist) {
-      const isAllMarketClose = await checkMarketState(watchlist);
+      const isAllMarketClose = checkMarketState(watchlist);
       console.log("isAllMarketClose", isAllMarketClose);
       if (!isAllMarketClose) await startTimer(watchlist);
     }
 
     // 自動倒數計時更新
-    async function checkMarketState(watchlist) {
+    function checkMarketState(watchlist) {
       const marketStateIdx = Object.values(watchlist).findIndex(
         (item) => item.marketState === "REGULAR"
       );
@@ -454,8 +466,9 @@ export default {
 
       const tempTickers = Object.keys(watchlist);
       const newMarketData = await fetchMarketData(tempTickers, watchlist);
+      console.log("resumeFlow newMarketData", newMarketData);
 
-      const [allPromises, currentWatchlist] = await checkUpdate(
+      const [allPromises, currentWatchlist] = checkUpdate(
         tempTickers,
         newMarketData,
         watchlist
@@ -477,7 +490,7 @@ export default {
       (newPm) => {
         if (newPm.length === 0) return;
         console.log("有新資料", newPm);
-        msg.value = "Update price!";
+        msg.value = "Update price";
         isDisabled.value = false;
       },
       { deep: true }
@@ -504,7 +517,7 @@ export default {
 
       toggleLoadingEffect(false);
 
-      checkResumeFlow(currentWatchlist);
+      await checkResumeFlow(currentWatchlist);
     }
 
     function getCacheList(currentTab) {

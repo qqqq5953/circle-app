@@ -532,13 +532,9 @@ export default {
 
     function setCacheList(currentWatchlist) {
       const cacheList = {
-        isEmpty: true,
+        isEmpty: !!currentWatchlist,
         currentWatchlist,
       };
-
-      if (currentWatchlist) {
-        cacheList.isEmpty = Object.keys(currentWatchlist).length === 0;
-      }
 
       return cacheList;
     }

@@ -79,34 +79,29 @@
       v-show="!isWatchlistLoading"
     >
       <template #update-btn>
-        <button
-          class="
-            py-0.5
-            px-1.5
-            block
-            text-xs
-            rounded
-            border border-slate-400
-            text-slate-400
-            hover:bg-slate-400 hover:text-white
-            disabled:border
-            disabled:px-0
-            disabled:border-white
-            disabled:bg-white
-            disabled:text-slate-400
-          "
-          @click="clickUpdate"
-          :disabled="isDisabled"
-        >
-          {{ msg }}
-        </button>
+        <div class="text-xs text-slate-400" v-if="listLength">
+          <button
+            class="
+              py-0.5
+              px-1.5
+              rounded
+              border border-slate-400
+              hover:bg-slate-400 hover:text-white
+            "
+            @click="clickUpdate"
+            v-if="isUpdate"
+          >
+            {{ msg }}
+          </button>
+          <div class="border border-white py-0.5" v-else>{{ msg }}</div>
+        </div>
       </template>
     </WatchlistTable>
   </main>
 </template>
 
 <script>
-import { ref, watch, defineAsyncComponent } from "vue";
+import { ref, computed, watch, defineAsyncComponent } from "vue";
 import http from "../api/index";
 
 import SearchList from "@/components/SearchList.vue";
@@ -193,7 +188,7 @@ export default {
     // tabs
     const setTabs = (tab) => $store.setTabs(tab);
 
-    http.get(`/api/getTabs`).then((res) => {
+    http.get(`/api/watchlist`).then((res) => {
       setTabs(res.data.result);
       loadWatchlist({ status: "init" });
     });
@@ -217,6 +212,11 @@ export default {
     const isWatchlistLoading = ref(null);
     const isAddingProcess = ref(false);
     const watchlistDisplay = ref(null);
+    const listLength = computed(() => {
+      return watchlistDisplay.value
+        ? Object.keys(watchlistDisplay.value).length
+        : 0;
+    });
 
     const toggleWatchlistSkeleton = (isLoading) => {
       isWatchlistLoading.value = isLoading;
@@ -267,7 +267,7 @@ export default {
       showNewList(newList);
     }
 
-    const isDisabled = ref(true);
+    const isUpdate = ref(false);
     const msg = ref("Latest price");
     const resumePromises = ref([]);
     const resumeList = ref(null);
@@ -276,7 +276,7 @@ export default {
     function resetResume() {
       resumePromises.value.length = 0;
       resumeList.value = null;
-      isDisabled.value = true;
+      isUpdate.value = false;
       clearTimeout(timeoutId.value);
     }
 
@@ -328,7 +328,7 @@ export default {
       toggleLoadingEffect(true);
 
       try {
-        const tempRes = await http.get(`/api/watchlist/${currentTab.value}`);
+        const tempRes = await http.get(`/api/tickers/${currentTab.value}`);
         const watchlist = tempRes.data.result;
 
         setSkeletonTableRow({ list: watchlist });
@@ -406,7 +406,7 @@ export default {
         };
 
         allPromises.push(
-          http.put(`/api/watchlist/${currentTab.value}/${tempTicker}`, {
+          http.put(`/api/ticker/${currentTab.value}/${tempTicker}`, {
             newItem,
           })
         );
@@ -491,7 +491,7 @@ export default {
         if (newPm.length === 0) return;
         console.log("有新資料", newPm);
         msg.value = "Update price";
-        isDisabled.value = false;
+        isUpdate.value = true;
       },
       { deep: true }
     );
@@ -504,7 +504,7 @@ export default {
 
       console.log("資料更新中");
       msg.value = "Updating...";
-      isDisabled.value = true;
+      isUpdate.value = false;
 
       await Promise.allSettled(resumePromises.value);
       resumePromises.value.length = 0;
@@ -550,6 +550,7 @@ export default {
 
       currentTab,
       loadWatchlist,
+      listLength,
       watchlistDisplay,
       watchlistTableSkeletonContent,
       isWatchlistLoading,
@@ -559,7 +560,7 @@ export default {
 
       clickOutsideClose,
       clickUpdate,
-      isDisabled,
+      isUpdate,
       msg,
     };
   },

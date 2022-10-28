@@ -499,9 +499,7 @@ export default {
 
     const deleteWatchlist = async () => {
       try {
-        const res = await http.post("/api/deleteWatchlist", {
-          currentTab: $store.currentTab,
-        });
+        const res = await http.delete(`/api/watchlist/${$store.currentTab}`);
 
         setTabs(res.data.result);
         showCurrentTab($store.DEFAULT_TAB);
@@ -511,25 +509,22 @@ export default {
       }
     };
 
-    const renameWatchlist = () => {
+    const renameWatchlist = async () => {
       if (errorMessage.value.length) clearErrorMessage();
 
-      const { data, error, loading } = useAxios("/api/editTab", "post", {
-        oldTab: $store.currentTab,
-        newTab: newListName.value,
-      });
+      const res = await http.put(
+        `/api/watchlist/${$store.currentTab}/${newListName.value}`
+      );
 
-      watch(data, (newList) => {
-        if (!newList.success) {
-          errorMessage.value.push(newList.errorMessage);
-          inputModalRef.value.inputRef.select();
-        } else {
-          isModalOpen.value = false;
-          const { newTab, tabsInfo } = newList.result;
-          setTabs(tabsInfo);
-          showCurrentTab(newTab);
-        }
-      });
+      if (!res.data.success) {
+        errorMessage.value.push(res.data.errorMessage);
+        inputModalRef.value.inputRef.select();
+      } else {
+        isModalOpen.value = false;
+        const { newName, tabsInfo } = res.data.result;
+        setTabs(tabsInfo);
+        showCurrentTab(newName);
+      }
     };
 
     // delete ticker
@@ -574,9 +569,7 @@ export default {
 
       try {
         await http.delete(
-          `/api/deleteFromWatchlist/${$store.currentTab}/${JSON.stringify(
-            deleteInfoArr
-          )}`
+          `/api/ticker/${$store.currentTab}/${JSON.stringify(deleteInfoArr)}`
         );
 
         emit("loadWatchlist", {

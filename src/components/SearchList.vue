@@ -216,8 +216,7 @@ export default {
           ...props.searchList[0],
           tempTicker,
         };
-        await http.post("/api/addToWatchlist", {
-          currentTab: $store.currentTab,
+        await http.post(`/api/ticker/${$store.currentTab}`, {
           tickerItem,
         });
 

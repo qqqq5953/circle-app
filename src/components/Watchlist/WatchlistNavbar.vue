@@ -181,11 +181,11 @@ export default {
       if (errorMessage.value.length) clearErrorMessage();
 
       const { data, error, loading } = useAxios(
-        `/api/createWatchlist`,
-        "post",
-        {
-          listName: inputListName.value,
-        }
+        `/api/watchlist/${inputListName.value}`,
+        "post"
+        // {
+        //   listName: inputListName.value,
+        // }
       );
 
       watch(data, (newList) => {

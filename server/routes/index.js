@@ -244,102 +244,12 @@ router.post('/addStock', async (req, res) => {
   //   })
 })
 
-// watchlist
-router.get('/tempList/:tab', async (req, res) => {
-  const currentTab = req.params.tab
-
-  const list = currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
-
-  try {
-    const templistChildRef = await templistRef.child(list).once('value')
-    const templist = templistChildRef.val()
-
-    const msg = {
-      success: true,
-      content: '獲得 watchlist',
-      errorMessage: null,
-      result: templist
-    }
-
-    res.send(msg)
-  } catch (error) {
-    console.log('error', error.message)
-    const msg = {
-      success: false,
-      content: '獲得標的失敗',
-      errorMessage: error.message,
-      result: null
-    }
-    res.send(msg)
-  }
-})
-
-router.post('/tempList', async (req, res) => {
-  const { ticker, tempTicker, name, currentTab, style } = req.body
-  const list = currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
-
-  try {
-    await templistRef
-      .child(list)
-      .child(tempTicker)
-      .set({ ticker, tempTicker, style })
-
-    const message = {
-      success: true,
-      content: '標的新增成功',
-      errorMessage: null,
-      result: { [ticker]: name }
-    }
-    res.send(message)
-  } catch (error) {
-    const message = {
-      success: true,
-      content: '標的新增失敗',
-      errorMessage: error.message,
-      result: null
-    }
-    res.send(message)
-  }
-  templistRef
-})
-
-router.delete('/tempList/:currentTab/:tickers', async (req, res) => {
-  try {
-    const currentTab = req.params.currentTab
-    const tickers = JSON.parse(req.params.tickers)
-
-    if (tickers.length === 0) return
-
-    const list =
-      currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
-
-    for (let i = 0; i < tickers.length; i++) {
-      const ticker = tickers[i]
-      await watchlistRef.child(list).child(ticker).remove()
-      await templistRef.child(list).child(ticker).remove()
-    }
-
-    const message = {
-      success: true,
-      content: '刪除成功',
-      errorMessage: null,
-      result: tickers
-    }
-    res.send(message)
-  } catch (error) {
-    const message = {
-      success: false,
-      content: '刪除失敗',
-      errorMessage: error.message,
-      result: null
-    }
-    res.send(message)
-  }
-})
-
-router.post('/addToWatchlist', async (req, res) => {
-  const { currentTab, tickerItem } = req.body
-  const list = currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
+// WATCHLIST PAGE
+// add ticker to watchlist
+router.post('/ticker/:listName', async (req, res) => {
+  const { listName } = req.params
+  const { tickerItem } = req.body
+  const list = listName.toLowerCase() === 'watchlist' ? 'default' : listName
 
   try {
     await watchlistRef.child(list).child(tickerItem.tempTicker).set(tickerItem)
@@ -362,50 +272,43 @@ router.post('/addToWatchlist', async (req, res) => {
   }
 })
 
-router.delete(
-  '/deleteFromWatchlist/:currentTab/:deleteInfoArr',
-  async (req, res) => {
-    try {
-      const currentTab = req.params.currentTab
-      const deleteInfoArr = JSON.parse(req.params.deleteInfoArr)
+// delete ticker from watchlist
+router.delete('/ticker/:listName/:deleteInfoArr', async (req, res) => {
+  try {
+    const listName = req.params.listName
+    const deleteInfoArr = JSON.parse(req.params.deleteInfoArr)
 
-      if (deleteInfoArr.length === 0) return
+    if (deleteInfoArr.length === 0) return
 
-      const list =
-        currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
+    const list = listName.toLowerCase() === 'watchlist' ? 'default' : listName
 
-      const result = []
-
-      for (let i = 0; i < deleteInfoArr.length; i++) {
-        const ticker = deleteInfoArr[i]
-        const tickerRef = watchlistRef.child(list).child(ticker)
-        const tickerChildRef = await tickerRef.once('value')
-        result.push(tickerChildRef.val())
-        await watchlistRef.child(list).child(ticker).remove()
-      }
-
-      const message = {
-        success: true,
-        content: '刪除成功',
-        errorMessage: null,
-        result: deleteInfoArr
-      }
-      res.send(message)
-    } catch (error) {
-      console.log('error', error)
-      const message = {
-        success: false,
-        content: '刪除失敗',
-        errorMessage: error.message,
-        result: null
-      }
-      res.send(message)
+    for (let i = 0; i < deleteInfoArr.length; i++) {
+      const ticker = deleteInfoArr[i]
+      await watchlistRef.child(list).child(ticker).remove()
     }
-  }
-)
 
-router.put('/watchlist/:currentTab/:ticker', async (req, res) => {
-  const { currentTab, ticker } = req.params
+    const message = {
+      success: true,
+      content: '刪除成功',
+      errorMessage: null,
+      result: deleteInfoArr
+    }
+    res.send(message)
+  } catch (error) {
+    console.log('error', error)
+    const message = {
+      success: false,
+      content: '刪除失敗',
+      errorMessage: error.message,
+      result: null
+    }
+    res.send(message)
+  }
+})
+
+// update ticker info from watchlist
+router.put('/ticker/:listName/:ticker', async (req, res) => {
+  const { listName, ticker } = req.params
   const { newItem } = req.body
   const {
     price,
@@ -414,7 +317,7 @@ router.put('/watchlist/:currentTab/:ticker', async (req, res) => {
     marketState
   } = newItem
 
-  const list = currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
+  const list = listName.toLowerCase() === 'watchlist' ? 'default' : listName
 
   const tickerRef = watchlistRef.child(list).child(ticker)
   const priceRef = tickerRef.child('price').set(price)
@@ -452,10 +355,10 @@ router.put('/watchlist/:currentTab/:ticker', async (req, res) => {
   }
 })
 
-router.get('/watchlist/:tab', async (req, res) => {
-  const currentTab = req.params.tab
-
-  const list = currentTab.toLowerCase() === 'watchlist' ? 'default' : currentTab
+// get all tickers in current watchlist
+router.get('/tickers/:listName', async (req, res) => {
+  const listName = req.params.listName
+  const list = listName.toLowerCase() === 'watchlist' ? 'default' : listName
 
   try {
     const watchlistChildRef = await watchlistRef.child(list).once('value')
@@ -483,8 +386,9 @@ router.get('/watchlist/:tab', async (req, res) => {
   }
 })
 
-router.post('/createWatchlist', async (req, res) => {
-  const { listName } = req.body
+// create watchlist
+router.post('/watchlist/:listName', async (req, res) => {
+  const { listName } = req.params
   const DEFAULT_TAB = 'Watchlist'
 
   const initTabs = await tabsRef.once('value')
@@ -545,15 +449,16 @@ router.post('/createWatchlist', async (req, res) => {
   }
 })
 
-router.post('/deleteWatchlist', async (req, res) => {
+// delete watchlist
+router.delete('/watchlist/:listName', async (req, res) => {
   try {
-    const { currentTab } = req.body
+    const { listName } = req.params
     const tabs = await tabsRef.once('value')
-    const newTabs = tabs.val().filter((tab) => tab !== currentTab)
+    const newTabs = tabs.val().filter((tab) => tab !== listName)
     const tabsInfo = await getTabsInfo(newTabs)
 
     await tabsRef.set(newTabs)
-    await watchlistRef.child(currentTab).remove()
+    await watchlistRef.child(listName).remove()
 
     const message = {
       success: true,
@@ -574,7 +479,8 @@ router.post('/deleteWatchlist', async (req, res) => {
   }
 })
 
-router.get('/getTabs', async (req, res) => {
+// get all watchlist names
+router.get('/watchlist', async (req, res) => {
   try {
     const DEFAULT_TAB = 'Watchlist'
     const initTabs = await tabsRef.once('value')
@@ -605,9 +511,10 @@ router.get('/getTabs', async (req, res) => {
   }
 })
 
-router.post('/editTab', async (req, res) => {
-  const { oldTab, newTab } = req.body
-  const emptyInput = !newTab || newTab.length === 0
+// rename watchlist
+router.put('/watchlist/:oldName/:newName', async (req, res) => {
+  const { oldName, newName } = req.params
+  const emptyInput = !newName || newName.length === 0
 
   let message = {
     success: false,
@@ -616,7 +523,7 @@ router.post('/editTab', async (req, res) => {
     result: null
   }
 
-  if (oldTab === newTab) {
+  if (oldName === newName) {
     message.errorMessage = 'Please rename watchlist'
     res.send(message)
     return
@@ -630,7 +537,7 @@ router.post('/editTab', async (req, res) => {
   try {
     const tabs = await tabsRef.once('value')
     const allTabs = tabs.val()
-    const isTabRepeated = allTabs.includes(newTab)
+    const isTabRepeated = allTabs.includes(newName)
 
     if (isTabRepeated) {
       message.errorMessage = 'Watchlist already exists'
@@ -638,16 +545,16 @@ router.post('/editTab', async (req, res) => {
       return
     }
 
-    const idx = allTabs.indexOf(oldTab)
-    allTabs.splice(idx, 1, newTab)
+    const idx = allTabs.indexOf(oldName)
+    allTabs.splice(idx, 1, newName)
     await tabsRef.set(allTabs)
 
-    const targetList = await watchlistRef.child(oldTab).once('value')
+    const targetList = await watchlistRef.child(oldName).once('value')
     const isTargetListEmpty = targetList.val() == null
 
     if (!isTargetListEmpty) {
-      await watchlistRef.child(oldTab).remove()
-      await watchlistRef.child(newTab).set(targetList.val())
+      await watchlistRef.child(oldName).remove()
+      await watchlistRef.child(newName).set(targetList.val())
     }
 
     const tabsInfo = await getTabsInfo(allTabs)
@@ -655,7 +562,7 @@ router.post('/editTab', async (req, res) => {
       success: true,
       content: '編輯成功',
       errorMessage: null,
-      result: { newTab, tabsInfo }
+      result: { newName, tabsInfo }
     }
 
     res.send(message)
@@ -690,7 +597,7 @@ async function getTabsInfo(tabs) {
   return tabsInfo
 }
 
-// stockInfo
+// STOCKINFO PAGE
 router.get('/financialData/:ticker', async (req, res) => {
   const quoteOptions = {
     symbol: req.params.ticker,

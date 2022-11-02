@@ -94,24 +94,37 @@ export default {
       .then((response) => {
         const priceMap = new Map(response.data.result.close);
         lineChartData.value["5Y"] = mappingLineChartData(priceMap, "5Y");
+      })
+      .catch((err) => {
+        console.log("err", err);
       });
 
+    function storePriceMap(data, timespan) {
+      priceRawMapData.value[timespan] = data;
+    }
+
     function getLineChartData(priceMap) {
+      // length -1 是為了排除 5Y
       for (let i = 0; i < tabs.value.length - 1; i++) {
         const timespan = tabs.value[i];
+        console.log(`%c timespan ${timespan}`, "background:blue;color:#efefef");
 
-        if (timespan !== "5D") {
-          const startDate = startDateObj[timespan];
-
-          lineChartData.value[timespan] = iteratePriceMapToLineChartData(
-            priceMap,
-            startDate
-          );
-        } else {
-          lineChartData.value[timespan] = mappingLineChartData(
-            priceMap,
-            timespan
-          );
+        switch (timespan) {
+          case "5D": {
+            lineChartData.value[timespan] = mappingLineChartData(
+              priceMap,
+              timespan
+            );
+            break;
+          }
+          default: {
+            const startDate = startDateObj[timespan];
+            lineChartData.value[timespan] = iteratePriceMapToLineChartData(
+              priceMap,
+              startDate
+            );
+            break;
+          }
         }
       }
     }
@@ -125,6 +138,7 @@ export default {
         // 找 YTD
         const [_, month, date] = fullDate.split("/");
         const isEndOfYear = m + d === "1231" && month + date === "1231";
+
         if (isEndOfYear) break;
 
         // YTD 以外
@@ -144,10 +158,10 @@ export default {
         xAxisData.length = 0;
         seriesData.length = 0;
 
-        for (let [key, value] of priceMap.entries()) {
-          xAxisData.push(key);
-          seriesData.push(value);
-          if (key === newStartDate) break;
+        for (let [fullDate, price] of priceMap.entries()) {
+          xAxisData.push(fullDate);
+          seriesData.push(price);
+          if (fullDate === newStartDate) break;
         }
       }
 
@@ -159,11 +173,12 @@ export default {
 
     function getNewStartDate(xAxisData, fullDate) {
       const [startYear, startMonth, startDate] = fullDate.split("/");
-      let date = startDate;
-      let month = startMonth;
-      let year = startYear;
+      let date = +startDate;
+      let month = +startMonth;
+      let year = +startYear;
       let startIndex = -1;
       let newStartDate = null;
+      let i = 0;
 
       while (startIndex === -1) {
         const startDate = `^${year}/${month}/${date}$`;
@@ -171,25 +186,35 @@ export default {
 
         startIndex = xAxisData.findIndex((element) => element.match(regex));
 
-        newStartDate = `${year}/${month}/${date}`;
+        newStartDate = xAxisData[startIndex - 1];
 
-        if (date <= 1) {
+        if (date !== 1) {
+          date--;
+        } else {
           date = 31;
-          if (month <= 1) {
+          if (month !== 1) {
+            month--;
+          } else {
             month = 12;
             year--;
-          } else {
-            month--;
           }
-        } else {
-          date++;
+        }
+
+        i++;
+
+        if (i >= 1825) {
+          console.log(`%c 大於 1825`, "background:pink;color:#efefef");
+          break;
         }
       }
+      console.log("------------------");
+      console.log("result newStartDate", newStartDate);
 
       return newStartDate;
     }
 
     function mappingLineChartData(priceTrend, timespan) {
+      // 註：五年資料區間各市場不一樣，因最新資料的日期不一樣
       const dataset =
         timespan === "5D"
           ? [...priceTrend].slice(0, 5).reverse()
@@ -197,10 +222,6 @@ export default {
       const xAxisData = dataset.map((item) => item[0]);
       const seriesData = dataset.map((item) => item[1]);
       return { xAxisData, seriesData };
-    }
-
-    function storePriceMap(data, timespan) {
-      priceRawMapData.value[timespan] = data;
     }
 
     const closeChange = computed(() => {

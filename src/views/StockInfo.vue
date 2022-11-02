@@ -212,6 +212,9 @@ export default {
         const summary = promiseResponse[1].value.data.result;
         const { profile, detail, price } = summary;
 
+        console.log("quote", quote);
+        console.log("summary", summary);
+
         stock.value = {
           profile,
           detail,

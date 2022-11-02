@@ -6,7 +6,6 @@ const firebaseDb = require('../firebase/index.js')
 
 const holdingRef = firebaseDb.ref('/holding/')
 const watchlistRef = firebaseDb.ref('/watchlist/')
-const templistRef = firebaseDb.ref('/templist/')
 const tabsRef = firebaseDb.ref('/tabs/')
 
 const getHoldingsTradeInfo = require('../actions/getHoldingsTradeInfo')
@@ -32,6 +31,7 @@ router.get('/quote/:ticker', async (req, res) => {
       regularMarketPrice: price,
       symbol: ticker,
       regularMarketPreviousClose: previousClose,
+      regularMarketTime,
       marketState
     } = priceObj
 
@@ -50,6 +50,7 @@ router.get('/quote/:ticker', async (req, res) => {
       previousCloseChangePercent,
       name,
       ticker,
+      regularMarketTime,
       marketState
     }
 
@@ -789,7 +790,7 @@ router.get('/tickerSummary/:ticker', async (req, res) => {
             'Avg. Volume': numberWithCommas(averageVolume),
             'Trailing PE': trailingPE?.toFixed(2) || '---',
             'Forward PE': forwardPE?.toFixed(2) || '---',
-            Beta: beta.toFixed(2) || '---',
+            Beta: beta?.toFixed(2) || '---',
             'Dividend Yield': dividendYield
               ? `${parseFloat((dividendYield * 100).toFixed(2))}%`
               : '---',
@@ -844,24 +845,45 @@ router.get('/historicalPrice/:ticker', async (req, res) => {
       from: getFormattedDate(totalTimespan)
     }
 
-    const quoteOptions = {
-      symbols: [ticker],
-      ...window,
-      period: 'd'
-    }
-
     try {
-      const response = await yahooFinance.historical(quoteOptions)
-      const quotes = response[ticker]
+      const quotePromise = yahooFinance.quote({
+        symbol: ticker,
+        modules: ['price']
+      })
+      const historicalPromise = yahooFinance.historical({
+        symbols: [ticker],
+        ...window,
+        period: 'd'
+      })
+
+      const [quoteResult, historicalResult] = await Promise.allSettled([
+        quotePromise,
+        historicalPromise
+      ])
+      const { regularMarketPrice, regularMarketTime } = quoteResult.value.price
+      const historicalData = historicalResult.value[ticker]
       const priceMap = new Map()
 
-      quotes.forEach((item) => {
-        const year = item.date.getFullYear()
-        const month = item.date.getMonth() + 1
-        const date = item.date.getDate()
+      // 因各市場時間差， historical 模組沒提供當日收盤後資料，要另外用 quote 模組取得
+      // 例如：台灣時間 11/2 收盤後，historical 模組只提供到 11/1 的資料，但同一時間美國還在 11/1，所以台股資料會少一天，美股則是完整的
+      const hasLatestPrice =
+        regularMarketPrice.toFixed(2) === historicalData[0].close.toFixed(2)
+
+      if (!hasLatestPrice) {
+        priceMap.set(
+          regularMarketTime.toLocaleDateString(),
+          parseFloat(regularMarketPrice.toFixed(2))
+        )
+      }
+
+      for (let i = 0; i < historicalData.length; i++) {
+        const dayData = historicalData[i]
+        const year = dayData.date.getFullYear()
+        const month = dayData.date.getMonth() + 1
+        const date = dayData.date.getDate()
         const fullDate = `${year}/${month}/${date}`
-        priceMap.set(fullDate, parseFloat(item.close.toFixed(2)))
-      })
+        priceMap.set(fullDate, parseFloat(dayData.close.toFixed(2)))
+      }
 
       const message = {
         success: true,
@@ -874,6 +896,7 @@ router.get('/historicalPrice/:ticker', async (req, res) => {
 
       res.send(message)
     } catch (error) {
+      console.log('error', error)
       const message = {
         success: false,
         content: '取得失敗',

@@ -1,11 +1,12 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
-import Home from '../views/Home.vue'
+import { storeToRefs } from 'pinia'
+import useApiStore from '@/stores/apiStore.js'
 
 const routes = [
   {
     path: '/',
     name: 'Home',
-    component: Home
+    component: () => import('../views/Home.vue')
   },
   {
     path: '/admin/dashboard',
@@ -58,6 +59,19 @@ const router = createRouter({
     return { top: 0, behavior: 'smooth' }
   },
   routes
+})
+
+router.beforeEach((to, from) => {
+  const $store = useApiStore()
+  const { axiosControllerQueue } = storeToRefs($store)
+
+  for (let i = 0; i < axiosControllerQueue.value.length; i++) {
+    const controller = axiosControllerQueue.value[i]
+    controller.abort()
+  }
+
+  axiosControllerQueue.value.length = 0
+  return true
 })
 
 export default router

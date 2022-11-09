@@ -1,12 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, watch, computed } from 'vue'
 
-const useWatchlistStore = defineStore('api', () => {
+const useApiStore = defineStore('api', () => {
   const loadingQueue = ref([])
   const isLoading = computed(() => {
-    console.log('loadingQueue.value', loadingQueue.value)
     return loadingQueue.value.length !== 0
   })
+
+  const axiosControllerQueue = ref([])
 
   watch(isLoading, (newVal) => {
     console.log('newVal', newVal)
@@ -14,8 +15,9 @@ const useWatchlistStore = defineStore('api', () => {
 
   return {
     loadingQueue,
-    isLoading
+    isLoading,
+    axiosControllerQueue
   }
 })
 
-export default useWatchlistStore
+export default useApiStore

@@ -867,7 +867,7 @@ router.get('/historicalPrice/:ticker', async (req, res) => {
       // 因各市場時間差， historical 模組沒提供當日收盤後資料，要另外用 quote 模組取得
       // 例如：台灣時間 11/2 收盤後，historical 模組只提供到 11/1 的資料，但同一時間美國還在 11/1，所以台股資料會少一天，美股則是完整的
       const hasLatestPrice =
-        regularMarketPrice.toFixed(2) === historicalData[0].close.toFixed(2)
+        regularMarketPrice.toFixed(2) === historicalData[0].close?.toFixed(2)
 
       if (!hasLatestPrice) {
         priceMap.set(
@@ -878,6 +878,7 @@ router.get('/historicalPrice/:ticker', async (req, res) => {
 
       for (let i = 0; i < historicalData.length; i++) {
         const dayData = historicalData[i]
+        if (!dayData.close) continue
         const year = dayData.date.getFullYear()
         const month = dayData.date.getMonth() + 1
         const date = dayData.date.getDate()

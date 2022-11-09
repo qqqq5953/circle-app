@@ -207,11 +207,15 @@ export default {
           quotePromiseObj,
           summaryPromiseObj,
         ]);
+        const quote = promiseResponse[0].value?.data.result;
+        const summary = promiseResponse[1].value?.data.result;
 
-        const quote = promiseResponse[0].value.data.result;
-        const summary = promiseResponse[1].value.data.result;
+        if (!quote || !summary) {
+          toggleSkeleton(false);
+          return;
+        }
+
         const { profile, detail, price } = summary;
-
         console.log("quote", quote);
         console.log("summary", summary);
 
@@ -233,7 +237,7 @@ export default {
         toggleSkeleton(false);
 
         await nextTick();
-        summaryProfileRef.value.adjustSummaryHeight();
+        summaryProfileRef.value?.adjustSummaryHeight();
       } catch (error) {
         console.log("error", error);
       }
@@ -241,7 +245,7 @@ export default {
 
     async function getFinancialData() {
       const response = await http.get(`/api/financialData/${props.ticker}`);
-      const financialData = response.data.result;
+      const financialData = response?.data.result;
       return financialData;
     }
 

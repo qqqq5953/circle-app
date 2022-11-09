@@ -81,10 +81,12 @@ export default {
       ["1Y"]: `${year - 1}/${month}/${date}`,
       ["5Y"]: `${year - 5}/${month}/${date}`,
     };
+    const timespan = ref(null);
 
     http
       .get(url_1Y)
       .then((response) => {
+        if (!response) return;
         const priceMap = new Map(response.data.result.close);
         storePriceMap(priceMap, "1Y");
         getLineChartData(priceMap);
@@ -92,6 +94,7 @@ export default {
         return http.get(url_5Y);
       })
       .then((response) => {
+        if (!response) return;
         const priceMap = new Map(response.data.result.close);
         lineChartData.value["5Y"] = mappingLineChartData(priceMap, "5Y");
       })
@@ -106,23 +109,24 @@ export default {
     function getLineChartData(priceMap) {
       // length -1 是為了排除 5Y
       for (let i = 0; i < tabs.value.length - 1; i++) {
-        const timespan = tabs.value[i];
-        console.log(`%c timespan ${timespan}`, "background:blue;color:#efefef");
+        timespan.value = tabs.value[i];
+        console.log(
+          `%c timespan ${timespan.value}`,
+          "background:blue;color:#efefef"
+        );
 
-        switch (timespan) {
+        switch (timespan.value) {
           case "5D": {
-            lineChartData.value[timespan] = mappingLineChartData(
+            lineChartData.value[timespan.value] = mappingLineChartData(
               priceMap,
-              timespan
+              timespan.value
             );
             break;
           }
           default: {
-            const startDate = startDateObj[timespan];
-            lineChartData.value[timespan] = iteratePriceMapToLineChartData(
-              priceMap,
-              startDate
-            );
+            const startDate = startDateObj[timespan.value];
+            lineChartData.value[timespan.value] =
+              iteratePriceMapToLineChartData(priceMap, startDate);
             break;
           }
         }
@@ -131,13 +135,15 @@ export default {
 
     function iteratePriceMapToLineChartData(priceMap, startDate) {
       const [_, m, d] = startDate.split("/");
+      const isYTD = m + d === "1231";
       const xAxisData = [];
       const seriesData = [];
 
       for (let [fullDate, price] of priceMap.entries()) {
         // 找 YTD
         const [_, month, date] = fullDate.split("/");
-        const isEndOfYear = m + d === "1231" && month + date === "1231";
+        const isEndOfYear =
+          isYTD && (month + date === "1231" || month + date === "1230");
 
         if (isEndOfYear) break;
 
@@ -152,7 +158,7 @@ export default {
       const isStartDateExist = currentTimespanLength !== oneYearTimespanLength;
 
       // 重新找開始日期
-      if (currentTab.value !== "1Y" && !isStartDateExist) {
+      if (timespan.value !== "1Y" && !isStartDateExist) {
         const newStartDate = getNewStartDate(xAxisData, startDate);
 
         xAxisData.length = 0;

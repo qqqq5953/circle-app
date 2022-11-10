@@ -76,10 +76,11 @@
       @loadWatchlist="loadWatchlist"
       @toggleLoadingEffect="toggleLoadingEffect"
       @setSkeletonTableRow="setSkeletonTableRow"
+      @sortList="showNewList"
       v-show="!isWatchlistLoading"
     >
       <template #update-btn>
-        <div class="text-xs text-slate-400" v-if="listLength">
+        <div class="text-xs text-slate-400">
           <button
             class="
               py-0.5
@@ -93,7 +94,7 @@
           >
             {{ msg }}
           </button>
-          <div class="border border-white py-0.5" v-else>{{ msg }}</div>
+          <div class="border border-white" v-else>{{ msg }}</div>
         </div>
       </template>
     </WatchlistTable>
@@ -212,11 +213,6 @@ export default {
     const isWatchlistLoading = ref(null);
     const isAddingProcess = ref(false);
     const watchlistDisplay = ref(null);
-    const listLength = computed(() => {
-      return watchlistDisplay.value
-        ? Object.keys(watchlistDisplay.value).length
-        : 0;
-    });
 
     const toggleWatchlistSkeleton = (isLoading) => {
       isWatchlistLoading.value = isLoading;
@@ -240,18 +236,17 @@ export default {
       toggleWatchlistSkeleton(isActivate);
     };
 
+    const sortObj = ref({
+      category: "previousCloseChangePercent",
+      direction: "descending",
+    });
+
     function showListOnAdding(payload) {
       const cacheList = getCacheList(currentTab.value);
       const unorderedList = { ...payload, ...cacheList };
-      const orderedList = Object.keys(unorderedList)
-        .sort()
-        .reduce((obj, key) => {
-          obj[key] = unorderedList[key];
-          return obj;
-        }, {});
 
-      setSkeletonTableRow({ list: orderedList });
-      showNewList(orderedList);
+      setSkeletonTableRow({ list: unorderedList });
+      showNewList(sortObj.value, unorderedList);
     }
 
     function showListOnDeleting(payload) {
@@ -264,7 +259,7 @@ export default {
         newList = rest;
       }
 
-      showNewList(newList);
+      showNewList(sortObj.value, newList);
     }
 
     const isUpdate = ref(false);
@@ -300,10 +295,10 @@ export default {
       // 用 cache
       switch (status) {
         case "switch":
-          const allTabs = Object.keys(cachedList.value);
-          const isCurrentTabInTabs = allTabs.includes(currentTab.value);
+          const cachedTabs = Object.keys(cachedList.value);
+          const isInCachedTabs = cachedTabs.includes(currentTab.value);
 
-          if (isCurrentTabInTabs) {
+          if (isInCachedTabs) {
             watchlistDisplay.value = getCacheList(currentTab.value);
             checkResumeFlow(watchlistDisplay.value);
             return; // 第二次 switch
@@ -334,7 +329,7 @@ export default {
         setSkeletonTableRow({ list: watchlist });
 
         const currentWatchlist = await updateList(watchlist);
-        showNewList(currentWatchlist);
+        showNewList(sortObj.value, currentWatchlist);
 
         toggleLoadingEffect(false);
 
@@ -423,10 +418,12 @@ export default {
       await Promise.allSettled(allPromises);
     }
 
-    function showNewList(watchlist) {
-      console.log("showNewList watchlist", watchlist);
-      watchlistDisplay.value = watchlist;
-      cachedList.value[currentTab.value] = setCacheList(watchlist);
+    function showNewList(sortRules, watchlist = watchlistDisplay.value) {
+      sortObj.value = sortRules;
+
+      const orderedList = sortList(sortRules, watchlist);
+      watchlistDisplay.value = orderedList;
+      cachedList.value[currentTab.value] = setCacheList(orderedList);
       msg.value = "Latest price";
     }
 
@@ -434,6 +431,55 @@ export default {
       const isAllMarketClose = checkMarketState(watchlist);
       console.log("isAllMarketClose", isAllMarketClose);
       if (!isAllMarketClose) await startTimer(watchlist);
+    }
+
+    function sortList(sortRules, watchlist) {
+      const orderedList = Object.values({ ...watchlist })
+        .sort((a, b) => {
+          return showSortResult(sortRules, { a, b });
+        })
+        .reduce((obj, item) => {
+          obj[item.tempTicker] = { ...watchlist }[item.tempTicker];
+          return obj;
+        }, {});
+
+      return orderedList;
+    }
+
+    function showSortResult(sortRules, { a, b }) {
+      const { category, direction } = sortRules;
+
+      const rulesMap = {
+        tempTicker_descending: () => {
+          if (a[category] > b[category]) return -1;
+          if (a[category] < b[category]) return 1;
+          return 0;
+        },
+        tempTicker_ascending: () => {
+          if (a[category] < b[category]) return -1;
+          if (a[category] > b[category]) return 1;
+          return 0;
+        },
+        price_descending: b[category] - a[category],
+        price_ascending: a[category] - b[category],
+        previousCloseChange_descending: b[category] - a[category],
+        previousCloseChange_ascending: a[category] - b[category],
+        previousCloseChangePercent_descending: b[category] - a[category],
+        previousCloseChangePercent_ascending: a[category] - b[category],
+      };
+
+      const sortResult = rulesMap[`${category}_${direction}`];
+
+      switch (typeof sortResult) {
+        case "number": {
+          return sortResult;
+        }
+        case "function": {
+          return sortResult();
+        }
+        default:
+          return 0;
+      }
     }
 
     // 自動倒數計時更新
@@ -526,7 +572,7 @@ export default {
       };
 
       return {
-        ...cacheList,
+        ...sortList(sortObj.value, cacheList),
       };
     }
 
@@ -550,7 +596,6 @@ export default {
 
       currentTab,
       loadWatchlist,
-      listLength,
       watchlistDisplay,
       watchlistTableSkeletonContent,
       isWatchlistLoading,
@@ -562,6 +607,8 @@ export default {
       clickUpdate,
       isUpdate,
       msg,
+
+      showNewList,
     };
   },
 };

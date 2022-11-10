@@ -9,73 +9,79 @@
       border border-gray-100
     "
   >
-    <!-- table title -->
     <div
-      class="relative rounded-t pl-4 lg:pl-8 py-3 flex items-center border-b"
+      class="py-3 flex flex-col gap-1"
       :class="{ 'border-b': watchlistDisplay }"
     >
-      <h3 class="truncate w-3/4">
-        <span class="font-semibold">{{ currentTab }}</span>
-        <slot name="update-btn"></slot>
-      </h3>
+      <!-- table title -->
+      <section class="relative flex justify-between rounded-t px-4 lg:px-8">
+        <h3 class="font-semibold truncate w-3/4">
+          {{ currentTab }}
+        </h3>
 
-      <!-- dropdown -->
-      <div class="absolute right-2 flex gap-2" v-if="deleteArr.length">
-        <label
-          for="selectAll"
-          class="
-            text-xs
-            bg-white
-            rounded
-            px-2
-            py-1.5
-            border border-slate-500
-            text-slate-500
-          "
-        >
-          <span v-if="deleteArrLength === listLength">UNDO</span>
-          <span v-else>SELECT ALL</span>
-        </label>
-        <input
-          id="selectAll"
-          class="hidden"
-          type="checkbox"
-          v-model="selectAll"
-        />
-        <button
-          class="text-xs rounded px-2 py-1.5 bg-slate-500 text-white"
-          @click="openAlert($event, 'deleteTicker')"
-        >
-          DELETE
-        </button>
-      </div>
-      <div class="ml-auto h-full w-1/5" v-else>
+        <!-- delete buttons -->
         <div
-          class="relative h-full"
-          v-if="currentTab?.toLowerCase() !== 'watchlist'"
+          class="absolute right-4 top-0 flex gap-2 h-full"
+          v-if="deleteArr.length"
+        >
+          <label
+            for="selectAll"
+            class="
+              text-xs
+              bg-white
+              rounded
+              px-2
+              py-1
+              border border-slate-500
+              text-slate-500
+            "
+          >
+            <span v-if="deleteArrLength === listLength">Undo</span>
+            <span v-else>Select all</span>
+          </label>
+          <input
+            id="selectAll"
+            class="hidden"
+            type="checkbox"
+            v-model="selectAll"
+          />
+          <button
+            class="text-xs rounded px-2 py-1 bg-slate-500 text-white"
+            @click="openAlert($event, 'deleteTicker')"
+          >
+            Delete
+          </button>
+        </div>
+
+        <!-- setting dropdown -->
+        <div
+          class="absolute right-2 top-0"
+          v-if="!deleteArr.length && currentTab?.toLowerCase() !== 'watchlist'"
         >
           <button
-            class="
-              absolute
-              top-1/2
-              -translate-y-1/2
-              right-2
-              px-3
-              rounded-full
-              active:rounded-full
-            "
+            class="px-3 rounded-full active:rounded-full"
             @click="toggleDropdown"
           >
             <i class="fa-solid fa-ellipsis-vertical"></i>
           </button>
           <Transition>
             <ul
-              class="absolute right-0 -bottom-28 p-3 shadow rounded bg-white"
-              v-show="isDropdownOpen"
+              class="
+                absolute
+                -right-2
+                z-30
+                top-full
+                mt-2
+                p-3
+                shadow
+                rounded
+                bg-white
+              "
+              v-if="isDropdownOpen"
               @click="toggleDropdown"
             >
               <li
-                class="flex gap-3 items-center py-1 cursor-pointer"
+                class="flex gap-3 items-center py-1 cursor-pointer text-sm"
                 v-for="list in dropdownMenu"
                 :key="list.name"
                 @click="list.onClick"
@@ -86,7 +92,92 @@
             </ul>
           </Transition>
         </div>
-      </div>
+      </section>
+
+      <section
+        class="flex justify-between items-center pl-4 pr-2 lg:pl-8"
+        v-if="listLength"
+      >
+        <slot name="update-btn"></slot>
+        <!-- sort -->
+        <div class="relative flex flex-grow justify-end items-center">
+          <button
+            class="
+              flex
+              justify-between
+              space-x-2
+              px-2
+              py-1
+              rounded-full
+              text-xs text-blue-500
+            "
+            :class="{ 'focus:bg-blue-50': isSortMenuOpen }"
+            @click="toggleSortMenu"
+          >
+            <span>
+              <i
+                class="fa-solid fa-arrow-up"
+                v-if="selectedDirection === 'ascending'"
+              ></i>
+              <i class="fa-solid fa-arrow-down" v-else></i>
+            </span>
+            <span
+              >Sort by
+              <span class="font-bold">{{ selectedDisplayName }}</span></span
+            >
+          </button>
+          <Transition>
+            <div
+              class="
+                absolute
+                top-full
+                -right-2
+                z-20
+                w-3/4
+                max-w-[180px]
+                mt-2
+                text-sm
+                shadow
+                rounded
+                bg-white
+              "
+              v-if="isSortMenuOpen"
+              @click="toggleSortMenu"
+            >
+              <ul class="py-3">
+                <li
+                  class="flex gap-3 items-center py-1 px-3 cursor-pointer"
+                  :class="{
+                    'text-blue-500 font-semibold pointer-events-none cursor-pointer-none':
+                      selectedSortCategory === item.category,
+                  }"
+                  v-for="(item, key) in sortMenu"
+                  :key="item.category"
+                  @click="sortList({ key, category: item.category })"
+                >
+                  <i class="w-1/12" :class="item.icon"></i>
+                  <span>{{ key }}</span>
+                </li>
+              </ul>
+              <ul class="p-3 border-t">
+                <li
+                  class="flex gap-3 items-center py-1 cursor-pointer"
+                  :class="{
+                    'text-blue-500 font-semibold':
+                      selectedDirection === item.direction,
+                  }"
+                  v-for="(item, key) in sortDirection"
+                  :key="item.direction"
+                  @click="sortList({ direction: item.direction })"
+                >
+                  <i class="w-1/12" :class="item.icon"></i>
+                  <span>{{ key }}</span>
+                </li>
+              </ul>
+            </div>
+          </Transition>
+        </div>
+      </section>
     </div>
 
     <Teleport to="body">
@@ -194,7 +285,7 @@
         </thead>
         <tbody>
           <tr
-            class="hover:bg-slate-100"
+            class="hover:bg-slate-100 border-b last:border-b-0"
             v-for="item in watchlistDisplay"
             :key="item.tempTicker"
             :id="item.id"
@@ -386,7 +477,6 @@
 import { ref, watch, nextTick, defineAsyncComponent, computed } from "vue";
 import { storeToRefs } from "pinia";
 import http from "@/api/index";
-import useAxios from "@/composables/useAxios.js";
 import useWatchlistStore from "@/stores/watchlistStore.js";
 import InputModal from "@/components/InputModal.vue";
 import DeleteAlert from "@/components/DeleteAlert.vue";
@@ -414,6 +504,56 @@ export default {
 
     const setTabs = (tab) => $store.setTabs(tab);
     const showCurrentTab = (tab) => $store.showCurrentTab(tab);
+
+    // sort
+    const sortMenu = ref({
+      Ticker: {
+        category: "tempTicker",
+        icon: "fa-solid fa-hashtag",
+      },
+      Price: {
+        category: "price",
+        icon: "fa-solid fa-dollar-sign",
+      },
+      "Price change": {
+        category: "previousCloseChange",
+        icon: "fa-solid fa-chart-simple",
+      },
+      "Price change (%)": {
+        category: "previousCloseChangePercent",
+        icon: "fa-solid fa-chart-line",
+      },
+    });
+
+    const sortDirection = ref({
+      "Ascending (1-9)": {
+        direction: "ascending",
+        icon: "fa-solid fa-arrow-up-9-1",
+      },
+      "Descending (9-1)": {
+        direction: "descending",
+        icon: "fa-solid fa-arrow-down-9-1",
+      },
+    });
+
+    const isSortMenuOpen = ref(false);
+    const selectedDisplayName = ref("price change (%)");
+    const selectedSortCategory = ref("previousCloseChangePercent");
+    const selectedDirection = ref("descending");
+
+    const toggleSortMenu = () => (isSortMenuOpen.value = !isSortMenuOpen.value);
+
+    const sortList = ({
+      key = selectedDisplayName.value,
+      category = selectedSortCategory.value,
+      direction = selectedDirection.value,
+    }) => {
+      selectedDisplayName.value = key;
+      selectedSortCategory.value = category;
+      selectedDirection.value = direction;
+
+      emit("sortList", { category, direction });
+    };
 
     // alert
     const isAlertOpen = ref(false);
@@ -605,6 +745,7 @@ export default {
 
     watch(currentTab, () => {
       isDropdownOpen.value = false;
+      isSortMenuOpen.value = false;
       clearDeleteArr();
     });
 
@@ -618,6 +759,7 @@ export default {
       inputModalRef,
       newListName,
       errorMessage,
+      listLength,
 
       toggleDropdown,
       openRenameModal,
@@ -627,7 +769,7 @@ export default {
 
       deleteArr,
       deleteArrLength,
-      listLength,
+      selectAll,
 
       switchAlert,
       alertTitle,
@@ -635,7 +777,14 @@ export default {
       openAlert,
       closeAlert,
 
-      selectAll,
+      sortMenu,
+      sortDirection,
+      sortList,
+      selectedDisplayName,
+      selectedSortCategory,
+      selectedDirection,
+      isSortMenuOpen,
+      toggleSortMenu,
     };
   },
 };

@@ -236,7 +236,7 @@ export default {
       toggleWatchlistSkeleton(isActivate);
     };
 
-    const sortObj = ref({
+    const latestSortRules = ref({
       category: "previousCloseChangePercent",
       direction: "descending",
     });
@@ -246,7 +246,7 @@ export default {
       const unorderedList = { ...payload, ...cacheList };
 
       setSkeletonTableRow({ list: unorderedList });
-      showNewList(sortObj.value, unorderedList);
+      showNewList(latestSortRules.value, unorderedList);
     }
 
     function showListOnDeleting(payload) {
@@ -259,7 +259,7 @@ export default {
         newList = rest;
       }
 
-      showNewList(sortObj.value, newList);
+      showNewList(latestSortRules.value, newList);
     }
 
     const isUpdate = ref(false);
@@ -329,7 +329,7 @@ export default {
         setSkeletonTableRow({ list: watchlist });
 
         const currentWatchlist = await updateList(watchlist);
-        showNewList(sortObj.value, currentWatchlist);
+        showNewList(latestSortRules.value, currentWatchlist);
 
         toggleLoadingEffect(false);
 
@@ -419,7 +419,7 @@ export default {
     }
 
     function showNewList(sortRules, watchlist = watchlistDisplay.value) {
-      sortObj.value = sortRules;
+      latestSortRules.value = sortRules;
 
       const orderedList = sortList(sortRules, watchlist);
       watchlistDisplay.value = orderedList;
@@ -559,7 +559,7 @@ export default {
         ? { ...watchlistDisplay.value, ...resumeList.value }
         : watchlistDisplay.value;
 
-      showNewList(currentWatchlist);
+      showNewList(latestSortRules.value, currentWatchlist);
 
       toggleLoadingEffect(false);
 
@@ -572,7 +572,7 @@ export default {
       };
 
       return {
-        ...sortList(sortObj.value, cacheList),
+        ...sortList(latestSortRules.value, cacheList),
       };
     }
 

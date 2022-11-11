@@ -27,13 +27,14 @@
           <label
             for="selectAll"
             class="
-              text-xs
-              bg-white
               rounded
               px-2
-              py-1
+              py-px
               border border-slate-500
-              text-slate-500
+              bg-white
+              text-slate-600 text-xs
+              flex
+              items-center
             "
           >
             <span v-if="deleteArrLength === listLength">Undo</span>
@@ -46,7 +47,14 @@
             v-model="selectAll"
           />
           <button
-            class="text-xs rounded px-2 py-1 bg-slate-500 text-white"
+            class="
+              rounded
+              px-2
+              py-px
+              border border-slate-500
+              text-slate-600 text-xs
+              font-semibold
+            "
             @click="openAlert($event, 'deleteTicker')"
           >
             Delete
@@ -438,7 +446,7 @@
               "
               @click.stop
             >
-              <label :for="item.name">
+              <label :for="item.ticker">
                 <i
                   class="
                     fa-solid fa-square-check
@@ -460,7 +468,7 @@
               </label>
               <input
                 class="hidden"
-                :id="item.name"
+                :id="item.ticker"
                 :value="item.ticker"
                 type="checkbox"
                 v-model="deleteArr"

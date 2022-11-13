@@ -488,6 +488,7 @@ import http from "@/api/index";
 import useWatchlistStore from "@/stores/watchlistStore.js";
 import InputModal from "@/components/InputModal.vue";
 import DeleteAlert from "@/components/DeleteAlert.vue";
+import useSort from "@/composables/useSort.js";
 
 export default {
   components: {
@@ -514,54 +515,16 @@ export default {
     const showCurrentTab = (tab) => $store.showCurrentTab(tab);
 
     // sort
-    const sortMenu = ref({
-      Ticker: {
-        category: "tempTicker",
-        icon: "fa-solid fa-hashtag",
-      },
-      Price: {
-        category: "price",
-        icon: "fa-solid fa-dollar-sign",
-      },
-      "Price change": {
-        category: "previousCloseChange",
-        icon: "fa-solid fa-chart-simple",
-      },
-      "Price change (%)": {
-        category: "previousCloseChangePercent",
-        icon: "fa-solid fa-chart-line",
-      },
-    });
-
-    const sortDirection = ref({
-      "Ascending (1-9)": {
-        direction: "ascending",
-        icon: "fa-solid fa-arrow-up-9-1",
-      },
-      "Descending (9-1)": {
-        direction: "descending",
-        icon: "fa-solid fa-arrow-down-9-1",
-      },
-    });
-
-    const isSortMenuOpen = ref(false);
-    const selectedDisplayName = ref("price change (%)");
-    const selectedSortCategory = ref("previousCloseChangePercent");
-    const selectedDirection = ref("descending");
-
-    const toggleSortMenu = () => (isSortMenuOpen.value = !isSortMenuOpen.value);
-
-    const sortList = ({
-      key = selectedDisplayName.value,
-      category = selectedSortCategory.value,
-      direction = selectedDirection.value,
-    }) => {
-      selectedDisplayName.value = key;
-      selectedSortCategory.value = category;
-      selectedDirection.value = direction;
-
-      emit("sortList", { category, direction });
-    };
+    const {
+      sortMenu,
+      sortDirection,
+      selectedDisplayName,
+      selectedSortCategory,
+      selectedDirection,
+      isSortMenuOpen,
+      toggleSortMenu,
+      sortList,
+    } = useSort(emit);
 
     // alert
     const isAlertOpen = ref(false);

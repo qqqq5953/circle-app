@@ -219,7 +219,7 @@
       </DeleteAlert>
     </Teleport>
 
-    {{ tickersArr }}
+    <!-- {{ tickersArr }} -->
 
     <!-- body -->
     <div class="block w-full overflow-x-auto" v-if="watchlistDisplay">
@@ -503,8 +503,8 @@ export default {
   },
   props: {
     watchlistDisplay: {
-      type: [Object, Array],
-      default: {},
+      type: Array,
+      default: [],
     },
     updatedTicker: {
       type: Array,
@@ -524,9 +524,8 @@ export default {
     const $store = useWatchlistStore();
     const { currentTab } = storeToRefs($store);
     const listLength = computed(() => {
-      return props.watchlistDisplay
-        ? Object.keys(props.watchlistDisplay).length
-        : 0;
+      if (!props.watchlistDisplay) return;
+      return props.watchlistDisplay.length;
     });
 
     const setTabs = (tab) => $store.setTabs(tab);
@@ -576,14 +575,15 @@ export default {
         }
 
         case "deleteTicker": {
-          let tickers = "";
-
-          for (const tempTicker in props.watchlistDisplay) {
-            const tickerObj = props.watchlistDisplay[tempTicker];
-            if (deleteArr.value.indexOf(tickerObj.ticker) !== -1) {
-              tickers += `<span class="max-w-fit px-2 rounded ${tickerObj.style} text-white text-base">${tickerObj.ticker}</span>`;
-            }
-          }
+          const tickers = props.watchlistDisplay
+            .filter(
+              (tickerObj) => deleteArr.value.indexOf(tickerObj.ticker) !== -1
+            )
+            .map(
+              (tickerObj) =>
+                `<span class="max-w-fit px-2 rounded ${tickerObj.style} text-white text-base">${tickerObj.ticker}</span>`
+            )
+            .join("");
 
           alertTitle.value = `<div class="flex items-center gap-2 flex-wrap">Delete ${tickers}</div>`;
 
@@ -671,17 +671,14 @@ export default {
       get() {
         return deleteArrLength.value === listLength.value;
       },
-      set(value) {
-        const selected = [];
-
-        if (value) {
-          for (const tempTicker in props.watchlistDisplay) {
-            const tickerObj = props.watchlistDisplay[tempTicker];
-            selected.push(tickerObj.ticker);
-          }
+      set(allTickers) {
+        if (allTickers) {
+          deleteArr.value = props.watchlistDisplay.map(
+            (tickerObj) => tickerObj.ticker
+          );
+        } else {
+          deleteArr.value = [];
         }
-
-        deleteArr.value = selected;
       },
     });
 

@@ -363,9 +363,7 @@ router.get('/tickers/:listName', async (req, res) => {
 
   try {
     const watchlistChildRef = await watchlistRef.child(list).once('value')
-    const watchlist = watchlistChildRef.val()
-
-    // console.log('watchlist', watchlist)
+    const watchlist = Object.values(watchlistChildRef.val())
 
     const msg = {
       success: true,

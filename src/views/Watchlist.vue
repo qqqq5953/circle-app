@@ -77,7 +77,7 @@
       @loadWatchlist="loadWatchlist"
       @toggleLoadingEffect="toggleLoadingEffect"
       @setSkeletonTableRow="setSkeletonTableRow"
-      @sortList="showNewList"
+      @sortList="displayWatchlist"
       v-show="!isWatchlistLoading"
     >
       <template #update-btn>
@@ -227,8 +227,7 @@ export default {
       if (!list) {
         watchlistTableSkeletonContent.value.tableBody.tr = rows;
       } else {
-        watchlistTableSkeletonContent.value.tableBody.tr =
-          Object.keys(list).length;
+        watchlistTableSkeletonContent.value.tableBody.tr = list.length;
       }
     };
 
@@ -244,19 +243,9 @@ export default {
     });
 
     function sortList(sortRules, watchlist) {
-      const orderedList = Object.values({ ...watchlist })
-        .sort((a, b) => {
-          return showSortResult(sortRules, { a, b });
-        })
-        .reduce((obj, item) => {
-          // console.log("tempTicker", item.tempTicker);
-
-          obj[item.tempTicker] = { ...watchlist }[item.tempTicker];
-          return obj;
-        }, {});
-
-      console.log("orderedList", orderedList);
-
+      const orderedList = [...watchlist].sort((a, b) =>
+        showSortResult(sortRules, { a, b })
+      );
       return orderedList;
     }
 
@@ -304,29 +293,26 @@ export default {
       resetResume();
 
       const cacheList = getCacheList(currentTab.value);
-      const unorderedList = { ...payload, ...cacheList };
+      const unorderedList = [...cacheList];
+      unorderedList.push(payload);
 
       setSkeletonTableRow({ list: unorderedList });
 
-      const newList = showNewList(latestSortRules.value, unorderedList);
+      const newList = displayWatchlist(latestSortRules.value, unorderedList);
       return newList;
     }
 
     async function showListOnDeleting(payload) {
       resetResume();
 
-      let unorderedList = null;
       const cacheList = getCacheList(currentTab.value);
-
-      for (let i = 0; i < payload.length; i++) {
-        const ticker = payload[i];
-        const { [ticker]: _, ...rest } = unorderedList || cacheList;
-        unorderedList = rest;
-      }
+      const unorderedList = [...cacheList].filter((item) => {
+        return payload.indexOf(item.tempTicker) === -1;
+      });
 
       setSkeletonTableRow({ list: unorderedList });
 
-      const newList = showNewList(latestSortRules.value, unorderedList);
+      const newList = displayWatchlist(latestSortRules.value, unorderedList);
       return newList;
     }
 
@@ -365,17 +351,24 @@ export default {
 
       // 用 cache
       switch (status) {
-        case "switch":
+        case "switch": {
           const cachedTabs = Object.keys(cachedList.value);
           const isInCachedTabs = cachedTabs.includes(currentTab.value);
 
           if (isInCachedTabs) {
-            watchlistDisplay.value = getCacheList(currentTab.value);
-            checkResumeFlow(watchlistDisplay.value);
+            const cacheList = getCacheList(currentTab.value);
+
+            watchlistDisplay.value = displayWatchlist(
+              latestSortRules.value,
+              cacheList
+            );
+
+            await checkResumeFlow(watchlistDisplay.value);
             return; // 第二次 switch
           } else {
             break; // 第一次 switch
           }
+        }
 
         case "addTicker": {
           console.log(`%c addTicker`, "background:green; color:#efefef");
@@ -411,7 +404,7 @@ export default {
         setSkeletonTableRow({ list: watchlist });
 
         const currentWatchlist = await updateList(watchlist);
-        showNewList(latestSortRules.value, currentWatchlist);
+        displayWatchlist(latestSortRules.value, currentWatchlist);
 
         toggleLoadingEffect(false);
 
@@ -422,11 +415,9 @@ export default {
     }
 
     async function updateList(watchlist) {
-      const tempTickers = Object.keys(watchlist);
-      const newMarketData = await fetchMarketData(tempTickers, watchlist);
+      const newMarketData = await fetchMarketData(watchlist);
       console.log("updateList newMarketData", newMarketData);
       const [allPromises, currentWatchlist] = checkUpdate(
-        tempTickers,
         newMarketData,
         watchlist
       );
@@ -437,10 +428,9 @@ export default {
       return currentWatchlist;
     }
 
-    async function fetchMarketData(tempTickers, watchlist) {
-      const listPromises = tempTickers.map((tempTicker) => {
-        const ticker = watchlist[tempTicker].ticker;
-        return http.get(`/api/latestMarketData/${ticker}`);
+    async function fetchMarketData(watchlist) {
+      const listPromises = watchlist.map((item) => {
+        return http.get(`/api/latestMarketData/${item.ticker}`);
       });
 
       try {
@@ -452,17 +442,13 @@ export default {
       }
     }
 
-    function checkUpdate(tempTickers, newMarketData, watchlist) {
-      let newList = null;
+    function checkUpdate(newMarketData, watchlist) {
+      const newList = [...watchlist];
       const allPromises = [];
 
-      for (let i = 0; i < tempTickers.length; i++) {
-        const tempTicker = tempTickers[i];
-        const listItem = watchlist[tempTicker];
-
-        if (!listItem) continue;
-
-        const { price } = listItem;
+      for (let i = 0; i < watchlist.length; i++) {
+        const item = watchlist[i];
+        const { price } = item;
         const {
           currentPrice,
           previousCloseChange,
@@ -473,44 +459,37 @@ export default {
         if (price === currentPrice) continue;
 
         const newItem = {
-          ...listItem,
+          ...item,
           price: currentPrice,
           previousCloseChange,
           previousCloseChangePercent,
           marketState,
         };
 
-        newList = {
-          ...newList,
-          [tempTicker]: newItem,
-        };
+        newList[i] = newItem;
 
         allPromises.push(
-          http.put(`/api/ticker/${currentTab.value}/${tempTicker}`, {
+          http.put(`/api/ticker/${currentTab.value}/${item.tempTicker}`, {
             newItem,
           })
         );
       }
 
-      const currentWatchlist = newList
-        ? { ...watchlist, ...newList }
-        : watchlist;
-
-      return [allPromises, currentWatchlist];
+      return [allPromises, newList];
     }
 
     async function updateMarketData(allPromises) {
       await Promise.allSettled(allPromises);
     }
 
-    function showNewList(sortRules, watchlist = watchlistDisplay.value) {
+    function displayWatchlist(sortRules, watchlist = watchlistDisplay.value) {
       latestSortRules.value = sortRules;
 
       const orderedList = sortList(sortRules, watchlist);
       watchlistDisplay.value = orderedList;
-      cachedList.value[currentTab.value] = setCacheList(orderedList);
+      cachedList.value[currentTab.value] = setCacheList(watchlist);
       console.log(
-        "showNewList cachedList",
+        "displayWatchlist cachedList",
         cachedList.value[currentTab.value].currentWatchlist
       );
       btnMsg.value = "Latest price";
@@ -532,7 +511,7 @@ export default {
 
     // 自動倒數計時更新
     function checkMarketState(watchlist) {
-      const marketStateIdx = Object.values(watchlist).findIndex(
+      const marketStateIdx = watchlist.findIndex(
         (item) => item.marketState === "REGULAR"
       );
       const isAllMarketClose = marketStateIdx === -1;
@@ -564,12 +543,10 @@ export default {
         "background:red; color:#efefef"
       );
 
-      const tempTickers = Object.keys(watchlist);
-      const newMarketData = await fetchMarketData(tempTickers, watchlist);
+      const newMarketData = await fetchMarketData(watchlist);
       console.log("resumeFlow newMarketData", newMarketData);
 
       const [allPromises, currentWatchlist] = checkUpdate(
-        tempTickers,
         newMarketData,
         watchlist
       );
@@ -584,7 +561,7 @@ export default {
       }
 
       resumePromises.value = [...allPromises];
-      resumeList.value = { ...currentWatchlist };
+      resumeList.value = [...currentWatchlist];
     }
 
     watch(
@@ -634,23 +611,17 @@ export default {
 
       resumePromises.value.length = 0;
 
-      const currentWatchlist = resumeList.value
-        ? { ...watchlistDisplay.value, ...resumeList.value }
-        : watchlistDisplay.value;
-
-      showNewList(latestSortRules.value, currentWatchlist);
+      displayWatchlist(latestSortRules.value, resumeList.value);
       toggleLoadingEffect(false);
-      await checkResumeFlow(currentWatchlist);
+      await checkResumeFlow(resumeList.value);
     }
 
     function getCacheList(currentTab) {
-      const cacheList = {
+      const cacheList = Object.values({
         ...cachedList.value[currentTab]?.currentWatchlist,
-      };
+      });
 
-      return {
-        ...sortList(latestSortRules.value, cacheList),
-      };
+      return cacheList;
     }
 
     function setCacheList(currentWatchlist) {
@@ -685,7 +656,7 @@ export default {
       isUpdate,
       btnMsg,
 
-      showNewList,
+      displayWatchlist,
       updatedTicker,
     };
   },

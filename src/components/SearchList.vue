@@ -222,7 +222,7 @@ export default {
 
         emit("loadWatchlist", {
           status: "addTicker",
-          payload: { [tempTicker]: tickerItem },
+          payload: tickerItem,
         });
       } catch (error) {
         console.log("error", error);

@@ -342,7 +342,7 @@ router.put('/ticker/:listName/:ticker', async (req, res) => {
       success: true,
       content: '更新 watchlist 成功',
       errorMessage: null,
-      result: null
+      result: ticker
     }
     res.send(msg)
   } catch (error) {

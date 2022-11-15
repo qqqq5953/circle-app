@@ -73,6 +73,7 @@
 
     <WatchlistTable
       :watchlistDisplay="watchlistDisplay"
+      :updatedTicker="updatedTicker"
       @loadWatchlist="loadWatchlist"
       @toggleLoadingEffect="toggleLoadingEffect"
       @setSkeletonTableRow="setSkeletonTableRow"
@@ -92,9 +93,9 @@
             @click="clickUpdate"
             v-if="isUpdate"
           >
-            {{ msg }}
+            {{ btnMsg }}
           </button>
-          <div class="border border-white" v-else>{{ msg }}</div>
+          <div class="border border-white" v-else>{{ btnMsg }}</div>
         </div>
       </template>
     </WatchlistTable>
@@ -102,7 +103,7 @@
 </template>
 
 <script>
-import { ref, computed, watch, defineAsyncComponent } from "vue";
+import { ref, watch, defineAsyncComponent } from "vue";
 import http from "../api/index";
 
 import SearchList from "@/components/SearchList.vue";
@@ -236,37 +237,98 @@ export default {
       toggleWatchlistSkeleton(isActivate);
     };
 
+    // sort
     const latestSortRules = ref({
       category: "previousCloseChangePercent",
       direction: "descending",
     });
 
-    function showListOnAdding(payload) {
+    function sortList(sortRules, watchlist) {
+      const orderedList = Object.values({ ...watchlist })
+        .sort((a, b) => {
+          return showSortResult(sortRules, { a, b });
+        })
+        .reduce((obj, item) => {
+          // console.log("tempTicker", item.tempTicker);
+
+          obj[item.tempTicker] = { ...watchlist }[item.tempTicker];
+          return obj;
+        }, {});
+
+      console.log("orderedList", orderedList);
+
+      return orderedList;
+    }
+
+    function showSortResult(sortRules, { a, b }) {
+      const { category, direction } = sortRules;
+
+      latestSortRules.value.category = category;
+      latestSortRules.value.direction = direction;
+
+      const rulesMap = {
+        tempTicker_descending: () => {
+          if (a[category] > b[category]) return -1;
+          if (a[category] < b[category]) return 1;
+          return 0;
+        },
+        tempTicker_ascending: () => {
+          if (a[category] < b[category]) return -1;
+          if (a[category] > b[category]) return 1;
+          return 0;
+        },
+        price_descending: b[category] - a[category],
+        price_ascending: a[category] - b[category],
+        previousCloseChange_descending: b[category] - a[category],
+        previousCloseChange_ascending: a[category] - b[category],
+        previousCloseChangePercent_descending: b[category] - a[category],
+        previousCloseChangePercent_ascending: a[category] - b[category],
+      };
+
+      const rule = `${category}_${direction}`;
+      const sortResult = rulesMap[rule];
+
+      switch (typeof sortResult) {
+        case "number": {
+          return sortResult;
+        }
+        case "function": {
+          return sortResult();
+        }
+        default:
+          return 0;
+      }
+    }
+
+    async function showListOnAdding(payload) {
+      resetResume();
+
       const cacheList = getCacheList(currentTab.value);
       const unorderedList = { ...payload, ...cacheList };
 
       setSkeletonTableRow({ list: unorderedList });
-      showNewList(latestSortRules.value, unorderedList);
+
+      const newList = showNewList(latestSortRules.value, unorderedList);
+      return newList;
     }
 
-    function showListOnDeleting(payload) {
-      let newList = null;
+    async function showListOnDeleting(payload) {
+      resetResume();
+
+      let unorderedList = null;
       const cacheList = getCacheList(currentTab.value);
 
       for (let i = 0; i < payload.length; i++) {
         const ticker = payload[i];
-        const { [ticker]: _, ...rest } = newList || cacheList;
-        newList = rest;
+        const { [ticker]: _, ...rest } = unorderedList || cacheList;
+        unorderedList = rest;
       }
 
-      showNewList(latestSortRules.value, newList);
-    }
+      setSkeletonTableRow({ list: unorderedList });
 
-    const isUpdate = ref(false);
-    const msg = ref("Latest price");
-    const resumePromises = ref([]);
-    const resumeList = ref(null);
-    const timeoutId = ref(null);
+      const newList = showNewList(latestSortRules.value, unorderedList);
+      return newList;
+    }
 
     function resetResume() {
       resumePromises.value.length = 0;
@@ -275,8 +337,17 @@ export default {
       clearTimeout(timeoutId.value);
     }
 
+    const isUpdate = ref(false);
+    const btnMsg = ref("Latest price");
+    const resumePromises = ref([]);
+    const resumeList = ref(null);
+    const timeoutId = ref(null);
+    const globalStatus = ref(null);
+
     // status: init, switch, deleteTicker, addTicker
     async function loadWatchlist({ status, payload }) {
+      globalStatus.value = status;
+
       resetResume();
 
       // 檢查 list 沒內容時停止執行後續
@@ -307,22 +378,33 @@ export default {
           }
 
         case "addTicker": {
-          showListOnAdding(payload);
+          console.log(`%c addTicker`, "background:green; color:#efefef");
+
+          const newList = await showListOnAdding(payload);
           toggleLoadingEffect(false);
-          checkResumeFlow(watchlistDisplay.value);
+
+          isAllMarketClose.value = checkMarketState(newList);
+          if (!isAllMarketClose.value) await resumeFlow(newList);
+
           return;
         }
 
         case "deleteTicker": {
-          showListOnDeleting(payload);
+          console.log(`%c deleteTicker`, "background:green; color:#efefef");
+
+          const newList = await showListOnDeleting(payload);
           toggleLoadingEffect(false);
-          checkResumeFlow(watchlistDisplay.value);
+
+          isAllMarketClose.value = checkMarketState(newList);
+          if (!isAllMarketClose.value) await resumeFlow(newList);
+
           return;
         }
       }
-      toggleLoadingEffect(true);
 
       try {
+        toggleLoadingEffect(true);
+
         const tempRes = await http.get(`/api/tickers/${currentTab.value}`);
         const watchlist = tempRes.data.result;
 
@@ -377,6 +459,9 @@ export default {
       for (let i = 0; i < tempTickers.length; i++) {
         const tempTicker = tempTickers[i];
         const listItem = watchlist[tempTicker];
+
+        if (!listItem) continue;
+
         const { price } = listItem;
         const {
           currentPrice,
@@ -424,61 +509,24 @@ export default {
       const orderedList = sortList(sortRules, watchlist);
       watchlistDisplay.value = orderedList;
       cachedList.value[currentTab.value] = setCacheList(orderedList);
-      msg.value = "Latest price";
-    }
-
-    async function checkResumeFlow(watchlist) {
-      const isAllMarketClose = checkMarketState(watchlist);
-      console.log("isAllMarketClose", isAllMarketClose);
-      if (!isAllMarketClose) await startTimer(watchlist);
-    }
-
-    function sortList(sortRules, watchlist) {
-      const orderedList = Object.values({ ...watchlist })
-        .sort((a, b) => {
-          return showSortResult(sortRules, { a, b });
-        })
-        .reduce((obj, item) => {
-          obj[item.tempTicker] = { ...watchlist }[item.tempTicker];
-          return obj;
-        }, {});
+      console.log(
+        "showNewList cachedList",
+        cachedList.value[currentTab.value].currentWatchlist
+      );
+      btnMsg.value = "Latest price";
 
       return orderedList;
     }
 
-    function showSortResult(sortRules, { a, b }) {
-      const { category, direction } = sortRules;
+    const isAllMarketClose = ref(true);
 
-      const rulesMap = {
-        tempTicker_descending: () => {
-          if (a[category] > b[category]) return -1;
-          if (a[category] < b[category]) return 1;
-          return 0;
-        },
-        tempTicker_ascending: () => {
-          if (a[category] < b[category]) return -1;
-          if (a[category] > b[category]) return 1;
-          return 0;
-        },
-        price_descending: b[category] - a[category],
-        price_ascending: a[category] - b[category],
-        previousCloseChange_descending: b[category] - a[category],
-        previousCloseChange_ascending: a[category] - b[category],
-        previousCloseChangePercent_descending: b[category] - a[category],
-        previousCloseChangePercent_ascending: a[category] - b[category],
-      };
+    async function checkResumeFlow(watchlist) {
+      // resetResume();
 
-      const sortResult = rulesMap[`${category}_${direction}`];
-
-      switch (typeof sortResult) {
-        case "number": {
-          return sortResult;
-        }
-        case "function": {
-          return sortResult();
-        }
-        default:
-          return 0;
+      isAllMarketClose.value = checkMarketState(watchlist);
+      console.log("isAllMarketClose", isAllMarketClose.value);
+      if (!isAllMarketClose.value) {
+        await startTimer(watchlist);
       }
     }
 
@@ -505,8 +553,14 @@ export default {
     }
 
     async function resumeFlow(watchlist) {
+      if (isAllMarketClose.value) {
+        resumePromises.value.length = 0;
+        resumeList.value = null;
+        return;
+      }
+
       console.log(
-        `%c resumeFlow ${currentTab.value}`,
+        `%c resumeFlow ${globalStatus.value}`,
         "background:red; color:#efefef"
       );
 
@@ -520,10 +574,12 @@ export default {
         watchlist
       );
 
+      console.log("resumeFlow currentWatchlist", currentWatchlist);
+
       // 如果盤中價格尚未改變，重新倒數更新
       if (allPromises.length === 0) {
         console.log("盤中價格尚未改變，重新倒數更新");
-        checkResumeFlow(currentWatchlist);
+        await checkResumeFlow(currentWatchlist);
         return;
       }
 
@@ -533,26 +589,49 @@ export default {
 
     watch(
       resumePromises,
-      (newPm) => {
+      async (newPm) => {
         if (newPm.length === 0) return;
         console.log("有新資料", newPm);
-        msg.value = "Update price";
+
+        /*
+        在進行 resumeFlow 時剛好新增或刪除，如果剛好有 newPm，此為新增或刪除前的資料，如沒擋掉則更新後還是會呈現舊資料，造成已刪除的資料呈現在畫面上
+        */
+
+        if (
+          globalStatus.value === "deleteTicker" ||
+          globalStatus.value === "addTicker"
+        ) {
+          globalStatus.value = null;
+
+          resetResume();
+          await checkResumeFlow(watchlistDisplay.value);
+          return;
+        }
+
+        btnMsg.value = "Update price";
         isUpdate.value = true;
       },
       { deep: true }
     );
 
+    const updatedTicker = ref([]);
+
     async function clickUpdate() {
       if (resumePromises.value.length === 0) return;
 
-      // 有新資料
       toggleLoadingEffect(true);
 
       console.log("資料更新中");
-      msg.value = "Updating...";
+      btnMsg.value = "Updating...";
       isUpdate.value = false;
+      updatedTicker.value.length = 0;
 
-      await Promise.allSettled(resumePromises.value);
+      const resolvePromise = await Promise.allSettled(resumePromises.value);
+      resolvePromise.forEach((item) => {
+        console.log("更新的股票", item.value.data.result);
+        updatedTicker.value.push(item.value.data.result);
+      });
+
       resumePromises.value.length = 0;
 
       const currentWatchlist = resumeList.value
@@ -560,9 +639,7 @@ export default {
         : watchlistDisplay.value;
 
       showNewList(latestSortRules.value, currentWatchlist);
-
       toggleLoadingEffect(false);
-
       await checkResumeFlow(currentWatchlist);
     }
 
@@ -606,9 +683,10 @@ export default {
       clickOutsideClose,
       clickUpdate,
       isUpdate,
-      msg,
+      btnMsg,
 
       showNewList,
+      updatedTicker,
     };
   },
 };

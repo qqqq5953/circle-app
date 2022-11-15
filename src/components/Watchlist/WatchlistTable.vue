@@ -219,6 +219,8 @@
       </DeleteAlert>
     </Teleport>
 
+    {{ tickersArr }}
+
     <!-- body -->
     <div class="block w-full overflow-x-auto" v-if="watchlistDisplay">
       <table class="w-full border-collapse table-fixed">
@@ -294,6 +296,9 @@
         <tbody>
           <tr
             class="hover:bg-slate-100 border-b last:border-b-0"
+            :class="{
+              'update-animation': tickersArr.indexOf(item.tempTicker) !== -1,
+            }"
             v-for="item in watchlistDisplay"
             :key="item.tempTicker"
             :id="item.id"
@@ -498,11 +503,24 @@ export default {
   },
   props: {
     watchlistDisplay: {
-      type: Object,
+      type: [Object, Array],
       default: {},
+    },
+    updatedTicker: {
+      type: Array,
+      default: [],
     },
   },
   setup(props, { emit }) {
+    const tickersArr = computed(() => {
+      return props.updatedTicker.map((item) => item);
+    });
+    // watch(
+    //   () => props.updatedTicker,
+    //   (n) => {
+    //     tickersArr.value = n;
+    //   }
+    // );
     const $store = useWatchlistStore();
     const { currentTab } = storeToRefs($store);
     const listLength = computed(() => {
@@ -528,7 +546,7 @@ export default {
 
     // alert
     const isAlertOpen = ref(false);
-    const alertTitle = ref('<span class="bg-red-300">test</span>');
+    const alertTitle = ref('<span class="bg-red-300">error</span>');
     const alertContent = ref(null);
     const alertAction = ref(null);
 
@@ -756,12 +774,26 @@ export default {
       selectedDirection,
       isSortMenuOpen,
       toggleSortMenu,
+
+      tickersArr,
     };
   },
 };
 </script>
 
 <style scoped>
+.update-animation {
+  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) 1;
+}
+
+@keyframes ping {
+  75%,
+  100% {
+    transform: scale(1.05);
+    opacity: 0;
+  }
+}
+
 .v-enter-active,
 .v-leave-active {
   transform: translateY(0);

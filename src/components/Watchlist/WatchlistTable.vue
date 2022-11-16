@@ -219,8 +219,6 @@
       </DeleteAlert>
     </Teleport>
 
-    <!-- {{ tickersArr }} -->
-
     <!-- body -->
     <div class="block w-full overflow-x-auto" v-if="watchlistDisplay">
       <table class="w-full border-collapse table-fixed">
@@ -512,15 +510,19 @@ export default {
     },
   },
   setup(props, { emit }) {
-    const tickersArr = computed(() => {
-      return props.updatedTicker.map((item) => item);
-    });
-    // watch(
-    //   () => props.updatedTicker,
-    //   (n) => {
-    //     tickersArr.value = n;
-    //   }
-    // );
+    const tickersArr = ref([]);
+
+    watch(
+      () => props.updatedTicker,
+      (n) => {
+        tickersArr.value = n;
+        setTimeout(() => {
+          tickersArr.value.length = 0;
+        }, 1000);
+      },
+      { deep: true }
+    );
+
     const $store = useWatchlistStore();
     const { currentTab } = storeToRefs($store);
     const listLength = computed(() => {
@@ -780,14 +782,16 @@ export default {
 
 <style scoped>
 .update-animation {
-  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) 1;
+  animation: ping 1500ms ease-in-out 1;
 }
 
 @keyframes ping {
-  75%,
+  0% {
+    background-color: rgb(233, 233, 233);
+  }
   100% {
-    transform: scale(1.05);
-    opacity: 0;
+    opacity: 70%;
+    background-color: white;
   }
 }
 

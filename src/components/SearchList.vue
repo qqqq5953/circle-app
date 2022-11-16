@@ -190,11 +190,15 @@ export default {
 
     const isTickerInCachedList = computed(() => {
       const tempTicker = props.searchList[0]?.tempTicker;
-      const currentWatchlist = {
+      const currentWatchlist = [
         ...cachedList.value[currentTab.value]?.currentWatchlist,
-      };
+      ];
 
-      return currentWatchlist.hasOwnProperty(tempTicker);
+      const isInCachedList =
+        currentWatchlist.map((item) => item.tempTicker).indexOf(tempTicker) !==
+        -1;
+
+      return isInCachedList;
     });
 
     function toInfoPage(ticker, tempTicker) {

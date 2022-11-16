@@ -492,7 +492,8 @@ export default {
         "displayWatchlist cachedList",
         cachedList.value[currentTab.value].currentWatchlist
       );
-      btnMsg.value = "Latest price";
+
+      if (!isUpdate.value) btnMsg.value = "Latest price";
 
       return orderedList;
     }

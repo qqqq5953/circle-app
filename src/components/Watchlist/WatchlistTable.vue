@@ -9,10 +9,7 @@
       border border-gray-100
     "
   >
-    <div
-      class="py-3 flex flex-col gap-1"
-      :class="{ 'border-b': watchlistDisplay }"
-    >
+    <div class="py-3 flex flex-col gap-1" :class="{ 'border-b': watchlistArr }">
       <!-- table title -->
       <section class="relative flex justify-between rounded-t px-4 lg:px-8">
         <h3 class="font-semibold truncate w-3/4">
@@ -161,7 +158,7 @@
                   }"
                   v-for="(item, key) in sortMenu"
                   :key="item.category"
-                  @click="sortList({ key, category: item.category })"
+                  @click="onClickSort({ key, category: item.category })"
                 >
                   <i class="w-1/12" :class="item.icon"></i>
                   <span>{{ key }}</span>
@@ -176,7 +173,7 @@
                   }"
                   v-for="(item, key) in sortDirection"
                   :key="item.direction"
-                  @click="sortList({ direction: item.direction })"
+                  @click="onClickSort({ direction: item.direction })"
                 >
                   <i class="w-1/12" :class="item.icon"></i>
                   <span>{{ key }}</span>
@@ -220,7 +217,7 @@
     </Teleport>
 
     <!-- body -->
-    <div class="block w-full overflow-x-auto" v-if="watchlistDisplay">
+    <div class="block w-full overflow-x-auto" v-if="watchlistArr">
       <table class="w-full border-collapse table-fixed">
         <thead
           class="bg-gray-100 border-t border-b hidden lg:table-header-group"
@@ -297,7 +294,7 @@
             :class="{
               'update-animation': tickersArr.indexOf(item.tempTicker) !== -1,
             }"
-            v-for="item in watchlistDisplay"
+            v-for="item in watchlistArr"
             :key="item.tempTicker"
             :id="item.id"
             ref="tickerRowsRef"
@@ -500,11 +497,11 @@ export default {
     DeleteAlert,
   },
   props: {
-    watchlistDisplay: {
+    watchlistArr: {
       type: Array,
       default: [],
     },
-    updatedTicker: {
+    updatedTickers: {
       type: Array,
       default: [],
     },
@@ -513,7 +510,7 @@ export default {
     const tickersArr = ref([]);
 
     watch(
-      () => props.updatedTicker,
+      () => props.updatedTickers,
       (n) => {
         tickersArr.value = n;
         setTimeout(() => {
@@ -526,8 +523,8 @@ export default {
     const $store = useWatchlistStore();
     const { currentTab } = storeToRefs($store);
     const listLength = computed(() => {
-      if (!props.watchlistDisplay) return;
-      return props.watchlistDisplay.length;
+      if (!props.watchlistArr) return;
+      return props.watchlistArr.length;
     });
 
     const setTabs = (tab) => $store.setTabs(tab);
@@ -542,7 +539,7 @@ export default {
       selectedDirection,
       isSortMenuOpen,
       toggleSortMenu,
-      sortList,
+      onClickSort,
     } = useSort(emit);
 
     // alert
@@ -572,12 +569,15 @@ export default {
       switch (action) {
         case "deleteWatchlist": {
           alertTitle.value = `Delete "${currentTab.value}"`;
-          alertContent.value = `${listLength.value} items will be deleted.`;
+
+          alertContent.value = `${listLength.value || 0} ${
+            listLength.value > 1 ? "items" : "item"
+          } will be deleted.`;
           break;
         }
 
         case "deleteTicker": {
-          const tickers = props.watchlistDisplay
+          const tickers = props.watchlistArr
             .filter(
               (tickerObj) => deleteArr.value.indexOf(tickerObj.ticker) !== -1
             )
@@ -589,7 +589,9 @@ export default {
 
           alertTitle.value = `<div class="flex items-center gap-2 flex-wrap">Delete ${tickers}</div>`;
 
-          alertContent.value = `${deleteArrLength.value} items will be deleted.`;
+          alertContent.value = `${deleteArrLength.value} ${
+            deleteArrLength.value > 1 ? "items" : "item"
+          } will be deleted.`;
           break;
         }
       }
@@ -675,7 +677,7 @@ export default {
       },
       set(allTickers) {
         if (allTickers) {
-          deleteArr.value = props.watchlistDisplay.map(
+          deleteArr.value = props.watchlistArr.map(
             (tickerObj) => tickerObj.ticker
           );
         } else {
@@ -691,18 +693,18 @@ export default {
       emit("setSkeletonTableRow", { rows });
       closeAlert();
 
-      const deleteInfoArr = deleteArr.value.map((ticker) =>
+      const deletedTickers = deleteArr.value.map((ticker) =>
         ticker.includes(".") ? ticker.split(".")[0] : ticker
       );
 
       try {
         await http.delete(
-          `/api/ticker/${$store.currentTab}/${JSON.stringify(deleteInfoArr)}`
+          `/api/ticker/${$store.currentTab}/${JSON.stringify(deletedTickers)}`
         );
 
         emit("loadWatchlist", {
           status: "deleteTicker",
-          payload: deleteInfoArr,
+          deletedTickers,
         });
 
         clearDeleteArr();
@@ -715,7 +717,7 @@ export default {
 
     // 新增後tab顯示個數
     watch(
-      () => props.watchlistDisplay,
+      () => props.watchlistArr,
       () => {
         if (!tickerRowsRef.value) return;
 
@@ -767,7 +769,7 @@ export default {
 
       sortMenu,
       sortDirection,
-      sortList,
+      onClickSort,
       selectedDisplayName,
       selectedSortCategory,
       selectedDirection,

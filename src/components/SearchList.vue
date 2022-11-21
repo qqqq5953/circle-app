@@ -226,7 +226,7 @@ export default {
 
         emit("loadWatchlist", {
           status: "addTicker",
-          payload: tickerItem,
+          addedTickerObj: tickerItem,
         });
       } catch (error) {
         console.log("error", error);

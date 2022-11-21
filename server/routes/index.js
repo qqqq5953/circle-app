@@ -488,7 +488,7 @@ router.get('/watchlist', async (req, res) => {
 
     if (initTabs.val() == null) {
       await tabsRef.set([DEFAULT_TAB])
-      tabsInfo = { name: DEFAULT_TAB, number: 0 }
+      tabsInfo = { name: DEFAULT_TAB, listLength: 0 }
     }
 
     const message = {
@@ -933,7 +933,7 @@ router.get('/latestMarketData/:ticker', async (req, res) => {
     ).toFixed(2)
 
     const obj = {
-      currentPrice: parseFloat(currentPrice.toFixed(2)),
+      price: parseFloat(currentPrice.toFixed(2)),
       previousCloseChange,
       previousCloseChangePercent,
       marketState

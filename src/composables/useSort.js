@@ -35,7 +35,10 @@ export default function useSort(emit) {
   const selectedSortCategory = ref('previousCloseChangePercent')
   const selectedDirection = ref('descending')
 
-  const sortList = ({
+  const isSortMenuOpen = ref(false)
+  const toggleSortMenu = () => (isSortMenuOpen.value = !isSortMenuOpen.value)
+
+  const onClickSort = ({
     key = selectedDisplayName.value,
     category = selectedSortCategory.value,
     direction = selectedDirection.value
@@ -47,8 +50,57 @@ export default function useSort(emit) {
     emit('sortList', { category, direction })
   }
 
-  const isSortMenuOpen = ref(false)
-  const toggleSortMenu = () => (isSortMenuOpen.value = !isSortMenuOpen.value)
+  const latestSortRules = ref({
+    category: 'previousCloseChangePercent',
+    direction: 'descending'
+  })
+
+  const sortList = (sortRules, watchlist) => {
+    const orderedList = [...watchlist].sort((a, b) =>
+      showSortResult(sortRules, { a, b })
+    )
+    return orderedList
+  }
+
+  const showSortResult = (sortRules, { a, b }) => {
+    const { category, direction } = sortRules
+
+    latestSortRules.value.category = category
+    latestSortRules.value.direction = direction
+
+    const rulesMap = {
+      tempTicker_descending: () => {
+        if (a[category] > b[category]) return -1
+        if (a[category] < b[category]) return 1
+        return 0
+      },
+      tempTicker_ascending: () => {
+        if (a[category] < b[category]) return -1
+        if (a[category] > b[category]) return 1
+        return 0
+      },
+      price_descending: b[category] - a[category],
+      price_ascending: a[category] - b[category],
+      previousCloseChange_descending: b[category] - a[category],
+      previousCloseChange_ascending: a[category] - b[category],
+      previousCloseChangePercent_descending: b[category] - a[category],
+      previousCloseChangePercent_ascending: a[category] - b[category]
+    }
+
+    const rule = `${category}_${direction}`
+    const sortResult = rulesMap[rule]
+
+    switch (typeof sortResult) {
+      case 'number': {
+        return sortResult
+      }
+      case 'function': {
+        return sortResult()
+      }
+      default:
+        return 0
+    }
+  }
 
   return {
     sortMenu,
@@ -58,6 +110,8 @@ export default function useSort(emit) {
     selectedDirection,
     isSortMenuOpen,
     toggleSortMenu,
+    onClickSort,
+    latestSortRules,
     sortList
   }
 }

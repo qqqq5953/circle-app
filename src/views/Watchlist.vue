@@ -318,9 +318,8 @@ export default {
           const isInCachedTabs = cachedTabs.includes(currentTab.value);
 
           if (isInCachedTabs) {
-            console.log("第二次 switch");
-
             const cacheList = getCacheList(currentTab.value);
+            console.log("第二次 switch cacheList", cacheList);
 
             watchlistArr.value = displayWatchlist(cacheList);
 
@@ -361,29 +360,30 @@ export default {
 
       try {
         toggleLoadingEffect(true);
+        const tabName = currentTab.value;
 
         const watchlistRes = await http.get(`/api/tickers/${currentTab.value}`);
         const watchlist = watchlistRes.data.result;
 
         setSkeletonTableRow({ list: watchlist });
 
-        const currentWatchlist = await updateList(watchlist);
+        const currentWatchlist = await updateList(watchlist, tabName);
         console.log("currentWatchlist", currentWatchlist);
-        displayWatchlist(currentWatchlist);
+        displayWatchlist(currentWatchlist, tabName);
 
         toggleLoadingEffect(false);
 
-        await checkResumeFlow(currentWatchlist);
+        await checkResumeFlow(currentWatchlist, tabName);
       } catch (error) {
         console.log("error", error);
       }
     }
 
-    function displayWatchlist(watchlist = watchlistArr.value) {
+    function displayWatchlist(watchlist = watchlistArr.value, tabName) {
       console.log("---------displayWatchlist---------");
       const orderedList = sortList(latestSortRules.value, watchlist);
       watchlistArr.value = orderedList;
-      cachedList.value[currentTab.value] = setCacheList(watchlist);
+      cachedList.value[tabName] = setCacheList(watchlist);
 
       // if (!isUpdate.value) btnMsg.value = "Latest price";
       btnMsg.value = "Latest price";
@@ -392,23 +392,20 @@ export default {
 
     const isAllMarketClose = ref(true);
 
-    async function checkResumeFlow(watchlist) {
+    async function checkResumeFlow(watchlist, tabName) {
       isAllMarketClose.value = checkMarketState(watchlist);
       console.log("isAllMarketClose", isAllMarketClose.value);
-      // if (!isAllMarketClose.value) await startTimer(watchlist);
+      if (!isAllMarketClose.value) await startTimer(watchlist, tabName);
 
-      await startTimer(watchlist);
+      // await startTimer(watchlist);
     }
 
     // 自動倒數計時更新
-    function startTimer(watchlist) {
-      console.log(
-        `%c startTimer ${currentTab.value}`,
-        "background:blue; color:#efefef"
-      );
+    function startTimer(watchlist, tabName) {
+      console.log(`%c startTimer ${tabName}`, "background:blue; color:#efefef");
       return new Promise((resolve, reject) => {
         timeoutId.value = setTimeout(async () => {
-          await resumeFlow(watchlist);
+          await resumeFlow(watchlist, tabName);
           resolve();
         }, 5000);
 
@@ -416,23 +413,24 @@ export default {
       });
     }
 
-    async function resumeFlow(watchlist) {
+    const tabNameBeforeUpdate = ref(null);
+
+    async function resumeFlow(watchlist, tabName) {
       console.log(
         `%c resumeFlow ${currentStatus.value}`,
         "background:red; color:#efefef"
       );
 
-      const currentList = currentTab.value;
       const newMarketData = await fetchMarketData(watchlist);
       console.log("resumeFlow newMarketData", newMarketData);
 
       const [allPromises, currentWatchlist] = checkUpdate(
         newMarketData,
         watchlist,
-        currentList
+        tabName
       );
 
-      // console.log("resumeFlow newList", newList);
+      console.log("resumeFlow currentWatchlist", currentWatchlist);
 
       // 如果盤中價格尚未改變，重新倒數更新
       if (allPromises.length === 0) {
@@ -440,9 +438,11 @@ export default {
 
         resetResume();
         setCurrentStatus(null);
-        await checkResumeFlow(currentWatchlist);
+        await checkResumeFlow(currentWatchlist, tabName);
         return;
       }
+
+      tabNameBeforeUpdate.value = tabName;
 
       toUpdateTickers.value = [...allPromises];
       resumeList.value = [...currentWatchlist];
@@ -488,17 +488,12 @@ export default {
       isUpdate.value = false;
       updatedTickers.value.length = 0;
 
-      // const updatePromise = toUpdateTickers.value.map((obj) => {
-      //   const url = `/api/ticker/${currentTab.value}/${obj.tempTicker}`;
-      //   return http.put(url, { newItem: obj.newData });
-      // });
-
       const resolvedPromise = await Promise.allSettled(toUpdateTickers.value);
 
-      displayWatchlist(resumeList.value);
+      displayWatchlist(resumeList.value, tabNameBeforeUpdate.value);
       toggleLoadingEffect(false);
       showUpdatedTickers(resolvedPromise);
-      await checkResumeFlow(resumeList.value);
+      await checkResumeFlow(resumeList.value, tabNameBeforeUpdate.value);
     }
 
     function showUpdatedTickers(resolvedPromise) {

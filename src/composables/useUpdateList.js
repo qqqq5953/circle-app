@@ -1,27 +1,21 @@
 import http from '@/api/index'
 import useWatchlistStore from '@/stores/watchlistStore.js'
 import { storeToRefs } from 'pinia'
-import { watch } from 'vue'
 
 export default function useUpdateList() {
   const $store = useWatchlistStore()
   const { currentTab } = storeToRefs($store)
 
-  watch(currentTab, (newTab) => {
-    console.log('newTab', newTab)
-  })
-
-  async function updateList(watchlist) {
-    const currentList = currentTab.value
+  async function updateList(watchlist, tabName) {
     const newMarketData = await fetchMarketData(watchlist)
     const [allPromises, currentWatchlist] = checkUpdate(
       newMarketData,
       watchlist,
-      currentList
+      tabName
     )
 
-    // if (allPromises.length !== 0) await updateMarketData(allPromises)
-    await updateMarketData(allPromises)
+    if (allPromises.length !== 0) await updateMarketData(allPromises)
+    // await updateMarketData(allPromises)
     return currentWatchlist
   }
 
@@ -39,7 +33,7 @@ export default function useUpdateList() {
     }
   }
 
-  function checkUpdate(newMarketData, watchlist, currentList) {
+  function checkUpdate(newMarketData, watchlist, tabName) {
     console.log('checkUpdate')
 
     const newList = [...watchlist]
@@ -47,10 +41,10 @@ export default function useUpdateList() {
 
     for (let i = 0; i < watchlist.length; i++) {
       const { price, tempTicker } = watchlist[i]
-      // if (price === newMarketData[i].price) continue
+      if (price === newMarketData[i].price) continue
 
       newList[i] = { ...watchlist[i], ...newMarketData[i] }
-      const url = `/api/ticker/${currentList}/${tempTicker}`
+      const url = `/api/ticker/${tabName}/${tempTicker}`
       console.log('checkUpdate url', url)
 
       allPromises.push(
@@ -68,11 +62,15 @@ export default function useUpdateList() {
   }
 
   function checkMarketState(watchlist) {
+    console.log('checkMarketState watchlist', watchlist)
     if (!watchlist) return
 
     const marketStateIdx = watchlist.findIndex(
       (item) => item.marketState === 'REGULAR'
     )
+
+    console.log('checkMarketState marketStateIdx', marketStateIdx)
+
     const isAllMarketClose = marketStateIdx === -1
     return isAllMarketClose
   }

@@ -239,7 +239,7 @@ export default {
 
     watch(latestSortRules, () => displayWatchlist(watchlistArr.value));
 
-    async function showListOnAdding(addedTickerObj) {
+    async function showListOnAdding(addedTickerObj, tabName) {
       // resetResume();
 
       const cacheList = getCacheList(currentTab.value);
@@ -247,11 +247,11 @@ export default {
 
       setSkeletonTableRow({ list: unorderedList });
 
-      const newList = displayWatchlist(unorderedList);
+      const newList = displayWatchlist(unorderedList, tabName);
       return newList;
     }
 
-    async function showListOnDeleting(deletedTickers) {
+    async function showListOnDeleting(deletedTickers, tabName) {
       // resetResume();
 
       const cacheList = getCacheList(currentTab.value);
@@ -261,7 +261,7 @@ export default {
 
       setSkeletonTableRow({ list: unorderedList });
 
-      const newList = displayWatchlist(unorderedList);
+      const newList = displayWatchlist(unorderedList, tabName);
       return newList;
     }
 
@@ -286,11 +286,15 @@ export default {
       updateList,
       fetchMarketData,
       checkMarketState,
+      updateMarketData,
       currentTab,
-      checkUpdate,
     } = useUpdateList();
+    const tabsQueue = ref([]);
 
-    watch(currentTab, () => loadWatchlist({ status: "switch" }));
+    watch(currentTab, (newTab, oldTab) => {
+      tabsQueue.value.push(oldTab);
+      loadWatchlist({ status: "switch" });
+    });
 
     // status: init, switch, deleteTicker, addTicker
     async function loadWatchlist({ status, addedTickerObj, deletedTickers }) {
@@ -298,15 +302,15 @@ export default {
       setCurrentStatus(status);
       resetResume();
 
+      const tabName = currentTab.value;
+
       // 檢查 list 沒內容時停止執行後續
       if (status === "init" || status === "switch") {
-        const currentTabInfo = tabs.value.find(
-          (tab) => tab.name === currentTab.value
-        );
+        const currentTabInfo = tabs.value.find((tab) => tab.name === tabName);
 
         if (currentTabInfo.listLength === 0) {
           watchlistArr.value = null;
-          cachedList.value[currentTab.value] = setCacheList([]);
+          cachedList.value[tabName] = setCacheList([]);
           return;
         }
       }
@@ -315,15 +319,15 @@ export default {
       switch (status) {
         case "switch": {
           const cachedTabs = Object.keys(cachedList.value);
-          const isInCachedTabs = cachedTabs.includes(currentTab.value);
+          const isInCachedTabs = cachedTabs.includes(tabName);
 
           if (isInCachedTabs) {
-            const cacheList = getCacheList(currentTab.value);
+            const cacheList = getCacheList(tabName);
             console.log("第二次 switch cacheList", cacheList);
 
-            watchlistArr.value = displayWatchlist(cacheList);
+            watchlistArr.value = displayWatchlist(cacheList, tabName);
 
-            await checkResumeFlow(watchlistArr.value);
+            await checkResumeFlow(watchlistArr.value, tabName);
             return; // 第二次 switch
           } else {
             console.log("第一次 switch");
@@ -334,13 +338,13 @@ export default {
         case "addTicker": {
           console.log(`%c addTicker`, "background:green; color:#efefef");
 
-          const newList = await showListOnAdding(addedTickerObj);
+          const newList = await showListOnAdding(addedTickerObj, tabName);
           toggleLoadingEffect(false);
 
           isAllMarketClose.value = checkMarketState(newList);
           // if (!isAllMarketClose.value) await resumeFlow(newList);
 
-          await resumeFlow(newList);
+          await resumeFlow(newList, tabName);
 
           return;
         }
@@ -348,39 +352,47 @@ export default {
         case "deleteTicker": {
           console.log(`%c deleteTicker`, "background:green; color:#efefef");
 
-          const newList = await showListOnDeleting(deletedTickers);
+          const newList = await showListOnDeleting(deletedTickers, tabName);
           toggleLoadingEffect(false);
 
           isAllMarketClose.value = checkMarketState(newList);
-          if (!isAllMarketClose.value) await resumeFlow(newList);
+          // if (!isAllMarketClose.value) await resumeFlow(newList, tabName);
 
+          await resumeFlow(newList, tabName);
           return;
         }
       }
 
       try {
         toggleLoadingEffect(true);
-        const tabName = currentTab.value;
 
-        const watchlistRes = await http.get(`/api/tickers/${currentTab.value}`);
+        const watchlistRes = await http.get(`/api/tickers/${tabName}`);
         const watchlist = watchlistRes.data.result;
 
         setSkeletonTableRow({ list: watchlist });
 
-        const currentWatchlist = await updateList(watchlist, tabName);
-        console.log("currentWatchlist", currentWatchlist);
-        displayWatchlist(currentWatchlist, tabName);
+        const newList = await updateList(watchlist, tabName);
+        console.log("newList", newList);
+        displayWatchlist(newList, tabName);
 
         toggleLoadingEffect(false);
 
-        await checkResumeFlow(currentWatchlist, tabName);
+        await checkResumeFlow(newList, tabName);
       } catch (error) {
         console.log("error", error);
       }
     }
 
     function displayWatchlist(watchlist = watchlistArr.value, tabName) {
-      console.log("---------displayWatchlist---------");
+      console.log(
+        `||| displayWatchlist ||| tabName:${tabName}, currentTab:${currentTab.value}`
+      );
+
+      if (tabName !== currentTab.value) {
+        console.log("displayWatchlist tab 有衝突");
+        return;
+      }
+
       const orderedList = sortList(latestSortRules.value, watchlist);
       watchlistArr.value = orderedList;
       cachedList.value[tabName] = setCacheList(watchlist);
@@ -393,11 +405,13 @@ export default {
     const isAllMarketClose = ref(true);
 
     async function checkResumeFlow(watchlist, tabName) {
+      console.log("---------checkResumeFlow---------");
+
       isAllMarketClose.value = checkMarketState(watchlist);
       console.log("isAllMarketClose", isAllMarketClose.value);
-      if (!isAllMarketClose.value) await startTimer(watchlist, tabName);
+      // if (!isAllMarketClose.value) await startTimer(watchlist, tabName);
 
-      // await startTimer(watchlist);
+      await startTimer(watchlist, tabName);
     }
 
     // 自動倒數計時更新
@@ -409,13 +423,14 @@ export default {
           resolve();
         }, 5000);
 
-        console.log("timeoutId after", timeoutId.value);
+        // console.log("timeoutId after", timeoutId.value);
       });
     }
 
-    const tabNameBeforeUpdate = ref(null);
-
+    const updatedTickers = ref([]);
     async function resumeFlow(watchlist, tabName) {
+      updatedTickers.value.length = 0;
+
       console.log(
         `%c resumeFlow ${currentStatus.value}`,
         "background:red; color:#efefef"
@@ -424,76 +439,68 @@ export default {
       const newMarketData = await fetchMarketData(watchlist);
       console.log("resumeFlow newMarketData", newMarketData);
 
-      const [allPromises, currentWatchlist] = checkUpdate(
+      const [toUpdateTickers, newList] = resumeFlowCheckUpdate(
         newMarketData,
-        watchlist,
-        tabName
+        watchlist
       );
 
-      console.log("resumeFlow currentWatchlist", currentWatchlist);
+      const hasUpdateData = toUpdateTickers.length !== 0;
+      const isCurrentTab = tabName === currentTab.value;
 
-      // 如果盤中價格尚未改變，重新倒數更新
-      if (allPromises.length === 0) {
-        console.log("盤中價格尚未改變，重新倒數更新");
-
-        resetResume();
-        setCurrentStatus(null);
-        await checkResumeFlow(currentWatchlist, tabName);
+      // // 重新倒數更新 tab 有衝突
+      if (!hasUpdateData && !isCurrentTab) {
+        console.log(
+          `重新倒數更新 tab 有衝突, tabName:${tabName}, currentTab:${currentTab.value}`
+        );
         return;
       }
 
-      tabNameBeforeUpdate.value = tabName;
+      // 盤中價格尚未改變，重新倒數更新
+      if (!hasUpdateData) {
+        console.log("盤中價格尚未改變，重新倒數更新");
+        return await checkResumeFlow(newList, tabName);
+      }
 
-      toUpdateTickers.value = [...allPromises];
-      resumeList.value = [...currentWatchlist];
+      // resumeFlow tab 有衝突
+      if (!isCurrentTab) {
+        console.log(
+          `resumeFlow tab 有衝突 2, tabName:${tabName}, currentTab:${currentTab.value}`
+        );
+        return;
+      }
+
+      console.log("！！！！！全過！！！！！");
+
+      const allPromises = toUpdateTickers.map((obj) => {
+        const url = `/api/ticker/${currentTab.value}/${obj.tempTicker}`;
+        return http.put(url, { newItem: obj.newItem });
+      });
+
+      console.log("resumeFlow 更新至資料庫");
+
+      const updatedTickersArr = await updateMarketData(allPromises);
+      console.log("resumeFlow updatedTickersArr", updatedTickersArr);
+
+      showUpdatedTickers(updatedTickersArr);
+      displayWatchlist(newList, currentTab.value);
+      await checkResumeFlow(newList, currentTab.value);
     }
 
-    watch(
-      toUpdateTickers,
-      async (tickers) => {
-        if (tickers.length === 0) return;
-        console.log("watch 有新資料", tickers);
-        console.log(`現在 currentStatus 為 ${currentStatus.value}`);
+    function resumeFlowCheckUpdate(newMarketData, watchlist) {
+      const newList = [...watchlist];
+      const toUpdateTickers = [];
 
-        /*
-        在進行 resumeFlow 時剛好新增、刪除、switch，如果剛好有 newPm，此為新增或刪除前的資料，如沒擋掉則更新後還是會呈現舊資料，造成已刪除的資料呈現在畫面上
-        */
+      for (let i = 0; i < watchlist.length; i++) {
+        const { price, tempTicker } = watchlist[i];
+        // if (price === newMarketData[i].price) continue;
 
-        if (currentStatus.value !== "init" && currentStatus.value != null) {
-          console.log("～～～～ 進判斷 ～～～～");
+        newList[i] = { ...watchlist[i], ...newMarketData[i] };
+        toUpdateTickers.push({ tempTicker, newItem: newMarketData[i] });
+      }
 
-          setCurrentStatus(null);
-          resetResume();
-          // await checkResumeFlow(watchlistArr.value);
-          return;
-        }
+      console.log("resumeFlow toUpdateTickers", toUpdateTickers);
 
-        console.log("xxxx 沒進判斷 xxxx");
-
-        btnMsg.value = "Update price";
-        isUpdate.value = true;
-      },
-      { deep: true }
-    );
-
-    const updatedTickers = ref([]);
-
-    async function clickUpdate() {
-      if (toUpdateTickers.value.length === 0) return;
-
-      toggleLoadingEffect(true);
-
-      console.log("clickUpdate 資料更新中");
-      btnMsg.value = "Updating...";
-      isUpdate.value = false;
-      updatedTickers.value.length = 0;
-
-      const resolvedPromise = await Promise.allSettled(toUpdateTickers.value);
-
-      displayWatchlist(resumeList.value, tabNameBeforeUpdate.value);
-      toggleLoadingEffect(false);
-      showUpdatedTickers(resolvedPromise);
-      await checkResumeFlow(resumeList.value, tabNameBeforeUpdate.value);
+      return [toUpdateTickers, newList];
     }
 
     function showUpdatedTickers(resolvedPromise) {
@@ -522,6 +529,8 @@ export default {
     function setCurrentStatus(status) {
       currentStatus.value = status;
     }
+
+    function clickUpdate() {}
 
     // async function clickUpdate() {
     //   if (toUpdateTickers.value.length === 0) return;

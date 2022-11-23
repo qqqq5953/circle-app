@@ -8,7 +8,7 @@ export default function useUpdateList() {
 
   async function updateList(watchlist, tabName) {
     const newMarketData = await fetchMarketData(watchlist)
-    const [allPromises, currentWatchlist] = checkUpdate(
+    const [allPromises, newList] = checkUpdate(
       newMarketData,
       watchlist,
       tabName
@@ -16,7 +16,7 @@ export default function useUpdateList() {
 
     if (allPromises.length !== 0) await updateMarketData(allPromises)
     // await updateMarketData(allPromises)
-    return currentWatchlist
+    return newList
   }
 
   async function fetchMarketData(watchlist) {
@@ -34,14 +34,12 @@ export default function useUpdateList() {
   }
 
   function checkUpdate(newMarketData, watchlist, tabName) {
-    console.log('checkUpdate')
-
     const newList = [...watchlist]
     const allPromises = []
 
     for (let i = 0; i < watchlist.length; i++) {
       const { price, tempTicker } = watchlist[i]
-      if (price === newMarketData[i].price) continue
+      // if (price === newMarketData[i].price) continue
 
       newList[i] = { ...watchlist[i], ...newMarketData[i] }
       const url = `/api/ticker/${tabName}/${tempTicker}`
@@ -54,15 +52,19 @@ export default function useUpdateList() {
       )
     }
 
+    console.log('checkUpdate 更新至資料庫')
+
     return [allPromises, newList]
   }
 
   async function updateMarketData(allPromises) {
-    await Promise.allSettled(allPromises)
+    const updatedTickers = await Promise.allSettled(allPromises)
+
+    return updatedTickers
   }
 
   function checkMarketState(watchlist) {
-    console.log('checkMarketState watchlist', watchlist)
+    // console.log('checkMarketState watchlist', watchlist)
     if (!watchlist) return
 
     const marketStateIdx = watchlist.findIndex(
@@ -78,8 +80,8 @@ export default function useUpdateList() {
   return {
     updateList,
     fetchMarketData,
-    checkUpdate,
     checkMarketState,
+    updateMarketData,
     currentTab
   }
 }

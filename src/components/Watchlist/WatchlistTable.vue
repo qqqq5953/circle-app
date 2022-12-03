@@ -103,7 +103,6 @@
         class="flex justify-between items-center pl-4 pr-2 lg:pl-8"
         v-if="listLength"
       >
-        <slot name="update-btn"></slot>
         <!-- sort -->
         <div class="relative flex flex-grow justify-end items-center">
           <button

@@ -27,22 +27,7 @@ export default function useUpdateList() {
     try {
       const res = await Promise.allSettled(listPromises)
       const newMarketData = res.map((item) => item.value.data.result)
-      console.log('newMarketData', newMarketData)
       return newMarketData
-      // return [
-      //   {
-      //     marketState: 'CLOSED',
-      //     previousCloseChange: '+0.69',
-      //     previousCloseChangePercent: '0.45',
-      //     price: 155.67
-      //   },
-      //   {
-      //     marketState: 'CLOSED',
-      //     previousCloseChange: '-0.54',
-      //     previousCloseChangePercent: '-1.13',
-      //     price: 47.24
-      //   }
-      // ]
     } catch (error) {
       console.log('error', error)
     }
@@ -55,7 +40,7 @@ export default function useUpdateList() {
     for (let i = 0; i < watchlist.length; i++) {
       const { price, tempTicker } = watchlist[i]
 
-      // if (price === newMarketData[i].price) continue
+      if (price === newMarketData[i].price) continue
 
       newList[i] = { ...watchlist[i], ...newMarketData[i] }
 

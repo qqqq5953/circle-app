@@ -81,24 +81,6 @@
       @sortList="(n) => (latestSortRules = n)"
       v-show="!isWatchlistLoading"
     >
-      <template #update-btn>
-        <div class="text-xs text-slate-400">
-          <button
-            class="
-              py-0.5
-              px-1.5
-              rounded
-              border border-slate-400
-              hover:bg-slate-400 hover:text-white
-            "
-            @click="clickUpdate"
-            v-if="isUpdate"
-          >
-            {{ btnMsg }}
-          </button>
-          <div class="border border-white" v-else>{{ btnMsg }}</div>
-        </div>
-      </template>
     </WatchlistTable>
   </main>
 </template>
@@ -266,8 +248,6 @@ export default {
         }
       }
 
-      console.log(`%c toggleLoadingEffect`, "background:pink; color:white");
-
       toggleLoadingEffect(false);
 
       return unorderedList;
@@ -279,15 +259,8 @@ export default {
         "background:orange; color:black"
       );
       clearTimeout(timeoutId.value);
-      toUpdateTickers.value.length = 0;
-      resumeList.value.length = 0;
-      isUpdate.value = false;
     }
 
-    const isUpdate = ref(false);
-    const btnMsg = ref("Latest price");
-    const toUpdateTickers = ref([]);
-    const resumeList = ref([]);
     const timeoutId = ref(null);
     const currentStatus = ref(null);
     const changeCount = ref(0);
@@ -324,8 +297,6 @@ export default {
     }
 
     async function useCacheData(params, tabName, status, statusChanged) {
-      console.log("useCacheData params", params);
-
       let isUseCache = false;
 
       switch (status) {
@@ -345,11 +316,11 @@ export default {
           displayWatchlist(cacheList, tabName);
           isAllMarketClose.value = checkMarketState(cacheList);
 
-          // if (!isAllMarketClose.value) {
-          //   await checkResumeFlow(cacheList, tabName, statusChanged);
-          // }
+          if (!isAllMarketClose.value) {
+            await checkResumeFlow(cacheList, tabName, statusChanged);
+          }
 
-          await checkResumeFlow(cacheList, tabName, statusChanged);
+          // await checkResumeFlow(cacheList, tabName, statusChanged);
 
           break;
         }
@@ -357,7 +328,6 @@ export default {
           isUseCache = true;
 
           const unorderedList = showListOnTickersChanged(params, status);
-          console.log("useCacheData unorderedList", unorderedList);
 
           displayWatchlist(unorderedList, tabName);
 
@@ -365,11 +335,11 @@ export default {
 
           isAllMarketClose.value = checkMarketState(unorderedList);
 
-          // if (!isAllMarketClose.value) {
-          //   await checkResumeFlow(unorderedList, tabName, statusChanged);
-          // }
+          if (!isAllMarketClose.value) {
+            await checkResumeFlow(unorderedList, tabName, statusChanged);
+          }
 
-          await checkResumeFlow(unorderedList, tabName, statusChanged);
+          // await checkResumeFlow(unorderedList, tabName, statusChanged);
 
           break;
         }
@@ -380,7 +350,6 @@ export default {
 
     // status: init, switch, deleteTicker, addTicker
     async function loadWatchlist({ status, params }) {
-      console.log(">>>loadWatchlist params<<<", params);
       const statusChanged = getStatusChanged(status);
       const tabName = currentTab.value;
 
@@ -415,7 +384,6 @@ export default {
 
         const watchlistRes = await http.get(`/api/tickers/${tabName}`);
         const watchlist = watchlistRes.data.result;
-        console.log("watchlist", watchlist);
 
         setSkeletonTableRow({ list: watchlist });
 
@@ -445,8 +413,6 @@ export default {
       watchlistArr.value = orderedList;
       cachedList.value[tabName] = setCacheList(watchlist);
 
-      // if (!isUpdate.value) btnMsg.value = "Latest price";
-      btnMsg.value = "Latest price";
       return orderedList;
     }
 
@@ -457,9 +423,9 @@ export default {
 
       isAllMarketClose.value = checkMarketState(watchlist);
       console.log("isAllMarketClose", isAllMarketClose.value);
-      // if (!isAllMarketClose.value) await startTimer(watchlist, tabName, status);
+      if (!isAllMarketClose.value) await startTimer(watchlist, tabName, status);
 
-      await startTimer(watchlist, tabName, status);
+      // await startTimer(watchlist, tabName, status);
     }
 
     // 自動倒數計時更新
@@ -561,7 +527,8 @@ export default {
 
       for (let i = 0; i < watchlist.length; i++) {
         const { price, tempTicker } = watchlist[i];
-        // if (price === newMarketData[i].price) continue;
+
+        if (price === newMarketData[i].price) continue;
 
         newList[i] = { ...watchlist[i], ...newMarketData[i] };
 
@@ -604,96 +571,6 @@ export default {
       currentStatus.value = status;
     }
 
-    function clickUpdate() {}
-
-    // async function clickUpdate() {
-    //   if (toUpdateTickers.value.length === 0) return;
-
-    //   toggleLoadingEffect(true);
-
-    //   console.log("clickUpdate 資料更新中");
-    //   btnMsg.value = "Updating...";
-    //   isUpdate.value = false;
-    //   updatedTickers.value.length = 0;
-
-    //   const updatePromise = toUpdateTickers.value.map((obj) => {
-    //     const url = `/api/ticker/${currentTab.value}/${obj.tempTicker}`;
-    //     return http.put(url, { newItem: obj.newData });
-    //   });
-
-    //   const resolvedPromise = await Promise.allSettled(updatePromise);
-
-    //   displayWatchlist(resumeList.value);
-    //   toggleLoadingEffect(false);
-    //   showUpdatedTickers(resolvedPromise);
-    //   await checkResumeFlow(resumeList.value);
-    // }
-
-    // async function resumeFlow(watchlist) {
-    //   console.log(
-    //     `%c resumeFlow ${currentStatus.value}`,
-    //     "background:red; color:#efefef"
-    //   );
-
-    //   const newMarketData = await fetchMarketData(watchlist);
-    //   console.log("resumeFlow newMarketData", newMarketData);
-
-    //   const newList = [...watchlist];
-    //   const tempTickers = [];
-
-    //   for (let i = 0; i < watchlist.length; i++) {
-    //     const { price, tempTicker } = watchlist[i];
-    //     // if (price === newMarketData[i].price) continue
-
-    //     newList[i] = { ...watchlist[i], ...newMarketData[i] };
-
-    //     tempTickers.push({ tempTicker, newData: newMarketData[i] });
-    //   }
-
-    //   console.log("resumeFlow newList", newList);
-
-    //   // 如果盤中價格尚未改變，重新倒數更新
-    //   if (tempTickers.length === 0) {
-    //     console.log("盤中價格尚未改變，重新倒數更新");
-
-    //     resetResume();
-    //     setCurrentStatus(null);
-    //     await checkResumeFlow(newList);
-    //     return;
-    //   }
-
-    //   toUpdateTickers.value = [...tempTickers];
-    //   resumeList.value = [...newList];
-    // }
-
-    //     watch(
-    //   toUpdateTickers,
-    //   async (tickers) => {
-    //     if (tickers.length === 0) return;
-    //     console.log("watch 有新資料", tickers);
-    //     console.log(`現在 currentStatus 為 ${currentStatus.value}`);
-
-    //     /*
-    //     在進行 resumeFlow 時剛好新增、刪除、switch，如果剛好有 newPm，此為新增或刪除前的資料，如沒擋掉則更新後還是會呈現舊資料，造成已刪除的資料呈現在畫面上
-    //     */
-
-    //     if (currentStatus.value !== "init" && currentStatus.value != null) {
-    //       console.log("～～～～ 進判斷 ～～～～");
-
-    //       setCurrentStatus(null);
-    //       resetResume();
-    //       // await checkResumeFlow(watchlistArr.value);
-    //       return;
-    //     }
-
-    //     console.log("xxxx 沒進判斷 xxxx");
-
-    //     btnMsg.value = "Update price";
-    //     isUpdate.value = true;
-    //   },
-    //   { deep: true }
-    // );
-
     return {
       searchListSkeletonContent,
       searchList,
@@ -713,9 +590,6 @@ export default {
       setSkeletonTableRow,
 
       clickOutsideClose,
-      clickUpdate,
-      isUpdate,
-      btnMsg,
 
       displayWatchlist,
       updatedTickers,

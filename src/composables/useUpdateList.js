@@ -27,7 +27,22 @@ export default function useUpdateList() {
     try {
       const res = await Promise.allSettled(listPromises)
       const newMarketData = res.map((item) => item.value.data.result)
+      console.log('newMarketData', newMarketData)
       return newMarketData
+      // return [
+      //   {
+      //     marketState: 'CLOSED',
+      //     previousCloseChange: '+0.69',
+      //     previousCloseChangePercent: '0.45',
+      //     price: 155.67
+      //   },
+      //   {
+      //     marketState: 'CLOSED',
+      //     previousCloseChange: '-0.54',
+      //     previousCloseChangePercent: '-1.13',
+      //     price: 47.24
+      //   }
+      // ]
     } catch (error) {
       console.log('error', error)
     }
@@ -39,17 +54,20 @@ export default function useUpdateList() {
 
     for (let i = 0; i < watchlist.length; i++) {
       const { price, tempTicker } = watchlist[i]
+
       // if (price === newMarketData[i].price) continue
 
       newList[i] = { ...watchlist[i], ...newMarketData[i] }
+
+      if (isUpdateError(newList[i], newMarketData[i])) continue
+
       const url = `/api/ticker/${tabName}/${tempTicker}`
       console.log('checkUpdate url', url)
+      const updatePromise = http.put(url, {
+        newItem: newMarketData[i]
+      })
 
-      allPromises.push(
-        http.put(url, {
-          newItem: newMarketData[i]
-        })
-      )
+      allPromises.push(updatePromise)
     }
 
     console.log('checkUpdate 更新至資料庫')
@@ -77,11 +95,16 @@ export default function useUpdateList() {
     return isAllMarketClose
   }
 
+  function isUpdateError(listA, listB) {
+    return JSON.stringify(listA) === JSON.stringify(listB)
+  }
+
   return {
     updateList,
     fetchMarketData,
     checkMarketState,
     updateMarketData,
+    isUpdateError,
     currentTab
   }
 }

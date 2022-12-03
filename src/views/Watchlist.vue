@@ -3,7 +3,7 @@
     class="flex flex-col gap-3 px-4 md:p-10 mx-auto w-full"
     @click="clickOutsideClose($event)"
   >
-    <div class="relative w-full pb-14">
+    <div class="relative w-full pb-14" v-show="!isWatchlistLoading">
       <SearchBar
         id="searchBar"
         @toggleSearchList="toggleSearchList"
@@ -22,6 +22,7 @@
             :searchList="searchList"
             :isAddingProcess="isAddingProcess"
             @loadWatchlist="loadWatchlist"
+            @setSkeletonTableRow="setSkeletonTableRow"
             @toggleLoadingEffect="toggleLoadingEffect"
             v-show="!isSearchListLoading"
           />
@@ -237,32 +238,39 @@ export default {
     // sort
     const { sortList, latestSortRules } = useSort();
 
-    watch(latestSortRules, () => displayWatchlist(watchlistArr.value));
+    watch(latestSortRules, () =>
+      displayWatchlist(watchlistArr.value, currentTab.value)
+    );
 
-    async function showListOnAdding(addedTickerObj, tabName) {
-      // resetResume();
-
+    function showListOnTickersChanged(params, status) {
       const cacheList = getCacheList(currentTab.value);
-      const unorderedList = [...cacheList, addedTickerObj];
+      let unorderedList = null;
 
-      setSkeletonTableRow({ list: unorderedList });
+      switch (status) {
+        case "addTicker": {
+          console.log(`%c addTicker`, "background:green; color:#efefef");
+          unorderedList = [...cacheList, params];
+          break;
+        }
+        case "deleteTicker": {
+          console.log(`%c deleteTicker`, "background:green; color:#efefef");
+          unorderedList = [...cacheList].filter(
+            (item) => params.indexOf(item.tempTicker) === -1
+          );
+          setSkeletonTableRow({ list: unorderedList });
+          break;
+        }
+        default: {
+          console.log(`%c 意外發生`, "background:green; color:#efefef");
+          break;
+        }
+      }
 
-      const newList = displayWatchlist(unorderedList, tabName);
-      return newList;
-    }
+      console.log(`%c toggleLoadingEffect`, "background:pink; color:white");
 
-    async function showListOnDeleting(deletedTickers, tabName) {
-      // resetResume();
+      toggleLoadingEffect(false);
 
-      const cacheList = getCacheList(currentTab.value);
-      const unorderedList = [...cacheList].filter((item) => {
-        return deletedTickers.indexOf(item.tempTicker) === -1;
-      });
-
-      setSkeletonTableRow({ list: unorderedList });
-
-      const newList = displayWatchlist(unorderedList, tabName);
-      return newList;
+      return unorderedList;
     }
 
     function resetResume() {
@@ -282,29 +290,104 @@ export default {
     const resumeList = ref([]);
     const timeoutId = ref(null);
     const currentStatus = ref(null);
+    const changeCount = ref(0);
     const {
       updateList,
       fetchMarketData,
       checkMarketState,
       updateMarketData,
+      isUpdateError,
       currentTab,
     } = useUpdateList();
-    const tabsQueue = ref([]);
 
-    watch(currentTab, (newTab, oldTab) => {
-      tabsQueue.value.push(oldTab);
+    watch(currentTab, () => {
+      changeCount.value = 0;
       loadWatchlist({ status: "switch" });
     });
 
-    // status: init, switch, deleteTicker, addTicker
-    async function loadWatchlist({ status, addedTickerObj, deletedTickers }) {
-      console.log(`%c status:${status}`, "background:pink;color:black");
-      setCurrentStatus(status);
-      resetResume();
+    function getStatusChanged(status) {
+      let statusChanged = "";
 
+      if (status === "addTicker" || status === "deleteTicker") {
+        changeCount.value++;
+        statusChanged = status + changeCount.value;
+      } else {
+        statusChanged = status;
+      }
+
+      console.log(
+        `%c statusChanged:${statusChanged}`,
+        "background:pink;color:black"
+      );
+
+      return statusChanged;
+    }
+
+    async function useCacheData(params, tabName, status, statusChanged) {
+      console.log("useCacheData params", params);
+
+      let isUseCache = false;
+
+      switch (status) {
+        case "init": {
+          break;
+        }
+        case "switch": {
+          const cachedTabs = Object.keys(cachedList.value);
+          const isInCachedTabs = cachedTabs.includes(tabName);
+          if (!isInCachedTabs) break;
+
+          isUseCache = true;
+
+          const cacheList = getCacheList(tabName);
+          console.log("第二次 switch cacheList", cacheList);
+
+          displayWatchlist(cacheList, tabName);
+          isAllMarketClose.value = checkMarketState(cacheList);
+
+          // if (!isAllMarketClose.value) {
+          //   await checkResumeFlow(cacheList, tabName, statusChanged);
+          // }
+
+          await checkResumeFlow(cacheList, tabName, statusChanged);
+
+          break;
+        }
+        default: {
+          isUseCache = true;
+
+          const unorderedList = showListOnTickersChanged(params, status);
+          console.log("useCacheData unorderedList", unorderedList);
+
+          displayWatchlist(unorderedList, tabName);
+
+          if (unorderedList.length === 0) break;
+
+          isAllMarketClose.value = checkMarketState(unorderedList);
+
+          // if (!isAllMarketClose.value) {
+          //   await checkResumeFlow(unorderedList, tabName, statusChanged);
+          // }
+
+          await checkResumeFlow(unorderedList, tabName, statusChanged);
+
+          break;
+        }
+      }
+
+      return isUseCache;
+    }
+
+    // status: init, switch, deleteTicker, addTicker
+    async function loadWatchlist({ status, params }) {
+      console.log(">>>loadWatchlist params<<<", params);
+      const statusChanged = getStatusChanged(status);
       const tabName = currentTab.value;
 
-      // 檢查 list 沒內容時停止執行後續
+      setCurrentStatus(statusChanged);
+      resetResume();
+
+      // 檢查 list 為空時停止往下執行
       if (status === "init" || status === "switch") {
         const currentTabInfo = tabs.value.find((tab) => tab.name === tabName);
 
@@ -316,68 +399,32 @@ export default {
       }
 
       // 用 cache
-      switch (status) {
-        case "switch": {
-          const cachedTabs = Object.keys(cachedList.value);
-          const isInCachedTabs = cachedTabs.includes(tabName);
+      const isUseCache = await useCacheData(
+        params,
+        tabName,
+        status,
+        statusChanged
+      );
+      console.log("isUseCache", isUseCache);
+      if (isUseCache) return;
 
-          if (isInCachedTabs) {
-            const cacheList = getCacheList(tabName);
-            console.log("第二次 switch cacheList", cacheList);
-
-            watchlistArr.value = displayWatchlist(cacheList, tabName);
-
-            await checkResumeFlow(watchlistArr.value, tabName);
-            return; // 第二次 switch
-          } else {
-            console.log("第一次 switch");
-            break; // 第一次 switch
-          }
-        }
-
-        case "addTicker": {
-          console.log(`%c addTicker`, "background:green; color:#efefef");
-
-          const newList = await showListOnAdding(addedTickerObj, tabName);
-          toggleLoadingEffect(false);
-
-          isAllMarketClose.value = checkMarketState(newList);
-          // if (!isAllMarketClose.value) await resumeFlow(newList);
-
-          await resumeFlow(newList, tabName);
-
-          return;
-        }
-
-        case "deleteTicker": {
-          console.log(`%c deleteTicker`, "background:green; color:#efefef");
-
-          const newList = await showListOnDeleting(deletedTickers, tabName);
-          toggleLoadingEffect(false);
-
-          isAllMarketClose.value = checkMarketState(newList);
-          // if (!isAllMarketClose.value) await resumeFlow(newList, tabName);
-
-          await resumeFlow(newList, tabName);
-          return;
-        }
-      }
+      console.log("沒用 cache");
 
       try {
         toggleLoadingEffect(true);
 
         const watchlistRes = await http.get(`/api/tickers/${tabName}`);
         const watchlist = watchlistRes.data.result;
+        console.log("watchlist", watchlist);
 
         setSkeletonTableRow({ list: watchlist });
 
         const newList = await updateList(watchlist, tabName);
-        console.log("newList", newList);
         displayWatchlist(newList, tabName);
 
         toggleLoadingEffect(false);
 
-        await checkResumeFlow(newList, tabName);
+        await checkResumeFlow(newList, tabName, statusChanged);
       } catch (error) {
         console.log("error", error);
       }
@@ -394,6 +441,7 @@ export default {
       }
 
       const orderedList = sortList(latestSortRules.value, watchlist);
+
       watchlistArr.value = orderedList;
       cachedList.value[tabName] = setCacheList(watchlist);
 
@@ -404,22 +452,22 @@ export default {
 
     const isAllMarketClose = ref(true);
 
-    async function checkResumeFlow(watchlist, tabName) {
+    async function checkResumeFlow(watchlist, tabName, status) {
       console.log("---------checkResumeFlow---------");
 
       isAllMarketClose.value = checkMarketState(watchlist);
       console.log("isAllMarketClose", isAllMarketClose.value);
-      // if (!isAllMarketClose.value) await startTimer(watchlist, tabName);
+      // if (!isAllMarketClose.value) await startTimer(watchlist, tabName, status);
 
-      await startTimer(watchlist, tabName);
+      await startTimer(watchlist, tabName, status);
     }
 
     // 自動倒數計時更新
-    function startTimer(watchlist, tabName) {
+    function startTimer(watchlist, tabName, status) {
       console.log(`%c startTimer ${tabName}`, "background:blue; color:#efefef");
       return new Promise((resolve, reject) => {
         timeoutId.value = setTimeout(async () => {
-          await resumeFlow(watchlist, tabName);
+          await resumeFlow(watchlist, tabName, status);
           resolve();
         }, 5000);
 
@@ -428,7 +476,8 @@ export default {
     }
 
     const updatedTickers = ref([]);
-    async function resumeFlow(watchlist, tabName) {
+
+    async function resumeFlow(watchlist, tabName, status) {
       updatedTickers.value.length = 0;
 
       console.log(
@@ -437,7 +486,15 @@ export default {
       );
 
       const newMarketData = await fetchMarketData(watchlist);
-      console.log("resumeFlow newMarketData", newMarketData);
+      // console.log("resumeFlow newMarketData", newMarketData);
+
+      const hasLostData = newMarketData.indexOf(null) !== -1;
+      if (hasLostData) {
+        console.log("遺失資料了！！！");
+
+        await checkResumeFlow(newList, currentTab.value, currentStatus.value);
+        return;
+      }
 
       const [toUpdateTickers, newList] = resumeFlowCheckUpdate(
         newMarketData,
@@ -446,26 +503,38 @@ export default {
 
       const hasUpdateData = toUpdateTickers.length !== 0;
       const isCurrentTab = tabName === currentTab.value;
+      const isCurrentStatus = status === currentStatus.value;
 
-      // // 重新倒數更新 tab 有衝突
+      console.log(`status:${status}, currentStatus:${currentStatus.value}`);
+      console.log(`tabName:${tabName}, currentTab:${currentTab.value}`);
+
+      // 重新倒數更新 tab 有衝突
       if (!hasUpdateData && !isCurrentTab) {
-        console.log(
-          `重新倒數更新 tab 有衝突, tabName:${tabName}, currentTab:${currentTab.value}`
-        );
+        console.log(`重新倒數更新 tab 有衝突`);
+        return;
+      }
+
+      if (!hasUpdateData && !isCurrentStatus) {
+        console.log(`重新倒數更新 status 有衝突`);
         return;
       }
 
       // 盤中價格尚未改變，重新倒數更新
       if (!hasUpdateData) {
         console.log("盤中價格尚未改變，重新倒數更新");
-        return await checkResumeFlow(newList, tabName);
+        // setCurrentStatus(null);
+        await checkResumeFlow(newList, tabName, status);
+        return;
       }
 
       // resumeFlow tab 有衝突
       if (!isCurrentTab) {
-        console.log(
-          `resumeFlow tab 有衝突 2, tabName:${tabName}, currentTab:${currentTab.value}`
-        );
+        console.log(`resumeFlow tab 有衝突`);
+        return;
+      }
+
+      if (!isCurrentStatus) {
+        console.log(`resumeFlow status 有衝突`);
         return;
       }
 
@@ -476,14 +545,14 @@ export default {
         return http.put(url, { newItem: obj.newItem });
       });
 
-      console.log("resumeFlow 更新至資料庫");
+      console.log("更新至資料庫");
 
       const updatedTickersArr = await updateMarketData(allPromises);
       console.log("resumeFlow updatedTickersArr", updatedTickersArr);
 
       showUpdatedTickers(updatedTickersArr);
       displayWatchlist(newList, currentTab.value);
-      await checkResumeFlow(newList, currentTab.value);
+      await checkResumeFlow(newList, currentTab.value, currentStatus.value);
     }
 
     function resumeFlowCheckUpdate(newMarketData, watchlist) {
@@ -495,10 +564,15 @@ export default {
         // if (price === newMarketData[i].price) continue;
 
         newList[i] = { ...watchlist[i], ...newMarketData[i] };
+
+        if (isUpdateError(newList[i], newMarketData[i])) continue;
+
+        console.log("都沒錯");
+
         toUpdateTickers.push({ tempTicker, newItem: newMarketData[i] });
       }
 
-      console.log("resumeFlow toUpdateTickers", toUpdateTickers);
+      console.log("R toUpdateTickers", toUpdateTickers);
 
       return [toUpdateTickers, newList];
     }

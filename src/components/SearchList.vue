@@ -167,9 +167,8 @@
 
 <script>
 import { useRouter } from "vue-router";
-import useAxios from "@/composables/useAxios.js";
 import http from "../api/index";
-import { watch, computed } from "vue";
+import { ref, computed } from "vue";
 import useWatchlistStore from "@/stores/watchlistStore.js";
 import { storeToRefs } from "pinia";
 
@@ -187,16 +186,20 @@ export default {
     const $store = useWatchlistStore();
     const { currentTab, cachedList } = storeToRefs($store);
     const router = useRouter();
+    const currentWatchlist = ref(null);
 
     const isTickerInCachedList = computed(() => {
+      currentWatchlist.value =
+        cachedList.value[currentTab.value]?.currentWatchlist || [];
+
       const tempTicker = props.searchList[0]?.tempTicker;
-      const currentWatchlist = [
-        ...cachedList.value[currentTab.value]?.currentWatchlist,
-      ];
 
       const isInCachedList =
-        currentWatchlist.map((item) => item.tempTicker).indexOf(tempTicker) !==
-        -1;
+        currentWatchlist.value
+          .map((item) => item.tempTicker)
+          .indexOf(tempTicker) !== -1;
+
+      console.log("isInCachedList", isInCachedList);
 
       return isInCachedList;
     });
@@ -211,11 +214,14 @@ export default {
 
     async function addToWatchlist(ticker) {
       if (isTickerInCachedList.value) return;
+
+      emit("setSkeletonTableRow", {
+        rows: currentWatchlist.value.length + 1,
+      });
       emit("toggleLoadingEffect", true);
 
-      const tempTicker = ticker.includes(".") ? ticker.split(".")[0] : ticker;
-
       try {
+        const tempTicker = ticker.includes(".") ? ticker.split(".")[0] : ticker;
         const tickerItem = {
           ...props.searchList[0],
           tempTicker,
@@ -226,7 +232,7 @@ export default {
 
         emit("loadWatchlist", {
           status: "addTicker",
-          addedTickerObj: tickerItem,
+          params: tickerItem,
         });
       } catch (error) {
         console.log("error", error);

@@ -697,6 +697,8 @@ export default {
         ticker.includes(".") ? ticker.split(".")[0] : ticker
       );
 
+      console.log("deletedTickers", deletedTickers);
+
       try {
         await http.delete(
           `/api/ticker/${$store.currentTab}/${JSON.stringify(deletedTickers)}`
@@ -704,7 +706,7 @@ export default {
 
         emit("loadWatchlist", {
           status: "deleteTicker",
-          deletedTickers,
+          params: deletedTickers,
         });
 
         clearDeleteArr();
@@ -723,7 +725,7 @@ export default {
 
         $store.setTabsInfo(currentTab.value, tickerRowsRef.value.length);
 
-        clearDeleteArr();
+        // clearDeleteArr();
       },
       {
         flush: "post",

@@ -1,24 +1,24 @@
 <template>
-  <div
-    class="
-      flex flex-col
-      break-words
-      w-full
-      shadow-lg
-      rounded
-      border border-gray-100
-    "
-  >
-    <div class="py-3 flex flex-col gap-1" :class="{ 'border-b': watchlistArr }">
-      <!-- table title -->
-      <section class="relative flex justify-between rounded-t px-4 lg:px-8">
-        <h3 class="font-semibold truncate w-3/4">
+  <div class="flex flex-col break-words w-full rounded border">
+    <div class="py-3 flex flex-col gap-1">
+      <section
+        class="
+          relative
+          flex
+          items-center
+          justify-between
+          rounded-t
+          px-4
+          lg:px-8
+        "
+      >
+        <h3 class="text-xl font-semibold truncate w-3/4">
           {{ currentTab }}
         </h3>
 
-        <!-- delete buttons -->
+        <!-- delete -->
         <div
-          class="absolute right-4 top-0 flex gap-2 h-full"
+          class="absolute right-4 top-0 my-1 flex gap-2"
           v-if="deleteArr.length"
         >
           <label
@@ -58,15 +58,12 @@
           </button>
         </div>
 
-        <!-- setting dropdown -->
+        <!-- setting -->
         <div
-          class="absolute right-2 top-0"
+          class="absolute right-2"
           v-if="!deleteArr.length && currentTab?.toLowerCase() !== 'watchlist'"
         >
-          <button
-            class="px-3 rounded-full active:rounded-full"
-            @click="toggleDropdown"
-          >
+          <button class="px-3 h-full" @click="toggleDropdown">
             <i class="fa-solid fa-ellipsis-vertical"></i>
           </button>
           <Transition>
@@ -99,11 +96,11 @@
         </div>
       </section>
 
+      <!-- sort -->
       <section
         class="flex justify-between items-center pl-4 pr-2 lg:pl-8"
         v-if="listLength"
       >
-        <!-- sort -->
         <div class="relative flex flex-grow justify-end items-center">
           <button
             class="
@@ -116,7 +113,8 @@
               text-xs text-blue-500
             "
             :class="{ 'focus:bg-blue-50': isSortMenuOpen }"
-            @click="toggleSortMenu"
+            @click="isSortMenuOpen = true"
+            @blur="isSortMenuOpen = false"
           >
             <span>
               <i
@@ -138,21 +136,29 @@
                 -right-2
                 z-20
                 w-3/4
-                max-w-[180px]
+                max-w-[184px]
                 mt-2
                 text-sm
-                shadow
                 rounded
+                border-2 border-blue-50
                 bg-white
               "
               v-if="isSortMenuOpen"
-              @click="toggleSortMenu"
+              @click="isSortMenuOpen = false"
             >
-              <ul class="py-3">
+              <ul>
                 <li
-                  class="flex gap-3 items-center py-1 px-3 cursor-pointer"
+                  class="
+                    flex
+                    gap-3
+                    items-center
+                    py-2
+                    px-3
+                    hover:bg-blue-50
+                    cursor-pointer
+                  "
                   :class="{
-                    'text-blue-500 font-semibold pointer-events-none cursor-pointer-none':
+                    'text-blue-500 font-semibold pointer-events-none cursor-auto':
                       selectedSortCategory === item.category,
                   }"
                   v-for="(item, key) in sortMenu"
@@ -163,11 +169,19 @@
                   <span>{{ key }}</span>
                 </li>
               </ul>
-              <ul class="p-3 border-t">
+              <ul class="border-t-2 border-blue-50">
                 <li
-                  class="flex gap-3 items-center py-1 cursor-pointer"
+                  class="
+                    flex
+                    gap-3
+                    items-center
+                    py-2
+                    px-3
+                    hover:bg-blue-50
+                    cursor-pointer
+                  "
                   :class="{
-                    'text-blue-500 font-semibold':
+                    'text-blue-500 font-semibold pointer-events-none cursor-auto':
                       selectedDirection === item.direction,
                   }"
                   v-for="(item, key) in sortDirection"
@@ -218,9 +232,7 @@
     <!-- body -->
     <div class="block w-full overflow-x-auto" v-if="watchlistArr">
       <table class="w-full border-collapse table-fixed">
-        <thead
-          class="bg-gray-100 border-t border-b hidden lg:table-header-group"
-        >
+        <thead class="bg-gray-100 border-y hidden lg:table-header-group">
           <tr>
             <th
               class="
@@ -289,7 +301,7 @@
         </thead>
         <tbody>
           <tr
-            class="hover:bg-slate-100 border-b last:border-b-0"
+            class="hover:bg-slate-100 border-t"
             :class="{
               'update-animation': tickersArr.indexOf(item.tempTicker) !== -1,
             }"
@@ -384,18 +396,24 @@
                     py-2
                     rounded
                     font-medium
+                    min-w-[81px]
                   "
                   :class="
                     item.previousCloseChange > 0
                       ? 'text-red-600 bg-red-100/70'
-                      : 'text-green-700 bg-green-100'
+                      : item.previousCloseChange < 0
+                      ? 'text-green-700 bg-green-100'
+                      : 'text-slate-500 bg-slate-200'
                   "
                 >
                   <i
                     class="fas fa-arrow-up"
                     v-if="item.previousCloseChange > 0"
                   ></i>
-                  <i class="fas fa-arrow-down" v-else></i>
+                  <i
+                    class="fas fa-arrow-down"
+                    v-if="item.previousCloseChange < 0"
+                  ></i>
                   <span class=""
                     >{{
                       item.previousCloseChangePercent[0] === "-"
@@ -428,7 +446,9 @@
                 :class="
                   item.previousCloseChange > 0
                     ? 'text-red-600'
-                    : 'text-green-700'
+                    : item.previousCloseChange < 0
+                    ? 'text-green-700'
+                    : 'text-slate-500'
                 "
                 >{{ item.previousCloseChange }}</span
               >

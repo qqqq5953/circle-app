@@ -21,6 +21,7 @@
       :maxlength="selectedCountry.maxLength"
       :placeholder="selectedCountry.placeholder"
       @focus="toggleSearchList(true)"
+      @focusout="toggleSearchList(false)"
       v-model.trim="searchTicker"
       ref="searchTickerRef"
     />

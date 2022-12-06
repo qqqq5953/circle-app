@@ -67,7 +67,6 @@ export default function useUpdateList() {
   }
 
   function checkMarketState(watchlist) {
-    // console.log('checkMarketState watchlist', watchlist)
     if (!watchlist) return
 
     const marketStateIdx = watchlist.findIndex(

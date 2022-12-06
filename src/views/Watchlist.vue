@@ -1,8 +1,5 @@
 <template>
-  <main
-    class="flex flex-col gap-3 px-4 md:p-10 mx-auto w-full"
-    @click="clickOutsideClose($event)"
-  >
+  <main class="flex flex-col gap-3 px-4 md:p-10 mx-auto w-full">
     <div class="relative w-full pb-14" v-show="!isWatchlistLoading">
       <SearchBar
         id="searchBar"
@@ -158,20 +155,6 @@ export default {
       }
     };
 
-    const hasParentElement = (event, element) => event.target.closest(element);
-
-    const clickOutsideClose = (e) => {
-      const isAddButtonClick = e.target.nodeName === "I";
-      const isInputFocus = e.target.nodeName === "INPUT";
-      const isNavClick = hasParentElement(e, "nav");
-      const isSearchBarFocus =
-        isInputFocus && hasParentElement(e, "#searchBar");
-
-      if (isAddButtonClick) return;
-      if (!isSearchBarFocus && !isNavClick) isFocus.value = false;
-      if (isSearchBarFocus) isFocus.value = true;
-    };
-
     // tabs
     http.get(`/api/watchlist`).then((res) => {
       $store.setTabs(res.data.result);
@@ -251,14 +234,6 @@ export default {
       toggleLoadingEffect(false);
 
       return unorderedList;
-    }
-
-    function resetResume() {
-      console.log(
-        `%c resetResume ${timeoutId.value}`,
-        "background:orange; color:black"
-      );
-      clearTimeout(timeoutId.value);
     }
 
     const timeoutId = ref(null);
@@ -354,7 +329,7 @@ export default {
       const tabName = currentTab.value;
 
       setCurrentStatus(statusChanged);
-      resetResume();
+      clearTimeout(timeoutId.value);
 
       // 檢查 list 為空時停止往下執行
       if (status === "init" || status === "switch") {
@@ -588,8 +563,6 @@ export default {
       isAddingProcess,
       toggleLoadingEffect,
       setSkeletonTableRow,
-
-      clickOutsideClose,
 
       displayWatchlist,
       updatedTickers,

@@ -72,9 +72,6 @@ export default function useUpdateList() {
     const marketStateIdx = watchlist.findIndex(
       (item) => item.marketState === 'REGULAR'
     )
-
-    console.log('checkMarketState marketStateIdx', marketStateIdx)
-
     const isAllMarketClose = marketStateIdx === -1
     return isAllMarketClose
   }

@@ -349,10 +349,7 @@ export default {
         status,
         statusChanged
       );
-      console.log("isUseCache", isUseCache);
       if (isUseCache) return;
-
-      console.log("沒用 cache");
 
       try {
         toggleLoadingEffect(true);
@@ -374,10 +371,6 @@ export default {
     }
 
     function displayWatchlist(watchlist = watchlistArr.value, tabName) {
-      console.log(
-        `||| displayWatchlist ||| tabName:${tabName}, currentTab:${currentTab.value}`
-      );
-
       if (tabName !== currentTab.value) {
         console.log("displayWatchlist tab 有衝突");
         return;

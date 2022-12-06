@@ -1,8 +1,9 @@
 <template>
   <main class="flex flex-col gap-3 px-4 md:p-10 mx-auto w-full">
-    <div class="relative w-full pb-14" v-show="!isWatchlistLoading">
+    <div class="relative w-full pb-14">
+      <SearchBarSkeleton v-if="isWatchlistLoading" />
       <SearchBar
-        id="searchBar"
+        v-if="!isWatchlistLoading"
         @toggleSearchList="toggleSearchList"
         @toggleSearchListSkeleton="toggleSearchListSkeleton"
         @emitSearchList="getSearchList"
@@ -83,14 +84,15 @@
 </template>
 
 <script>
-import { ref, watch, defineAsyncComponent } from "vue";
+import { ref, watch } from "vue";
 import http from "../api/index";
 
-import SearchList from "@/components/SearchList.vue";
-import WatchlistTable from "@/components/Watchlist/WatchlistTable.vue";
 import ListSkeleton from "@/components/skeleton/ListSkeleton.vue";
+import SearchBarSkeleton from "@/components/skeleton/SearchBarSkeleton.vue";
+import SearchList from "@/components/SearchList.vue";
 import SearchBar from "@/components/SearchBar.vue";
 import WatchlistNavbar from "@/components/Watchlist/WatchlistNavbar.vue";
+import WatchlistTable from "@/components/Watchlist/WatchlistTable.vue";
 
 import useWatchlistStore from "@/stores/watchlistStore.js";
 import useUpdateList from "@/composables/useUpdateList.js";
@@ -101,12 +103,10 @@ export default {
   components: {
     SearchBar,
     SearchList,
-    WatchlistTable,
     ListSkeleton,
+    SearchBarSkeleton,
     WatchlistNavbar,
-    ErrorDisplay: defineAsyncComponent(() =>
-      import("@/components/ErrorDisplay.vue")
-    ),
+    WatchlistTable,
   },
   setup() {
     const $store = useWatchlistStore();
@@ -175,7 +175,7 @@ export default {
         td: 3,
       },
     });
-    const isWatchlistLoading = ref(null);
+    const isWatchlistLoading = ref(true);
     const isAddingProcess = ref(false);
     const watchlistArr = ref(null);
 

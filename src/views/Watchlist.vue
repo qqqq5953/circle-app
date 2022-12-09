@@ -1,9 +1,9 @@
 <template>
   <main class="flex flex-col gap-3 px-4 md:p-10 mx-auto w-full">
     <div class="relative w-full pb-14">
-      <SearchBarSkeleton v-if="isWatchlistLoading" />
+      <SearchBarSkeleton v-show="isWatchlistLoading" />
       <SearchBar
-        v-if="!isWatchlistLoading"
+        v-show="!isWatchlistLoading"
         @toggleSearchList="toggleSearchList"
         @toggleSearchListSkeleton="toggleSearchListSkeleton"
         @emitSearchList="getSearchList"

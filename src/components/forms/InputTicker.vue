@@ -43,20 +43,19 @@ export default {
     const tickerRef = ref(null);
     const regex = /^[a-z\-?]{1,5}$/i;
     const replaceCharacter = /^[a-z]+[^a-z]+$|^[^a-z]+$|^[\-+]$/i;
-
-    const { inputError, inputValue, inputValidity } = useInputValidator(
-      props.modelValue,
-      tickerRef,
+    const params = {
+      validators: [tickerValidation, isEmpty],
+      modelValue: props.modelValue,
+      DOM: tickerRef,
       regex,
       replaceCharacter,
-      [tickerValidation, isEmpty]
-    );
+    };
+
+    const { inputError, inputValue, inputValidity } = useInputValidator(params);
 
     watch(
       () => props.modelValue,
-      () => {
-        emit("getInputValidity", inputValidity.value);
-      }
+      () => emit("getInputValidity", inputValidity.value)
     );
 
     watch(

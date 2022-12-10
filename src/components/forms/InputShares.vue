@@ -5,14 +5,15 @@
       type="text"
       class="
         block
-        border-gray-600 border
         px-4
         py-3
-        rounded-full
+        rounded
         w-full
-        text-center
+        shadow
+        text-sm text-center
         lg:text-left
         invalid:outline-red-400 invalid:border-red-400 invalid:border
+        focus:ring-blue-300/60 focus:ring-inset focus:ring-2 focus:outline-0
       "
       ref="sharesRef"
       placeholder="shares"
@@ -42,20 +43,19 @@ export default {
     const sharesRef = ref(null);
     const regex = /^0\.0[1-9]$|^0\.[1-9]\d?$|^[1-9]\d*(\.\d{1,2})?$/;
     const replaceCharacter = /^\d*[^\d^\.]$|^\d*\.\d*\D+$|^0\d$/;
-
-    const { inputError, inputValue, inputValidity } = useInputValidator(
-      props.modelValue,
-      sharesRef,
+    const params = {
+      validators: [twoDecimal, isEmpty],
+      modelValue: props.modelValue,
+      DOM: sharesRef,
       regex,
       replaceCharacter,
-      [twoDecimal, isEmpty]
-    );
+    };
+
+    const { inputError, inputValue, inputValidity } = useInputValidator(params);
 
     watch(
       () => props.modelValue,
-      () => {
-        emit("getInputValidity", inputValidity.value);
-      }
+      () => emit("getInputValidity", inputValidity.value)
     );
 
     return {

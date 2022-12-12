@@ -201,17 +201,24 @@
     <Teleport to="body">
       <InputModal
         v-if="isModalOpen"
-        v-model:listName.trim="newListName"
-        :errorMessage="errorMessage"
         :confirmFunc="renameWatchlist"
         :closeFunc="
           () => {
             isModalOpen = false;
           }
         "
-        ref="inputModalRef"
       >
         <template #title>Rename watchlist</template>
+        <template #inputs>
+          <div>
+            <BaseInput
+              ref="baseInputRef"
+              refName="renamelistRef"
+              v-model:listName.trim="newListName"
+            />
+            <ErrorDisplay :errors="errorMessage" v-if="errorMessage.length" />
+          </div>
+        </template>
         <template #okButton>Rename</template>
       </InputModal>
     </Teleport>
@@ -506,14 +513,19 @@ import { storeToRefs } from "pinia";
 import http from "@/api/index";
 import useWatchlistStore from "@/stores/watchlistStore.js";
 import InputModal from "@/components/InputModal.vue";
+import BaseInput from "@/components/BaseInput.vue";
 import DeleteAlert from "@/components/DeleteAlert.vue";
 import useSort from "@/composables/useSort.js";
 
 export default {
   components: {
     InputModal,
-    Alert: defineAsyncComponent(() => import("@/components/BaseAlert.vue")),
+    BaseInput,
     DeleteAlert,
+    Alert: defineAsyncComponent(() => import("@/components/BaseAlert.vue")),
+    ErrorDisplay: defineAsyncComponent(() =>
+      import("@/components/ErrorDisplay.vue")
+    ),
   },
   props: {
     watchlistArr: {
@@ -621,7 +633,7 @@ export default {
     // Modal & dropdown menu
     const isDropdownOpen = ref(false);
     const isModalOpen = ref(false);
-    const inputModalRef = ref(null);
+    const baseInputRef = ref(null);
     const newListName = ref(null);
     const errorMessage = ref([]);
 
@@ -633,7 +645,7 @@ export default {
       isModalOpen.value = true;
       newListName.value = $store.currentTab;
       await nextTick();
-      inputModalRef.value.inputRef.select();
+      baseInputRef.value.$refs.renamelistRef.select();
     };
 
     const dropdownMenu = ref([
@@ -670,7 +682,7 @@ export default {
 
       if (!res.data.success) {
         errorMessage.value.push(res.data.errorMessage);
-        inputModalRef.value.inputRef.select();
+        baseInputRef.value.$refs.renamelistRef.select();
       } else {
         isModalOpen.value = false;
         const { newName, tabsInfo } = res.data.result;
@@ -767,7 +779,6 @@ export default {
       tickerRowsRef,
       currentTab,
       dropdownMenu,
-      inputModalRef,
       newListName,
       errorMessage,
       listLength,
@@ -798,6 +809,8 @@ export default {
       toggleSortMenu,
 
       tickersArr,
+
+      baseInputRef,
     };
   },
 };

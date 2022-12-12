@@ -175,7 +175,7 @@ export default {
         td: 3,
       },
     });
-    const isWatchlistLoading = ref(true);
+    const isWatchlistLoading = ref(false);
     const isAddingProcess = ref(false);
     const watchlistArr = ref(null);
 

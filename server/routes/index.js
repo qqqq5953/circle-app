@@ -388,21 +388,19 @@ router.get('/tickers/:listName', async (req, res) => {
 // create watchlist
 router.post('/watchlist/:listName', async (req, res) => {
   const { listName } = req.params
+  const omitName = ['null', 'undefined', '']
   const DEFAULT_TAB = 'Watchlist'
 
   const initTabs = await tabsRef.once('value')
   const hasTabsArray = initTabs.val()?.length
   const hasSameTab = initTabs.val()?.includes(listName)
+  const isOmitName = omitName.includes(listName)
 
-  if (listName && hasTabsArray && !hasSameTab) {
-    setTabs(listName)
-    return
+  if (listName && hasTabsArray && !hasSameTab && !isOmitName) {
+    return setTabs(listName)
   }
 
-  if (!hasTabsArray) {
-    setTabs(DEFAULT_TAB)
-    return
-  }
+  if (!hasTabsArray) return setTabs(DEFAULT_TAB)
 
   const message = {
     success: false,
@@ -411,7 +409,7 @@ router.post('/watchlist/:listName', async (req, res) => {
     result: null
   }
 
-  if (!listName) {
+  if (isOmitName) {
     message.errorMessage = 'Input must not be empty'
   } else if (hasSameTab) {
     message.errorMessage = 'Watchlist already exists'

@@ -108,7 +108,7 @@
         hover:shadow hover:shadow-slate-300
       "
       @click="setScrolling(navLgRef, 'right')"
-      v-if="navLgRef?.scrollWidth > navLgRef?.offsetWidth"
+      v-if="scrollWidthLg > offsetWidthLg"
     >
       <i class="fa-solid fa-chevron-right"></i>
     </button>
@@ -124,23 +124,31 @@
   <Teleport to="body">
     <InputModal
       v-if="isModalOpen"
-      v-model:listName.trim="inputListName"
       :confirmFunc="createWatchlist"
       :closeFunc="closeModal"
-      :errorMessage="errorMessage"
-      ref="inputModalRef"
     >
       <template #title>Create watchlist</template>
+      <template #inputs>
+        <div>
+          <BaseInput
+            ref="baseInputRef"
+            refName="creatListRef"
+            v-model:listName.trim="inputListName"
+          />
+          <ErrorDisplay :errors="errorMessage" v-if="errorMessage.length" />
+        </div>
+      </template>
       <template #okButton>Create</template>
     </InputModal>
   </Teleport>
 </template>
 
 <script>
-import { ref, watch, nextTick } from "vue";
+import { ref, watch, nextTick, defineAsyncComponent, onMounted } from "vue";
 import useAxios from "@/composables/useAxios.js";
 import TabSkeleton from "@/components/skeleton/TabSkeleton.vue";
 import InputModal from "@/components/InputModal.vue";
+import BaseInput from "@/components/BaseInput.vue";
 import useWatchlistStore from "@/stores/watchlistStore.js";
 import { storeToRefs } from "pinia";
 
@@ -148,6 +156,10 @@ export default {
   components: {
     TabSkeleton,
     InputModal,
+    BaseInput,
+    ErrorDisplay: defineAsyncComponent(() =>
+      import("@/components/ErrorDisplay.vue")
+    ),
   },
   props: {
     isWatchlistLoading: {
@@ -161,7 +173,7 @@ export default {
     const inputListName = ref(null);
     const navBelowLgRef = ref(null);
     const navLgRef = ref(null);
-    const inputModalRef = ref(null);
+    const baseInputRef = ref(null);
     const errorMessage = ref([]);
     const { currentTab, tabs } = storeToRefs($store);
 
@@ -183,9 +195,6 @@ export default {
       const { data, error, loading } = useAxios(
         `/api/watchlist/${inputListName.value}`,
         "post"
-        // {
-        //   listName: inputListName.value,
-        // }
       );
 
       watch(data, (newList) => {
@@ -204,16 +213,27 @@ export default {
       isModalOpen.value = true;
       await nextTick();
       clearInput();
-      inputModalRef.value.inputRef.focus();
+      baseInputRef.value.$refs.creatListRef.focus();
     }
 
     // 動態清除錯誤訊息
     watch(inputListName, () => clearErrorMessage());
 
+    const scrollWidthLg = ref(0);
+    const offsetWidthLg = ref(0);
+
+    onMounted(() => {
+      scrollWidthLg.value = navLgRef.value.scrollWidth;
+      offsetWidthLg.value = navLgRef.value.offsetWidth;
+    });
+
     // 滾動效果
     watch(
       currentTab,
       (newTab) => {
+        scrollWidthLg.value = navLgRef.value.scrollWidth;
+        offsetWidthLg.value = navLgRef.value.offsetWidth;
+
         const indexOflastTab = tabs.value.length - 1;
         const isTabsNew = tabs.value[indexOflastTab].name === newTab;
 
@@ -245,7 +265,7 @@ export default {
       isModalOpen,
       navBelowLgRef,
       navLgRef,
-      inputModalRef,
+      baseInputRef,
       inputListName,
       errorMessage,
       currentTab,
@@ -256,10 +276,9 @@ export default {
       showCurrentTab,
       closeModal,
       setScrolling,
+      scrollWidthLg,
+      offsetWidthLg,
     };
   },
 };
 </script>
-
-<style>
-</style>

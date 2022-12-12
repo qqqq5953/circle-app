@@ -6,16 +6,7 @@
       </h2>
     </template>
     <template #body>
-      <div>
-        <input
-          type="text"
-          class="border rounded p-2 w-full focus:outline-blue-600"
-          :value="listName"
-          @input="$emit('update:listName', $event.target.value)"
-          ref="inputRef"
-        />
-        <ErrorDisplay :errors="errorMessage" v-if="errorMessage.length" />
-      </div>
+      <slot name="inputs"></slot>
     </template>
     <template #footer>
       <div class="text-right">
@@ -36,23 +27,11 @@
 <script>
 import BaseModal from "@/components/BaseModal.vue";
 
-import { ref, defineAsyncComponent } from "vue";
-
 export default {
   components: {
     BaseModal,
-    ErrorDisplay: defineAsyncComponent(() =>
-      import("@/components/ErrorDisplay.vue")
-    ),
   },
   props: {
-    listName: {
-      type: String,
-    },
-    errorMessage: {
-      type: Array,
-      default: [],
-    },
     closeFunc: {
       type: Function,
     },
@@ -60,11 +39,11 @@ export default {
       type: Function,
     },
   },
-  emits: ["update:listName", "closeModal"],
-  setup() {
-    const inputRef = ref(false);
+  emits: ["closeModal"],
+  // setup() {
+  //   const refName = ref("inputRef");
 
-    return { inputRef };
-  },
+  //   return { refName };
+  // },
 };
 </script>

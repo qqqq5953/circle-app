@@ -41,9 +41,9 @@
 
       <hr class="my-4" />
 
-      <h2>Combine</h2>
+      <h2>NewAdding</h2>
       <InputSkeleton v-show="loading" />
-      <Combine
+      <NewAdding
         @isLoading="toggleSkeleton"
         @updateHoldings="updateHoldings"
         @toastMessage="activateToast"
@@ -51,16 +51,6 @@
       />
 
       <hr class="my-4" />
-      <p>AddStock component</p>
-      <div>
-        <InputSkeleton v-show="loading" />
-        <AddStock
-          @isLoading="toggleSkeleton"
-          @updateHoldings="updateHoldings"
-          @toastMessage="activateToast"
-          v-show="!loading"
-        />
-      </div>
 
       <TableSkeleton v-if="loading" />
       <NewTable1
@@ -118,8 +108,7 @@ import CardSkeleton from "@/components/skeleton/CardSkeleton.vue";
 import TableSkeleton from "@/components/skeleton/TableSkeleton.vue";
 import InputSkeleton from "@/components/skeleton/InputSkeleton.vue";
 
-import AddStock from "@/components/AddStock.vue";
-import Combine from "@/components/Combine.vue";
+import NewAdding from "@/components/NewAdding.vue";
 
 import { ref, defineAsyncComponent, computed } from "vue";
 import axios from "axios";
@@ -128,8 +117,7 @@ import useAxios from "@/composables/useAxios.js";
 export default {
   components: {
     HoldingTable,
-    AddStock,
-    Combine,
+    NewAdding,
     NewTable1,
     Card1,
     CardSkeleton,

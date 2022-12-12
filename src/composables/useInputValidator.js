@@ -1,6 +1,12 @@
 import { ref, watch } from 'vue'
 
-export default function (modelValue, DOM, regex, replaceCharacter, validators) {
+export default function ({
+  modelValue,
+  DOM,
+  regex,
+  replaceCharacter,
+  validators
+}) {
   const inputError = ref([])
   const inputValue = ref(modelValue)
   const inputValidity = ref({ name: null, validity: null })

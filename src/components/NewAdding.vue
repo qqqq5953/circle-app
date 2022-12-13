@@ -1,15 +1,12 @@
 <template>
-  <form
-    @submit.prevent="addStock"
-    novalidate
-    class="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-4"
-  >
-    <InputTicker
+  <form @submit.prevent="addStock" novalidate class="flex flex-col gap-6">
+    <!-- <InputTicker
       :validateMessage="validateMessage"
       :modelValue="stock.ticker"
       @input="stock.ticker = $event.target.value"
       @getInputValidity="getInputValidity"
-    />
+    /> -->
+    <SearchBar />
 
     <InputCost
       :modelValue="stock.cost"
@@ -30,6 +27,7 @@
         py-3
         rounded-full
         text-center
+        border
         disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed
       "
       :disabled="!isAllValid"
@@ -47,12 +45,14 @@ import useAxios from "@/composables/useAxios.js";
 import InputTicker from "@/components/forms/InputTicker.vue";
 import InputCost from "@/components/forms/InputCost.vue";
 import InputShares from "@/components/forms/InputShares.vue";
+import SearchBar from "@/components/SearchBar.vue";
 
 export default {
   components: {
     InputTicker,
     InputCost,
     InputShares,
+    SearchBar,
   },
   setup(_, { emit }) {
     const validateMessage = ref(null);

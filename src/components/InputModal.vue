@@ -16,6 +16,7 @@
         <button
           class="border rounded px-2 py-1.5 bg-blue-600 text-white"
           @click="confirmFunc"
+          v-if="confirmFunc"
         >
           <slot name="okButton"></slot>
         </button>

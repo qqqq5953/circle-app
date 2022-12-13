@@ -39,6 +39,21 @@
     <section class="mt-5 px-4 md:px-0 lg:px-4">
       <h2 class="font-semibold text-lg mb-4">Holdings</h2>
 
+      <button @click="isModalOpen = true">open</button>
+      <Teleport to="body">
+        <InputModal v-if="isModalOpen" :closeFunc="closeModal">
+          <template #title>Trade Panel</template>
+          <template #inputs>
+            <NewAdding
+              @isLoading="toggleSkeleton"
+              @updateHoldings="updateHoldings"
+              @toastMessage="activateToast"
+              v-show="!loading"
+            />
+          </template>
+        </InputModal>
+      </Teleport>
+
       <hr class="my-4" />
 
       <h2>NewAdding</h2>
@@ -76,13 +91,13 @@
       </NewTable1>
     </section>
 
-    <Transition name="modal">
+    <!-- <Transition name="modal">
       <TradeModal
         v-if="isModalOpen"
         :stockToBeTraded="stockToBeTraded"
         @closeTradeModal="closeTradeModal"
       />
-    </Transition>
+    </Transition> -->
 
     <div class="px-4 md:px-0 lg:px-4">
       <button type="button" class="border px-2 py-1" @click="getHistorical">
@@ -109,6 +124,7 @@ import TableSkeleton from "@/components/skeleton/TableSkeleton.vue";
 import InputSkeleton from "@/components/skeleton/InputSkeleton.vue";
 
 import NewAdding from "@/components/NewAdding.vue";
+import InputModal from "@/components/InputModal.vue";
 
 import { ref, defineAsyncComponent, computed } from "vue";
 import axios from "axios";
@@ -127,8 +143,14 @@ export default {
     TradeModal: defineAsyncComponent(() =>
       import("@/components/TradeModal.vue")
     ),
+    InputModal,
   },
   setup() {
+    const closeModal = () => {
+      // clearInput();
+      isModalOpen.value = false;
+    };
+
     const toastMessage = ref(null);
     const tickerRef = ref(null);
     const isModalOpen = ref(false);
@@ -208,6 +230,8 @@ export default {
       closeTradeModal,
       isModalOpen,
       stockToBeTraded,
+
+      closeModal,
     };
   },
 };

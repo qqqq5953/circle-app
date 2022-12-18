@@ -1,11 +1,5 @@
 import http from '@/api/index'
-import useWatchlistStore from '@/stores/watchlistStore.js'
-import { storeToRefs } from 'pinia'
-
 export default function useUpdateList() {
-  const $store = useWatchlistStore()
-  const { currentTab } = storeToRefs($store)
-
   async function updateList(watchlist, tabName) {
     const newMarketData = await fetchMarketData(watchlist)
     const [allPromises, newList] = checkUpdate(
@@ -85,7 +79,6 @@ export default function useUpdateList() {
     fetchMarketData,
     checkMarketState,
     updateMarketData,
-    isUpdateError,
-    currentTab
+    isUpdateError
   }
 }

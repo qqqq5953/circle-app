@@ -552,14 +552,19 @@ export default {
     );
 
     const $store = useWatchlistStore();
-    const { currentTab } = storeToRefs($store);
+    const { tabs, currentTab, DEFAULT_TAB } = storeToRefs($store);
+    const {
+      setTabs,
+      setTabsInfo,
+      showCurrentTab,
+      toggleLoadingEffect,
+      setSkeletonTableRow,
+      renameCacheList,
+    } = $store;
     const listLength = computed(() => {
       if (!props.watchlistArr) return;
       return props.watchlistArr.length;
     });
-
-    const setTabs = (tab) => $store.setTabs(tab);
-    const showCurrentTab = (tab) => $store.showCurrentTab(tab);
 
     // sort
     const {
@@ -643,7 +648,7 @@ export default {
 
     const openRenameModal = async () => {
       isModalOpen.value = true;
-      newListName.value = $store.currentTab;
+      newListName.value = currentTab.value;
       await nextTick();
       baseInputRef.value.$refs.renamelistRef.select();
     };
@@ -663,10 +668,10 @@ export default {
 
     const deleteWatchlist = async () => {
       try {
-        const res = await http.delete(`/api/watchlist/${$store.currentTab}`);
+        const res = await http.delete(`/api/watchlist/${currentTab.value}`);
 
         setTabs(res.data.result);
-        showCurrentTab($store.DEFAULT_TAB);
+        showCurrentTab(DEFAULT_TAB.value);
         closeAlert();
       } catch (error) {
         console.log("error", error);
@@ -675,9 +680,24 @@ export default {
 
     const renameWatchlist = async () => {
       if (errorMessage.value.length) clearErrorMessage();
+      if (!newListName.value) {
+        errorMessage.value.push("Input must not be empty");
+        baseInputRef.value.$refs.renamelistRef.select();
+        return;
+      }
+
+      const isNewTab =
+        tabs.value.findIndex((tab) => tab.name === newListName.value) === -1;
+
+      if (isNewTab) {
+        renameCacheList({
+          oldName: currentTab.value,
+          newName: newListName.value,
+        });
+      }
 
       const res = await http.put(
-        `/api/watchlist/${$store.currentTab}/${newListName.value}`
+        `/api/watchlist/${currentTab.value}/${newListName.value}`
       );
 
       if (!res.data.success) {
@@ -720,8 +740,8 @@ export default {
     const deleteTicker = async () => {
       const rows = listLength.value - deleteArrLength.value;
 
-      emit("toggleLoadingEffect", true);
-      emit("setSkeletonTableRow", { rows });
+      toggleLoadingEffect(true);
+      setSkeletonTableRow({ rows });
       closeAlert();
 
       const deletedTickers = deleteArr.value.map((ticker) =>
@@ -732,7 +752,7 @@ export default {
 
       try {
         await http.delete(
-          `/api/ticker/${$store.currentTab}/${JSON.stringify(deletedTickers)}`
+          `/api/ticker/${currentTab.value}/${JSON.stringify(deletedTickers)}`
         );
 
         emit("loadWatchlist", {
@@ -754,7 +774,7 @@ export default {
       () => {
         if (!tickerRowsRef.value) return;
 
-        $store.setTabsInfo(currentTab.value, tickerRowsRef.value.length);
+        setTabsInfo(currentTab.value, tickerRowsRef.value.length);
 
         // clearDeleteArr();
       },

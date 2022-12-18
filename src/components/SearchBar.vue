@@ -91,6 +91,7 @@
 <script>
 import { ref, watch, watchEffect } from "vue";
 import axios from "axios";
+import useWatchlistStore from "@/stores/watchlistStore.js";
 
 export default {
   directives: {
@@ -100,7 +101,11 @@ export default {
       },
     },
   },
-  setup(_, { emit }) {
+  setup() {
+    const $store = useWatchlistStore();
+    const { toggleSearchList, toggleSearchListSkeleton, passDataToSearchList } =
+      $store;
+
     const allPromises = [];
     const searchTicker = ref(null);
     const cacheInput = ref(new Map());
@@ -189,7 +194,9 @@ export default {
         if (newSearch === "") {
           allPromises.length = 0;
         }
-        emitSearchList(null);
+        passDataToSearchList(null);
+        // toggleSearchList(false);
+
         return;
       }
 
@@ -199,7 +206,7 @@ export default {
         ? await typingResponse(newSearch)
         : deleteResponse(newSearch);
 
-      emitSearchList(tickerObject);
+      passDataToSearchList(tickerObject);
     });
 
     const typingResponse = async (newSearch) => {
@@ -270,18 +277,6 @@ export default {
     };
     const setCacheInput = (ticker, item) => {
       cacheInput.value.set(ticker, item);
-    };
-
-    const toggleSearchListSkeleton = (isLoading) => {
-      emit("toggleSearchListSkeleton", isLoading);
-    };
-
-    const toggleSearchList = (isFocus) => {
-      emit("toggleSearchList", isFocus);
-    };
-
-    const emitSearchList = (tickerObject) => {
-      emit("emitSearchList", tickerObject);
     };
 
     return {

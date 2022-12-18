@@ -37,11 +37,6 @@ const useWatchlistStore = defineStore('watchlist', () => {
   // ---------------------
   // searchList section
   const searchListSkeletonContent = ref({
-    tableHead: {
-      hasTableHead: false,
-      th: null,
-      td: null
-    },
     tableBody: {
       hasTableBody: true,
       tr: 1,
@@ -80,11 +75,6 @@ const useWatchlistStore = defineStore('watchlist', () => {
 
   // watchlist section
   const watchlistTableSkeletonContent = ref({
-    tableHead: {
-      hasTableHead: true,
-      th: 'Stocks',
-      td: ['Price', 'Change %', 'Change']
-    },
     tableBody: {
       hasTableBody: true,
       tr: 0,
@@ -103,12 +93,8 @@ const useWatchlistStore = defineStore('watchlist', () => {
     isAddingProcess.value = isLoading
   }
 
-  const setSkeletonTableRow = ({ list, rows }) => {
-    if (!list) {
-      watchlistTableSkeletonContent.value.tableBody.tr = rows
-    } else {
-      watchlistTableSkeletonContent.value.tableBody.tr = list.length
-    }
+  const setSkeletonTableRow = ({ rows }) => {
+    watchlistTableSkeletonContent.value.tableBody.tr = rows
   }
 
   const toggleLoadingEffect = (isActivate) => {
@@ -147,7 +133,6 @@ const useWatchlistStore = defineStore('watchlist', () => {
         unorderedList = [...cacheList].filter(
           (item) => params.indexOf(item.tempTicker) === -1
         )
-        setSkeletonTableRow({ list: unorderedList })
         break
       }
       default: {
@@ -264,7 +249,7 @@ const useWatchlistStore = defineStore('watchlist', () => {
       const watchlistRes = await http.get(`/api/tickers/${tabName}`)
       const watchlist = watchlistRes.data.result
 
-      setSkeletonTableRow({ list: watchlist })
+      setSkeletonTableRow({ rows: watchlist.length })
 
       const newList = await updateList(watchlist, tabName)
       displayWatchlist(newList, tabName)

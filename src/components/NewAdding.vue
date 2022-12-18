@@ -6,7 +6,21 @@
       @input="stock.ticker = $event.target.value"
       @getInputValidity="getInputValidity"
     /> -->
-    <SearchBar />
+    <div class="relative w-full pb-14">
+      <SearchBarSkeleton v-show="isWatchlistLoading" />
+      <SearchBar v-show="!isWatchlistLoading" />
+
+      <!-- 搜尋結果 -->
+      <Transition>
+        <div v-show="isFocus" class="absolute top-12 w-full bg-white">
+          <ListSkeleton
+            v-show="isSearchListLoading"
+            :tableContent="searchListSkeletonContent"
+          />
+          <SearchList v-show="!isSearchListLoading" :searchList="searchList" />
+        </div>
+      </Transition>
+    </div>
 
     <InputCost
       :modelValue="stock.cost"
@@ -45,14 +59,14 @@ import useAxios from "@/composables/useAxios.js";
 import InputTicker from "@/components/forms/InputTicker.vue";
 import InputCost from "@/components/forms/InputCost.vue";
 import InputShares from "@/components/forms/InputShares.vue";
-import SearchBar from "@/components/SearchBar.vue";
+import SearchTicker from "@/components/SearchTicker.vue";
 
 export default {
   components: {
     InputTicker,
     InputCost,
     InputShares,
-    SearchBar,
+    SearchTicker,
   },
   setup(_, { emit }) {
     const validateMessage = ref(null);

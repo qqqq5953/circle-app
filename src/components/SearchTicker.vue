@@ -1,12 +1,7 @@
 <template>
   <div class="relative w-full pb-14">
     <SearchBarSkeleton v-show="isWatchlistLoading" />
-    <SearchBar
-      v-show="!isWatchlistLoading"
-      @toggleSearchList="toggleSearchList"
-      @toggleSearchListSkeleton="toggleSearchListSkeleton"
-      @emitSearchList="getSearchList"
-    />
+    <SearchBar v-show="!isWatchlistLoading" />
 
     <!-- 搜尋結果 -->
     <Transition>
@@ -16,11 +11,7 @@
           v-show="isSearchListLoading"
         />
         <SearchList
-          :searchList="searchList"
-          :isAddingProcess="isAddingProcess"
           @loadWatchlist="loadWatchlist"
-          @setSkeletonTableRow="setSkeletonTableRow"
-          @toggleLoadingEffect="toggleLoadingEffect"
           v-show="!isSearchListLoading"
         />
         <div
@@ -41,6 +32,8 @@ import ListSkeleton from "@/components/skeleton/ListSkeleton.vue";
 import SearchBarSkeleton from "@/components/skeleton/SearchBarSkeleton.vue";
 import SearchList from "@/components/SearchList.vue";
 import SearchBar from "@/components/SearchBar.vue";
+import useWatchlistStore from "@/stores/watchlistStore.js";
+
 export default {
   components: {
     SearchBar,
@@ -48,6 +41,42 @@ export default {
     ListSkeleton,
     SearchBarSkeleton,
   },
-  setup() {},
+  props: {
+    isSearchListLoading: {
+      type: Boolean,
+    },
+    isFocus: {
+      type: Boolean,
+    },
+    isWatchlistLoading: {
+      type: Boolean,
+    },
+    searchListSkeletonContent: {
+      type: Object,
+    },
+    searchList: {
+      type: Array,
+    },
+  },
+  setup() {
+    const $store = useWatchlistStore();
+    const { loadWatchlist } = $store;
+    // const {
+    //   isSearchListLoading,
+    //   isFocus,
+    //   isWatchlistLoading,
+    //   searchListSkeletonContent,
+    //   searchList,
+    // } = storeToRefs($store);
+
+    return {
+      // isSearchListLoading,
+      // isFocus,
+      // isWatchlistLoading,
+      // searchListSkeletonContent,
+      // searchList,
+      loadWatchlist,
+    };
+  },
 };
 </script>

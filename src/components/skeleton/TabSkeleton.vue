@@ -59,9 +59,6 @@
         <span class="ml-auto text-slate-500 text-xs">{{ tab.listLength }}</span>
       </div>
     </div>
-    <div class="relative -ml-6 bg-gray-100 border py-2 px-3.5 rounded-full">
-      <i class="fa-solid fa-chevron-right"></i>
-    </div>
   </nav>
 </template>
 

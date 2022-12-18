@@ -237,7 +237,7 @@
     </Teleport>
 
     <!-- body -->
-    <div class="block w-full overflow-x-auto" v-if="watchlistArr">
+    <div class="block w-full overflow-x-auto" v-if="watchlistArr.length">
       <table class="w-full border-collapse table-fixed">
         <thead class="bg-gray-100 border-y hidden lg:table-header-group">
           <tr>

@@ -7,7 +7,6 @@
       w-full
       shadow-lg
       rounded
-      bg-white
       border border-gray-100
       animate-pulse
     "
@@ -18,50 +17,8 @@
     <!-- body -->
     <div class="block w-full overflow-x-auto">
       <table class="w-full border-collapse">
-        <thead
-          class="bg-gray-100 border-t border-b hidden lg:table-header-group"
-          v-if="tableContent.tableHead.hasTableHead"
-        >
-          <tr>
-            <!-- Stocks -->
-            <th
-              class="
-                px-6
-                py-3
-                text-gray-700 text-center text-xs
-                uppercase
-                border-x-0
-                whitespace-nowrap
-                font-semibold
-                w-6/12
-                lg:w-5/12
-              "
-            >
-              {{ tableContent.tableHead.th }}
-            </th>
-            <td
-              class="
-                px-6
-                py-3
-                text-gray-700 text-center text-xs
-                uppercase
-                border-x-0
-                whitespace-nowrap
-                font-semibold
-                w-2/12
-                lg:w-auto
-              "
-              v-for="item in tableContent.tableHead.td"
-              :key="item"
-            >
-              {{ item }}
-            </td>
-
-            <td class="px-4 py-3 md:hidden lg:block"></td>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in tableContent.tableBody.tr" :key="item">
+        <tbody class="bg-white">
+          <tr v-for="tr in tableBody.tr" :key="tr">
             <th
               class="
                 border-t-0 border-x-0
@@ -73,8 +30,8 @@
                 w-6/12
                 lg:w-5/12
               "
-              v-for="item in tableContent.tableBody.th"
-              :key="item"
+              v-for="th in tableBody.th"
+              :key="th"
             >
               <div class="flex flex-col md:flex-row md:items-center md:gap-x-3">
                 <p
@@ -106,8 +63,8 @@
                 w-2/12
                 lg:w-auto
               "
-              v-for="item in tableContent.tableBody.td"
-              :key="item"
+              v-for="td in tableBody.td"
+              :key="td"
             >
               <p class="w-full h-5 bg-gray-300 rounded"></p>
             </td>
@@ -136,7 +93,9 @@
 <script>
 export default {
   props: {
-    tableContent: Object,
+    tableBody: {
+      type: Object,
+    },
   },
 };
 </script>

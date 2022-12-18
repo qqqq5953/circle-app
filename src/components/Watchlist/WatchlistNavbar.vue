@@ -217,7 +217,7 @@ export default {
     const scrollWidthLg = ref(0);
     const offsetWidthLg = ref(0);
 
-    onMounted(async() => {
+    onMounted(async () => {
       await nextTick();
       scrollWidthLg.value = navLgRef.value?.scrollWidth;
       offsetWidthLg.value = navLgRef.value?.offsetWidth;

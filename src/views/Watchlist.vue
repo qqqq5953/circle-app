@@ -15,10 +15,10 @@
 
       <!-- 搜尋結果 -->
       <Transition>
-        <div v-show="isFocus" class="absolute top-12 w-full bg-white">
+        <div v-show="isFocus" class="absolute top-12 z-10 w-full">
           <ListSkeleton
             v-show="isSearchListLoading"
-            :tableContent="searchListSkeletonContent"
+            v-bind="searchListSkeletonContent"
           />
           <SearchList v-show="!isSearchListLoading" :searchList="searchList">
             <template #to-info-page="{ ticker, tempTicker }">
@@ -63,7 +63,7 @@
 
     <!-- table -->
     <ListSkeleton
-      :tableContent="watchlistTableSkeletonContent"
+      v-bind="watchlistTableSkeletonContent"
       v-show="isWatchlistLoading"
       ><template #table-title>
         <div
@@ -104,7 +104,7 @@
 </template>
 
 <script>
-import { ref, computed, watch } from "vue";
+import { computed, watch } from "vue";
 import http from "../api/index";
 import useWatchlistStore from "@/stores/watchlistStore.js";
 import { storeToRefs } from "pinia";
@@ -157,11 +157,10 @@ export default {
 
     const isTickerInCachedList = computed(() => {
       const tempTicker = searchList.value[0]?.tempTicker;
-      const isInCachedList = watchlistArr.value
-        ? watchlistArr.value
-            .map((item) => item.tempTicker)
-            .indexOf(tempTicker) !== -1
-        : false;
+      const isInCachedList =
+        watchlistArr.value
+          .map((item) => item.tempTicker)
+          .indexOf(tempTicker) !== -1;
 
       return isInCachedList;
     });

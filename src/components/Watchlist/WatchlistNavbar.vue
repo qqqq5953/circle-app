@@ -145,12 +145,12 @@
 
 <script>
 import { ref, watch, nextTick, defineAsyncComponent, onMounted } from "vue";
-import useAxios from "@/composables/useAxios.js";
 import TabSkeleton from "@/components/skeleton/TabSkeleton.vue";
 import InputModal from "@/components/InputModal.vue";
 import BaseInput from "@/components/BaseInput.vue";
 import useWatchlistStore from "@/stores/watchlistStore.js";
 import { storeToRefs } from "pinia";
+import http from "@/api/index";
 
 export default {
   components: {
@@ -189,24 +189,19 @@ export default {
       isModalOpen.value = false;
     };
 
-    const createWatchlist = () => {
+    const createWatchlist = async () => {
       if (errorMessage.value.length) clearErrorMessage();
 
-      const { data, error, loading } = useAxios(
-        `/api/watchlist/${inputListName.value}`,
-        "post"
-      );
+      const res = await http.post(`/api/watchlist/${inputListName.value}`);
 
-      watch(data, (newList) => {
-        if (!newList.success) {
-          errorMessage.value.push(newList.errorMessage);
-        } else {
-          const { newTab, tabsInfo } = newList.result;
-          setTabs(tabsInfo);
-          showCurrentTab(newTab);
-          closeModal();
-        }
-      });
+      if (!res.data.success) {
+        errorMessage.value.push(res.data.errorMessage);
+      } else {
+        const { newTab, tabsInfo } = res.data.result;
+        setTabs(tabsInfo);
+        showCurrentTab(newTab);
+        closeModal();
+      }
     };
 
     async function openCreateModal() {
@@ -222,9 +217,10 @@ export default {
     const scrollWidthLg = ref(0);
     const offsetWidthLg = ref(0);
 
-    onMounted(() => {
-      scrollWidthLg.value = navLgRef.value.scrollWidth;
-      offsetWidthLg.value = navLgRef.value.offsetWidth;
+    onMounted(async() => {
+      await nextTick();
+      scrollWidthLg.value = navLgRef.value?.scrollWidth;
+      offsetWidthLg.value = navLgRef.value?.offsetWidth;
     });
 
     // 滾動效果

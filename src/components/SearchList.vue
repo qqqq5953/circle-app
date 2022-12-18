@@ -1,7 +1,6 @@
 <template>
-  <div class="shadow-lg rounded bg-white" v-if="searchList?.length">
+  <div class="shadow-lg rounded bg-white">
     <table class="w-full border-collapse table-fixed">
-      <slot name="thead"></slot>
       <tbody>
         <tr
           class="hover:bg-slate-100"
@@ -24,8 +23,8 @@
                 flex flex-col
                 md:flex-row md:items-center md:gap-x-3
                 hover:cursor-pointer
+                relative
               "
-              @click="toInfoPage(item.ticker, item.tempTicker)"
             >
               <p
                 class="
@@ -46,6 +45,13 @@
               <p class="w-full md:w-3/5 mt-2 md:mt-0 truncate ...">
                 {{ item.name }}
               </p>
+              <div class="absolute w-full h-full">
+                <slot
+                  name="to-info-page"
+                  :ticker="`${item.ticker}`"
+                  :tempTicker="`${item.tempTicker}`"
+                ></slot>
+              </div>
             </div>
           </th>
           <td
@@ -140,110 +146,24 @@
               w-1/12
             "
           >
-            <div v-if="isAddingProcess" class="lg:text-lg">
-              <i class="fa-solid fa-spinner animate-spin"></i>
-            </div>
-            <div v-else>
-              <a
-                href="#"
-                class="text-gray-300 inline-block py-1 hover:text-blue-600"
-                @click.stop.prevent="addToWatchlist(item.ticker)"
-                v-if="!isTickerInCachedList"
-              >
-                <i class="fas fa-plus text-lg md:text-xl"></i>
-              </a>
-              <span v-else>
-                <i
-                  class="fa-solid fa-check text-slate-600 text-lg md:text-xl"
-                ></i>
-              </span>
-            </div>
+            <slot name="add-btn" :ticker="`${item.ticker}`"></slot>
           </td>
         </tr>
       </tbody>
     </table>
+    <div class="px-4 py-3 lg:px-8 lg:py-5" v-show="searchList === undefined">
+      <i class="fa-solid fa-circle-exclamation"></i>
+      <span class="ml-3">The ticker does not exist</span>
+    </div>
   </div>
 </template>
 
 <script>
-import { useRouter } from "vue-router";
-import http from "../api/index";
-import { ref, computed } from "vue";
-import useWatchlistStore from "@/stores/watchlistStore.js";
-import { storeToRefs } from "pinia";
-
 export default {
   props: {
     searchList: {
       type: Array,
-      default: null,
     },
-    isAddingProcess: {
-      type: Boolean,
-    },
-  },
-  setup(props, { emit }) {
-    const $store = useWatchlistStore();
-    const { currentTab, cachedList } = storeToRefs($store);
-    const router = useRouter();
-    const currentWatchlist = ref(null);
-
-    const isTickerInCachedList = computed(() => {
-      currentWatchlist.value =
-        cachedList.value[currentTab.value]?.currentWatchlist || [];
-
-      const tempTicker = props.searchList[0]?.tempTicker;
-
-      const isInCachedList =
-        currentWatchlist.value
-          .map((item) => item.tempTicker)
-          .indexOf(tempTicker) !== -1;
-
-      console.log("isInCachedList", isInCachedList);
-
-      return isInCachedList;
-    });
-
-    function toInfoPage(ticker, tempTicker) {
-      if (props.isAddingProcess) return;
-      router.push({
-        name: "stockInfo",
-        params: { ticker, tempTicker },
-      });
-    }
-
-    async function addToWatchlist(ticker) {
-      if (isTickerInCachedList.value) return;
-
-      emit("setSkeletonTableRow", {
-        rows: currentWatchlist.value.length + 1,
-      });
-      emit("toggleLoadingEffect", true);
-
-      try {
-        const tempTicker = ticker.includes(".") ? ticker.split(".")[0] : ticker;
-        const tickerItem = {
-          ...props.searchList[0],
-          tempTicker,
-        };
-        await http.post(`/api/ticker/${$store.currentTab}`, {
-          tickerItem,
-        });
-
-        emit("loadWatchlist", {
-          status: "addTicker",
-          params: tickerItem,
-        });
-      } catch (error) {
-        console.log("error", error);
-      }
-    }
-
-    return {
-      isTickerInCachedList,
-      addToWatchlist,
-      toInfoPage,
-    };
   },
 };
 </script>

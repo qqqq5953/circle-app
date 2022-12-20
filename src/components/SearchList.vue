@@ -1,156 +1,26 @@
 <template>
-  <div class="shadow-lg rounded bg-white">
-    <table class="w-full border-collapse table-fixed">
-      <tbody>
-        <tr
-          class="hover:bg-slate-100"
-          v-for="item in searchList"
-          :key="item.ticker"
-        >
-          <th
-            class="
-              border-t-0 border-x-0
-              py-3
-              sm:py-4
-              px-4
-              lg:px-8
-              text-xs text-left
-              w-5/12
-            "
+  <div class="rounded" :class="style">
+    <TickerInfo :stockLists="searchList" :hasOptionalTd="true">
+      <template #action-btn="{ ticker }">
+        <div v-if="isAddingProcess" class="lg:text-lg">
+          <i class="fa-solid fa-spinner animate-spin"></i>
+        </div>
+        <div v-else>
+          <a
+            href="#"
+            class="text-gray-300 inline-block py-1 hover:text-blue-600"
+            @click.stop.prevent="addToWatchlist(ticker)"
+            v-if="!isTickerInCachedList"
           >
-            <div
-              class="
-                flex flex-col
-                md:flex-row md:items-center md:gap-x-3
-                hover:cursor-pointer
-                relative
-              "
-            >
-              <p
-                class="
-                  md:w-2/5
-                  max-w-[80px]
-                  px-1
-                  py-1
-                  shrink-0
-                  rounded-full
-                  text-white text-center
-                  font-semibold
-                  uppercase
-                "
-                :class="item.style"
-              >
-                {{ item.ticker }}
-              </p>
-              <p class="w-full md:w-3/5 mt-2 md:mt-0 truncate ...">
-                {{ item.name }}
-              </p>
-              <div class="absolute w-full h-full">
-                <slot
-                  name="to-info-page"
-                  :ticker="`${item.ticker}`"
-                  :tempTicker="`${item.tempTicker}`"
-                ></slot>
-              </div>
-            </div>
-          </th>
-          <td
-            class="
-              border-t-0 border-x-0
-              py-3
-              sm:py-4
-              px-0
-              lg:px-6
-              text-xs text-center
-              w-[12.5%]
-              lg:w-auto
-            "
-          >
-            <span>{{ item.price }}</span>
-          </td>
-          <td
-            class="
-              border-t-0 border-x-0
-              py-3
-              sm:py-4
-              px-0
-              lg:px-6
-              text-xs
-              font-medium
-              w-3/12
-              xl:w-auto
-            "
-          >
-            <div class="flex m-auto">
-              <div
-                class="
-                  flex
-                  items-center
-                  gap-2
-                  m-auto
-                  px-3
-                  py-2
-                  rounded
-                  font-medium
-                "
-                :class="
-                  item.previousCloseChange > 0
-                    ? 'text-red-600 bg-red-100/70'
-                    : 'text-green-700 bg-green-100'
-                "
-              >
-                <i
-                  class="fas fa-arrow-up"
-                  v-if="item.previousCloseChange > 0"
-                ></i>
-                <i class="fas fa-arrow-down" v-else></i>
-                <span
-                  >{{
-                    item.previousCloseChangePercent[0] === "-"
-                      ? item.previousCloseChangePercent.slice(1)
-                      : item.previousCloseChangePercent
-                  }}
-                  %</span
-                >
-              </div>
-            </div>
-          </td>
-          <td
-            class="
-              border-t-0 border-x-0
-              py-3
-              sm:py-4
-              px-0
-              lg:px-6
-              text-xs text-center
-              hidden
-              lg:table-cell lg:w-auto
-              font-medium
-            "
-          >
-            <span
-              :class="
-                item.previousCloseChange > 0 ? 'text-red-600' : 'text-green-700'
-              "
-              >{{ item.previousCloseChange }}</span
-            >
-          </td>
-          <td
-            class="
-              border-t-0 border-x-0
-              py-3
-              sm:py-4
-              pr-3
-              lg:pr-4
-              text-xs text-center
-              w-1/12
-            "
-          >
-            <slot name="add-btn" :ticker="`${item.ticker}`"></slot>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+            <i class="fas fa-plus text-lg md:text-xl"></i>
+          </a>
+          <span v-else>
+            <i class="fa-solid fa-check text-slate-600 text-lg md:text-xl"></i>
+          </span>
+        </div>
+      </template>
+    </TickerInfo>
+
     <div class="px-4 py-3 lg:px-8 lg:py-5" v-show="searchList === undefined">
       <i class="fa-solid fa-circle-exclamation"></i>
       <span class="ml-3">The ticker does not exist</span>
@@ -159,11 +29,82 @@
 </template>
 
 <script>
+import { computed } from "vue";
+import http from "../api/index";
+import useWatchlistStore from "@/stores/watchlistStore.js";
+import { storeToRefs } from "pinia";
+import { useRouter } from "vue-router";
+import TickerInfo from "@/components/TickerInfo.vue";
+
 export default {
+  components: { TickerInfo },
   props: {
     searchList: {
       type: Array,
     },
+    style: {
+      type: String,
+      default: "shadow-lg bg-white",
+    },
+  },
+  setup() {
+    const $store = useWatchlistStore();
+    const { searchList, isAddingProcess, watchlistArr, currentTab } =
+      storeToRefs($store);
+    const { loadWatchlist, setSkeletonTableRow, toggleLoadingEffect } = $store;
+    const router = useRouter();
+
+    const isTickerInCachedList = computed(() => {
+      const tempTicker = searchList.value[0]?.tempTicker;
+      const isInCachedList =
+        watchlistArr.value
+          .map((item) => item.tempTicker)
+          .indexOf(tempTicker) !== -1;
+
+      return isInCachedList;
+    });
+
+    function toInfoPage(ticker, tempTicker) {
+      if (isAddingProcess.value) return;
+      router.push({
+        name: "stockInfo",
+        params: { ticker, tempTicker },
+      });
+    }
+
+    async function addToWatchlist(ticker) {
+      if (isTickerInCachedList.value) return;
+
+      setSkeletonTableRow({
+        rows: watchlistArr.value.length + 1,
+      });
+      toggleLoadingEffect(true);
+
+      try {
+        const tempTicker = ticker.includes(".") ? ticker.split(".")[0] : ticker;
+        const tickerItem = {
+          ...searchList.value[0],
+          tempTicker,
+        };
+        await http.post(`/api/ticker/${currentTab.value}`, {
+          tickerItem,
+        });
+
+        loadWatchlist({
+          status: "addTicker",
+          params: tickerItem,
+        });
+      } catch (error) {
+        console.log("error", error);
+      }
+    }
+
+    return {
+      addToWatchlist,
+      toInfoPage,
+      isTickerInCachedList,
+      isAddingProcess,
+    };
   },
 };
 </script>

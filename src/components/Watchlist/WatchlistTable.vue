@@ -37,12 +37,7 @@
             <span v-if="deleteArrLength === listLength">Undo</span>
             <span v-else>Select all</span>
           </label>
-          <input
-            id="selectAll"
-            class="hidden"
-            type="checkbox"
-            v-model="selectAll"
-          />
+          <input class="hidden" type="checkbox" v-model="selectAll" />
           <button
             class="
               rounded
@@ -113,8 +108,8 @@
               text-xs text-blue-500
             "
             :class="{ 'focus:bg-blue-50': isSortMenuOpen }"
-            @click="isSortMenuOpen = true"
-            @blur="isSortMenuOpen = false"
+            @click="toggleSortMenu(true)"
+            @blur="toggleSortMenu(false)"
           >
             <span>
               <i
@@ -144,7 +139,7 @@
                 bg-white
               "
               v-if="isSortMenuOpen"
-              @click="isSortMenuOpen = false"
+              @click="toggleSortMenu(false)"
             >
               <ul>
                 <li
@@ -238,271 +233,114 @@
 
     <!-- body -->
     <div class="block w-full overflow-x-auto" v-if="watchlistArr.length">
-      <table class="w-full border-collapse table-fixed">
-        <thead class="bg-gray-100 border-y hidden lg:table-header-group">
-          <tr>
-            <th
-              class="
-                px-6
-                py-3
-                text-gray-700 text-center text-xs
-                uppercase
-                border-x-0
-                whitespace-nowrap
-                font-semibold
-                w-6/12
-                lg:w-5/12
-              "
-            >
-              Stocks
-            </th>
-            <td
-              class="
-                px-6
-                py-3
-                text-gray-700 text-center text-xs
-                uppercase
-                border-x-0
-                whitespace-nowrap
-                font-semibold
-                w-[12.5%]
-                lg:w-auto
-              "
-            >
-              Price
-            </td>
-            <td
-              class="
-                px-6
-                py-3
-                text-gray-700 text-center text-xs
-                uppercase
-                border-x-0
-                whitespace-nowrap
-                font-semibold
-                w-3/12
-                xl:w-auto
-              "
-            >
-              Change %
-            </td>
-            <td
-              class="
-                px-6
-                py-3
-                text-gray-700 text-center text-xs
-                uppercase
-                border-x-0
-                whitespace-nowrap
-                font-semibold
-                hidden
-                lg:table-cell lg:w-auto
-              "
-            >
-              Change
-            </td>
-            <td
-              class="border-t-0 border-x-0 py-3 sm:py-4 pr-3 lg:pr-4 w-1/12"
-            ></td>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            class="hover:bg-slate-100 border-t"
-            :class="{
-              'update-animation': tickersArr.indexOf(item.tempTicker) !== -1,
-            }"
-            v-for="item in watchlistArr"
-            :key="item.tempTicker"
-            :id="item.id"
-            ref="tickerRowsRef"
-          >
-            <th
-              class="
-                border-t-0 border-x-0
-                py-3
-                sm:py-4
-                px-4
-                lg:px-8
-                text-xs text-left
-                w-5/12
-              "
-            >
-              <router-link
+      <TickerInfo
+        :stockLists="watchlistArr"
+        :updatedTickers="updatedTickers"
+        :isMultiRows="true"
+        :isUpdate="true"
+        :toStockInfo="true"
+        :hasOptionalTd="true"
+      >
+        <template #thead>
+          <thead class="bg-gray-100 border-y hidden lg:table-header-group">
+            <tr>
+              <th
                 class="
-                  flex flex-col
-                  md:flex-row md:items-center md:gap-x-3
-                  hover:cursor-pointer
+                  px-6
+                  py-3
+                  text-gray-700 text-center text-xs
+                  uppercase
+                  border-x-0
+                  whitespace-nowrap
+                  font-semibold
+                  w-6/12
+                  lg:w-5/12
                 "
-                :to="{
-                  name: 'stockInfo',
-                  params: { ticker: item.ticker, tempTicker: item.tempTicker },
-                }"
               >
-                <p
-                  class="
-                    md:w-2/5
-                    max-w-[80px]
-                    px-1
-                    py-1
-                    shrink-0
-                    rounded-full
-                    text-white text-center
-                    font-semibold
-                    uppercase
-                  "
-                  :class="item.style"
-                >
-                  {{ item.ticker }}
-                </p>
-                <p class="w-full md:w-3/5 mt-2 md:mt-0 truncate ...">
-                  {{ item.name }}
-                </p>
-              </router-link>
-            </th>
-            <td
-              class="
-                border-t-0 border-x-0
-                py-3
-                sm:py-4
-                px-0
-                lg:px-6
-                text-xs text-center
-                w-[12.5%]
-                lg:w-auto
-              "
-            >
-              <span>{{ item.price }}</span>
-            </td>
-            <td
-              class="
-                border-t-0 border-x-0
-                py-3
-                sm:py-4
-                px-0
-                lg:px-6
-                text-xs text-center
-                font-medium
-                w-3/12
-                xl:w-auto
-              "
-            >
-              <div class="flex m-auto">
-                <!-- 'text-white bg-pink-500'
-                      'text-white bg-teal-400' -->
+                Stocks
+              </th>
+              <td
+                class="
+                  px-6
+                  py-3
+                  text-gray-700 text-center text-xs
+                  uppercase
+                  border-x-0
+                  whitespace-nowrap
+                  font-semibold
+                  w-[12.5%]
+                  lg:w-auto
+                "
+              >
+                Price
+              </td>
+              <td
+                class="
+                  px-6
+                  py-3
+                  text-gray-700 text-center text-xs
+                  uppercase
+                  border-x-0
+                  whitespace-nowrap
+                  font-semibold
+                  w-3/12
+                  xl:w-auto
+                "
+              >
+                Change %
+              </td>
+              <td
+                class="
+                  px-6
+                  py-3
+                  text-gray-700 text-center text-xs
+                  uppercase
+                  border-x-0
+                  whitespace-nowrap
+                  font-semibold
+                  hidden
+                  lg:table-cell lg:w-auto
+                "
+              >
+                Change
+              </td>
+              <td
+                class="border-t-0 border-x-0 py-3 sm:py-3.5 pr-3 lg:pr-4 w-1/12"
+              ></td>
+            </tr>
+          </thead>
+        </template>
 
-                <!-- 'text-red-600 bg-red-100'
-                      'text-green-700 bg-green-200/60' -->
-                <div
-                  class="
-                    flex
-                    items-center
-                    gap-2
-                    m-auto
-                    px-3
-                    py-2
-                    rounded
-                    font-medium
-                    min-w-[81px]
-                  "
-                  :class="
-                    item.previousCloseChange > 0
-                      ? 'text-red-600 bg-red-100/70'
-                      : item.previousCloseChange < 0
-                      ? 'text-green-700 bg-green-100'
-                      : 'text-slate-500 bg-slate-200'
-                  "
-                >
-                  <i
-                    class="fas fa-arrow-up"
-                    v-if="item.previousCloseChange > 0"
-                  ></i>
-                  <i
-                    class="fas fa-arrow-down"
-                    v-if="item.previousCloseChange < 0"
-                  ></i>
-                  <span class=""
-                    >{{
-                      item.previousCloseChangePercent[0] === "-"
-                        ? item.previousCloseChangePercent.slice(1)
-                        : item.previousCloseChangePercent
-                    }}
-                    %</span
-                  >
-                </div>
-              </div>
-            </td>
-            <td
+        <template #action-btn="{ ticker }">
+          <label :for="ticker">
+            <i
               class="
-                border-t-0 border-x-0
-                py-3
-                sm:py-4
-                px-0
-                lg:px-6
-                text-xs text-center
-                hidden
-                lg:table-cell lg:w-auto
-                font-medium
+                fa-solid fa-square-check
+                text-lg text-slate-500
+                hover:text-blue-600 hover:cursor-pointer
+                md:text-xl
               "
-            >
-              <!-- 'text-pink-500'
-            'text-teal-400' -->
-              <!-- 'text-red-600'
-            'text-green-700' -->
-              <span
-                :class="
-                  item.previousCloseChange > 0
-                    ? 'text-red-600'
-                    : item.previousCloseChange < 0
-                    ? 'text-green-700'
-                    : 'text-slate-500'
-                "
-                >{{ item.previousCloseChange }}</span
-              >
-            </td>
-            <td
+              v-if="deleteArr.includes(ticker)"
+            ></i>
+            <i
               class="
-                border-t-0 border-x-0
-                py-3
-                sm:py-4
-                pr-3
-                lg:pr-4
-                text-xs text-center
-                w-1/12
+                fa-regular fa-square
+                text-lg text-slate-500
+                hover:text-blue-600 hover:cursor-pointer
+                md:text-xl
               "
-              @click.stop
-            >
-              <label :for="item.ticker">
-                <i
-                  class="
-                    fa-solid fa-square-check
-                    text-lg text-slate-500
-                    hover:text-blue-600 hover:cursor-pointer
-                    md:text-xl
-                  "
-                  v-if="deleteArr.includes(item.ticker)"
-                ></i>
-                <i
-                  class="
-                    fa-regular fa-square
-                    text-lg text-slate-500
-                    hover:text-blue-600 hover:cursor-pointer
-                    md:text-xl
-                  "
-                  v-else
-                ></i>
-              </label>
-              <input
-                class="hidden"
-                :id="item.ticker"
-                :value="item.ticker"
-                type="checkbox"
-                v-model="deleteArr"
-              />
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              v-else
+            ></i>
+          </label>
+          <input
+            class="hidden"
+            :id="ticker"
+            :value="ticker"
+            type="checkbox"
+            v-model="deleteArr"
+          />
+        </template>
+      </TickerInfo>
     </div>
   </div>
 </template>
@@ -515,44 +353,36 @@ import useWatchlistStore from "@/stores/watchlistStore.js";
 import InputModal from "@/components/InputModal.vue";
 import BaseInput from "@/components/BaseInput.vue";
 import DeleteAlert from "@/components/DeleteAlert.vue";
-import useSort from "@/composables/useSort.js";
+import TickerInfo from "@/components/TickerInfo.vue";
 
 export default {
   components: {
     InputModal,
     BaseInput,
     DeleteAlert,
+    TickerInfo,
     Alert: defineAsyncComponent(() => import("@/components/BaseAlert.vue")),
     ErrorDisplay: defineAsyncComponent(() =>
       import("@/components/ErrorDisplay.vue")
     ),
   },
-  props: {
-    watchlistArr: {
-      type: Array,
-      default: [],
-    },
-    updatedTickers: {
-      type: Array,
-      default: [],
-    },
-  },
-  setup(props, { emit }) {
-    const tickersArr = ref([]);
-
-    watch(
-      () => props.updatedTickers,
-      (n) => {
-        tickersArr.value = n;
-        setTimeout(() => {
-          tickersArr.value.length = 0;
-        }, 1000);
-      },
-      { deep: true }
-    );
-
+  setup() {
     const $store = useWatchlistStore();
-    const { tabs, currentTab, DEFAULT_TAB } = storeToRefs($store);
+
+    const {
+      tabs,
+      currentTab,
+      DEFAULT_TAB,
+      watchlistArr,
+      updatedTickers,
+      sortMenu,
+      sortDirection,
+      selectedDisplayName,
+      selectedSortCategory,
+      selectedDirection,
+      isSortMenuOpen,
+    } = storeToRefs($store);
+
     const {
       setTabs,
       setTabsInfo,
@@ -560,23 +390,15 @@ export default {
       toggleLoadingEffect,
       setSkeletonTableRow,
       renameCacheList,
-    } = $store;
-    const listLength = computed(() => {
-      if (!props.watchlistArr) return;
-      return props.watchlistArr.length;
-    });
-
-    // sort
-    const {
-      sortMenu,
-      sortDirection,
-      selectedDisplayName,
-      selectedSortCategory,
-      selectedDirection,
-      isSortMenuOpen,
+      loadWatchlist,
       toggleSortMenu,
       onClickSort,
-    } = useSort(emit);
+    } = $store;
+
+    const listLength = computed(() => {
+      if (!watchlistArr.value) return;
+      return watchlistArr.value.length;
+    });
 
     // alert
     const isAlertOpen = ref(false);
@@ -613,7 +435,7 @@ export default {
         }
 
         case "deleteTicker": {
-          const tickers = props.watchlistArr
+          const tickers = watchlistArr.value
             .filter(
               (tickerObj) => deleteArr.value.indexOf(tickerObj.ticker) !== -1
             )
@@ -712,7 +534,6 @@ export default {
     };
 
     // delete ticker
-    const tickerRowsRef = ref(null);
     const deleteArr = ref([]);
     const deleteArrLength = computed({
       get() {
@@ -728,7 +549,7 @@ export default {
       },
       set(allTickers) {
         if (allTickers) {
-          deleteArr.value = props.watchlistArr.map(
+          deleteArr.value = watchlistArr.value.map(
             (tickerObj) => tickerObj.ticker
           );
         } else {
@@ -755,7 +576,7 @@ export default {
           `/api/ticker/${currentTab.value}/${JSON.stringify(deletedTickers)}`
         );
 
-        emit("loadWatchlist", {
+        loadWatchlist({
           status: "deleteTicker",
           params: deletedTickers,
         });
@@ -770,11 +591,9 @@ export default {
 
     // 新增後tab顯示個數
     watch(
-      () => props.watchlistArr,
-      () => {
-        if (!tickerRowsRef.value) return;
-
-        setTabsInfo(currentTab.value, tickerRowsRef.value.length);
+      watchlistArr,
+      (newVal) => {
+        setTabsInfo(currentTab.value, newVal.length);
 
         // clearDeleteArr();
       },
@@ -788,7 +607,7 @@ export default {
 
     watch(currentTab, () => {
       isDropdownOpen.value = false;
-      isSortMenuOpen.value = false;
+      toggleSortMenu(false);
       clearDeleteArr();
     });
 
@@ -796,7 +615,6 @@ export default {
       isDropdownOpen,
       isModalOpen,
       isAlertOpen,
-      tickerRowsRef,
       currentTab,
       dropdownMenu,
       newListName,
@@ -828,9 +646,9 @@ export default {
       isSortMenuOpen,
       toggleSortMenu,
 
-      tickersArr,
-
       baseInputRef,
+      watchlistArr,
+      updatedTickers,
     };
   },
 };
@@ -851,7 +669,7 @@ export default {
   }
 }
 
-.v-enter-active,
+/* .v-enter-active,
 .v-leave-active {
   transform: translateY(0);
   transition: opacity 0.1s ease, transform 0.1s ease;
@@ -861,5 +679,5 @@ export default {
 .v-leave-to {
   opacity: 0;
   transform: translateY(-10px);
-}
+} */
 </style>

@@ -1,31 +1,24 @@
 <template>
   <form @submit.prevent="addStock" novalidate class="flex flex-col gap-6">
-    <!-- <InputTicker
-      :validateMessage="validateMessage"
-      :modelValue="stock.ticker"
-      @input="stock.ticker = $event.target.value"
-      @getInputValidity="getInputValidity"
-    /> -->
     <div class="relative w-full pb-14">
-      <SearchBarSkeleton v-show="isWatchlistLoading" />
-      <SearchBar v-show="!isWatchlistLoading" />
+      <SearchBar />
 
       <!-- 搜尋結果 -->
       <Transition>
         <div v-show="isFocus" class="absolute top-12 w-full bg-white">
-          <ListSkeleton
-            v-show="isSearchListLoading"
-            :tableContent="searchListSkeletonContent"
-          />
-          <SearchList v-show="!isSearchListLoading" :searchList="searchList" />
+          <ListSkeleton v-show="isSearchListLoading" />
         </div>
       </Transition>
     </div>
 
+    <div class="mt-3 border border-slate-300 rounded">
+      <TickerInfo :stockLists="searchList" />
+    </div>
     <InputCost
       :modelValue="stock.cost"
       @input="stock.cost = $event.target.value"
       @getInputValidity="getInputValidity"
+      ref="inputCostRef"
     />
 
     <InputShares
@@ -56,19 +49,36 @@
 <script>
 import { ref, watch, computed } from "vue";
 import useAxios from "@/composables/useAxios.js";
-import InputTicker from "@/components/forms/InputTicker.vue";
+import InputTicker1 from "@/components/forms/InputTicker1.vue";
 import InputCost from "@/components/forms/InputCost.vue";
 import InputShares from "@/components/forms/InputShares.vue";
-import SearchTicker from "@/components/SearchTicker.vue";
+import ListSkeleton from "@/components/skeleton/ListSkeleton.vue";
+import SearchBar from "@/components/SearchBar.vue";
+import TickerInfo from "@/components/TickerInfo.vue";
+import useWatchlistStore from "@/stores/watchlistStore.js";
+import { storeToRefs } from "pinia";
 
 export default {
   components: {
-    InputTicker,
+    InputTicker1,
     InputCost,
     InputShares,
-    SearchTicker,
+    ListSkeleton,
+    SearchBar,
+    TickerInfo,
   },
   setup(_, { emit }) {
+    const inputCostRef = ref(null);
+    const result = ref("border border-slate-300");
+
+    const selectTicker = (ticker) => {
+      stock.value.ticker = ticker;
+      inputCostRef.value.$refs.costRef.focus();
+    };
+
+    const $store = useWatchlistStore();
+    const { isFocus, searchList, isSearchListLoading } = storeToRefs($store);
+
     const validateMessage = ref(null);
 
     const stock = ref({
@@ -149,6 +159,14 @@ export default {
 
       getInputValidity,
       isAllValid,
+
+      searchList,
+      isSearchListLoading,
+      isFocus,
+
+      selectTicker,
+      inputCostRef,
+      result,
     };
   },
 };

@@ -1,59 +1,17 @@
 <template>
   <main class="flex flex-col gap-3 px-4 md:p-10 mx-auto w-full">
-    <!-- <SearchTicker
-      :isWatchlistLoading="isWatchlistLoading"
-      :isSearchListLoading="isSearchListLoading"
-      :isFocus="isFocus"
-      :loadWatchlist="loadWatchlist"
-      :searchList="searchList"
-      :searchListSkeletonContent="searchListSkeletonContent"
-    /> -->
-
     <div class="relative w-full pb-14">
-      <SearchBarSkeleton v-show="isWatchlistLoading" />
-      <SearchBar v-show="!isWatchlistLoading" />
+      <!-- keep-alive: switch tab 時 ticker 不會消失 -->
+      <keep-alive>
+        <SearchBar v-if="!isWatchlistLoading" />
+      </keep-alive>
+      <SearchBarSkeleton v-if="isWatchlistLoading" />
 
       <!-- 搜尋結果 -->
       <Transition>
         <div v-show="isFocus" class="absolute top-12 z-10 w-full">
-          <ListSkeleton
-            v-show="isSearchListLoading"
-            v-bind="searchListSkeletonContent"
-          />
-          <SearchList v-show="!isSearchListLoading" :searchList="searchList">
-            <template #to-info-page="{ ticker, tempTicker }">
-              <button
-                class="absolute w-full h-full"
-                @click="toInfoPage(ticker, tempTicker)"
-              ></button>
-            </template>
-            <template #add-btn="{ ticker }">
-              <div>
-                <div v-if="isAddingProcess" class="lg:text-lg">
-                  <i class="fa-solid fa-spinner animate-spin"></i>
-                </div>
-                <div v-else>
-                  <a
-                    href="#"
-                    class="text-gray-300 inline-block py-1 hover:text-blue-600"
-                    @click.stop.prevent="addToWatchlist(ticker)"
-                    v-if="!isTickerInCachedList"
-                  >
-                    <i class="fas fa-plus text-lg md:text-xl"></i>
-                  </a>
-                  <span v-else>
-                    <i
-                      class="
-                        fa-solid fa-check
-                        text-slate-600 text-lg
-                        md:text-xl
-                      "
-                    ></i>
-                  </span>
-                </div>
-              </div>
-            </template>
-          </SearchList>
+          <ListSkeleton v-show="isSearchListLoading" />
+          <SearchList v-show="!isSearchListLoading" :searchList="searchList" />
         </div>
       </Transition>
     </div>
@@ -92,27 +50,18 @@
       </template>
     </ListSkeleton>
 
-    <WatchlistTable
-      :watchlistArr="watchlistArr"
-      :updatedTickers="updatedTickers"
-      @loadWatchlist="loadWatchlist"
-      @sortList="(n) => (latestSortRules = n)"
-      v-show="!isWatchlistLoading"
-    >
-    </WatchlistTable>
+    <WatchlistTable v-show="!isWatchlistLoading"> </WatchlistTable>
   </main>
 </template>
 
 <script>
-import { computed, watch } from "vue";
+import { watch, provide, onMounted } from "vue";
 import http from "../api/index";
 import useWatchlistStore from "@/stores/watchlistStore.js";
 import { storeToRefs } from "pinia";
-import { useRouter } from "vue-router";
 
 import ListSkeleton from "@/components/skeleton/ListSkeleton.vue";
 import SearchBarSkeleton from "@/components/skeleton/SearchBarSkeleton.vue";
-import SearchTicker from "@/components/SearchTicker.vue";
 import SearchList from "@/components/SearchList.vue";
 import SearchBar from "@/components/SearchBar.vue";
 import WatchlistNavbar from "@/components/Watchlist/WatchlistNavbar.vue";
@@ -123,82 +72,33 @@ export default {
     SearchBarSkeleton,
     SearchList,
     SearchBar,
-    SearchTicker,
     ListSkeleton,
     WatchlistNavbar,
     WatchlistTable,
   },
   setup() {
+    provide("toStockInfo", true);
+
+    onMounted(() => {
+      currentTab.value = DEFAULT_TAB.value;
+    });
+
     const $store = useWatchlistStore();
     const {
       searchList,
-      searchListSkeletonContent,
       watchlistTableSkeletonContent,
       isSearchListLoading,
       isFocus,
       isWatchlistLoading,
-      isAddingProcess,
       latestSortRules,
       watchlistArr,
       changeCount,
       currentTab,
+      DEFAULT_TAB,
       updatedTickers,
     } = storeToRefs($store);
 
-    const {
-      setTabs,
-      loadWatchlist,
-      displayWatchlist,
-      setSkeletonTableRow,
-      toggleLoadingEffect,
-    } = $store;
-
-    const router = useRouter();
-
-    const isTickerInCachedList = computed(() => {
-      const tempTicker = searchList.value[0]?.tempTicker;
-      const isInCachedList =
-        watchlistArr.value
-          .map((item) => item.tempTicker)
-          .indexOf(tempTicker) !== -1;
-
-      return isInCachedList;
-    });
-
-    function toInfoPage(ticker, tempTicker) {
-      if (isAddingProcess.value) return;
-      router.push({
-        name: "stockInfo",
-        params: { ticker, tempTicker },
-      });
-    }
-
-    async function addToWatchlist(ticker) {
-      if (isTickerInCachedList.value) return;
-
-      setSkeletonTableRow({
-        rows: watchlistArr.value.length + 1,
-      });
-      toggleLoadingEffect(true);
-
-      try {
-        const tempTicker = ticker.includes(".") ? ticker.split(".")[0] : ticker;
-        const tickerItem = {
-          ...searchList.value[0],
-          tempTicker,
-        };
-        await http.post(`/api/ticker/${currentTab.value}`, {
-          tickerItem,
-        });
-
-        loadWatchlist({
-          status: "addTicker",
-          params: tickerItem,
-        });
-      } catch (error) {
-        console.log("error", error);
-      }
-    }
+    const { setTabs, loadWatchlist, displayWatchlist } = $store;
 
     // ----------------------
 
@@ -217,16 +117,10 @@ export default {
     });
 
     return {
-      addToWatchlist,
-      isTickerInCachedList,
-      toInfoPage,
-
       isSearchListLoading,
       isFocus,
       isWatchlistLoading,
-      isAddingProcess,
       searchList,
-      searchListSkeletonContent,
       currentTab,
       watchlistArr,
       watchlistTableSkeletonContent,

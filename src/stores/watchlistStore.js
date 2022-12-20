@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, onBeforeUnmount } from 'vue'
 import useUpdateList from '@/composables/useUpdateList.js'
 import useSort from '@/composables/useSort.js'
 import http from '../api/index'
@@ -9,6 +9,12 @@ const useWatchlistStore = defineStore('watchlist', () => {
   const DEFAULT_TAB = ref('Watchlist')
   const tabs = ref([])
   const cachedList = ref({})
+
+  onBeforeUnmount(() => {
+    console.log('onBeforeUnmount')
+    searchList.value = null
+    clearTimeout(timeoutId.value)
+  })
 
   const setTabsInfo = (tab, listLength) => {
     const currentTabInfo = tabs.value.find((item) => item.name === tab)
@@ -28,7 +34,6 @@ const useWatchlistStore = defineStore('watchlist', () => {
   }
 
   const showCurrentTab = (tab) => {
-    // console.log('showCurrentTab in store')
     currentTab.value = tab
   }
 
@@ -36,17 +41,9 @@ const useWatchlistStore = defineStore('watchlist', () => {
 
   // ---------------------
   // searchList section
-  const searchListSkeletonContent = ref({
-    tableBody: {
-      hasTableBody: true,
-      tr: 1,
-      th: 1,
-      td: 3
-    }
-  })
   const searchList = ref([])
   const isSearchListLoading = ref(null)
-  const isFocus = ref(null)
+  const isFocus = ref(false)
 
   const toggleSearchListSkeleton = (isLoading) => {
     isSearchListLoading.value = isLoading
@@ -76,7 +73,6 @@ const useWatchlistStore = defineStore('watchlist', () => {
   // watchlist section
   const watchlistTableSkeletonContent = ref({
     tableBody: {
-      hasTableBody: true,
       tr: 0,
       th: 1,
       td: 3
@@ -103,7 +99,18 @@ const useWatchlistStore = defineStore('watchlist', () => {
   }
 
   // sort
-  const { sortList, latestSortRules } = useSort()
+  const {
+    sortMenu,
+    sortDirection,
+    selectedDisplayName,
+    selectedSortCategory,
+    selectedDirection,
+    isSortMenuOpen,
+    latestSortRules,
+    sortList,
+    toggleSortMenu,
+    onClickSort
+  } = useSort()
 
   // loading
   const watchlistArr = ref([])
@@ -311,12 +318,11 @@ const useWatchlistStore = defineStore('watchlist', () => {
     )
 
     const newMarketData = await fetchMarketData(watchlist)
-    // console.log("resumeFlow newMarketData", newMarketData);
+    if (!newMarketData.length) return
 
     const hasLostData = newMarketData.indexOf(null) !== -1
     if (hasLostData) {
       console.log('遺失資料了！！！')
-
       await checkResumeFlow(newList, currentTab.value, currentStatus.value)
       return
     }
@@ -450,7 +456,6 @@ const useWatchlistStore = defineStore('watchlist', () => {
     setTabs,
     setTabsInfo,
     // searchList section
-    searchListSkeletonContent,
     searchList,
     isSearchListLoading,
     isFocus,
@@ -465,9 +470,18 @@ const useWatchlistStore = defineStore('watchlist', () => {
     setSkeletonTableRow,
     // sort
     latestSortRules,
+    sortMenu,
+    sortDirection,
+    selectedDisplayName,
+    selectedSortCategory,
+    selectedDirection,
+    isSortMenuOpen,
+    toggleSortMenu,
+    onClickSort,
     // loading
     watchlistArr,
     changeCount,
+    timeoutId,
     loadWatchlist,
     displayWatchlist,
     updatedTickers,

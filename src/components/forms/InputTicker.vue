@@ -4,15 +4,17 @@
       name="ticker"
       type="text"
       class="
+        border border-slate-300
         block
-        border-gray-600 border
         px-4
         py-3
-        rounded-full
+        rounded
         w-full
-        text-center
+        shadow
+        text-sm text-center
         lg:text-left
         invalid:outline-red-400 invalid:border-red-400 invalid:border
+        focus:ring-blue-300/60 focus:ring-inset focus:ring-2 focus:outline-0
       "
       ref="tickerRef"
       maxlength="5"

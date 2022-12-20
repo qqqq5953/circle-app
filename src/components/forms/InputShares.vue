@@ -4,6 +4,7 @@
       name="shares"
       type="text"
       class="
+        border border-slate-300
         block
         px-4
         py-3

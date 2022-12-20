@@ -7,13 +7,14 @@
         left-1/2
         -translate-x-1/2 -translate-y-1/2
         bg-white
-        rounded
         p-5
         flex flex-wrap flex-col
         gap-4
-        w-5/6
-        md:w-1/2
-        lg:w-1/3 lg:max-w-[33%]
+        sm:rounded
+        w-full
+        h-screen
+        sm:h-auto sm:w-1/2
+        lg:max-w-[550px]
       "
     >
       <slot name="header"></slot>

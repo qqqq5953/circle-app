@@ -49,7 +49,6 @@
 <script>
 import { ref, watch, computed } from "vue";
 import useAxios from "@/composables/useAxios.js";
-import InputTicker1 from "@/components/forms/InputTicker1.vue";
 import InputCost from "@/components/forms/InputCost.vue";
 import InputShares from "@/components/forms/InputShares.vue";
 import ListSkeleton from "@/components/skeleton/ListSkeleton.vue";
@@ -60,7 +59,6 @@ import { storeToRefs } from "pinia";
 
 export default {
   components: {
-    InputTicker1,
     InputCost,
     InputShares,
     ListSkeleton,

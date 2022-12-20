@@ -20,7 +20,12 @@ export default function useUpdateList() {
 
     try {
       const res = await Promise.allSettled(listPromises)
-      const newMarketData = res.map((item) => item.value.data.result)
+      const newMarketData = res
+        .filter((item) => item.value)
+        .map((item) => {
+          return item.value.data.result
+        })
+
       return newMarketData
     } catch (error) {
       console.log('error', error)

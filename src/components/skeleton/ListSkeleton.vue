@@ -23,11 +23,11 @@
               class="
                 border-t-0 border-x-0
                 py-3
-                sm:py-5
-                px-4
+                sm:py-4
+                px-3
                 lg:px-8
                 text-xs text-left
-                w-6/12
+                w-5/12
                 lg:w-5/12
               "
               v-for="th in tableBody.th"
@@ -36,19 +36,18 @@
               <div class="flex flex-col md:flex-row md:items-center md:gap-x-3">
                 <p
                   class="
-                    w-1/2
                     md:w-2/5
-                    max-w-[70px]
+                    max-w-[80px]
                     px-1
                     py-1
-                    flex-shrink-0
+                    shrink-0
+                    rounded-full
                     bg-gray-300
-                    rounded
                     h-6
                   "
                 ></p>
                 <p
-                  class="w-1/2 md:w-3/5 h-5 mt-2 md:mt-0 bg-gray-300 rounded"
+                  class="w-full md:w-3/5 h-4 mt-2 md:mt-0 bg-gray-300 rounded"
                 ></p>
               </div>
             </th>
@@ -56,7 +55,7 @@
               class="
                 border-t-0 border-x-0
                 py-3
-                sm:py-5
+                sm:py-4
                 px-2
                 lg:px-6
                 text-xs text-center
@@ -72,7 +71,7 @@
               class="
                 border-t-0 border-x-0
                 py-3
-                sm:py-5
+                sm:py-4
                 pr-3
                 lg:pr-4
                 text-xs text-center
@@ -95,6 +94,9 @@ export default {
   props: {
     tableBody: {
       type: Object,
+      default() {
+        return { tr: 1, th: 1, td: 3 };
+      },
     },
   },
 };

@@ -17,7 +17,6 @@
         grow
       "
       type="search"
-      autofocus
       :maxlength="selectedCountry.maxLength"
       :placeholder="selectedCountry.placeholder"
       @focus="toggleSearchList(true)"
@@ -89,7 +88,7 @@
 </template>
 
 <script>
-import { ref, watch, watchEffect } from "vue";
+import { ref, watch, onMounted } from "vue";
 import axios from "axios";
 import useWatchlistStore from "@/stores/watchlistStore.js";
 
@@ -105,6 +104,8 @@ export default {
     const $store = useWatchlistStore();
     const { toggleSearchList, toggleSearchListSkeleton, passDataToSearchList } =
       $store;
+
+    onMounted(() => searchTickerRef.value.focus());
 
     const allPromises = [];
     const searchTicker = ref(null);
@@ -195,8 +196,7 @@ export default {
           allPromises.length = 0;
         }
         passDataToSearchList(null);
-        // toggleSearchList(false);
-
+        toggleSearchList(false);
         return;
       }
 

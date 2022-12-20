@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 
-export default function useSort(emit) {
+export default function useSort() {
   const sortMenu = ref({
     Ticker: {
       category: 'tempTicker',
@@ -36,7 +36,7 @@ export default function useSort(emit) {
   const selectedDirection = ref('descending')
 
   const isSortMenuOpen = ref(false)
-  const toggleSortMenu = () => (isSortMenuOpen.value = !isSortMenuOpen.value)
+  const toggleSortMenu = (isOpen) => (isSortMenuOpen.value = isOpen)
 
   const onClickSort = ({
     key = selectedDisplayName.value,
@@ -47,7 +47,8 @@ export default function useSort(emit) {
     selectedSortCategory.value = category
     selectedDirection.value = direction
 
-    emit('sortList', { category, direction })
+    // emit('sortList', { category, direction })
+    latestSortRules.value = { category, direction }
   }
 
   const latestSortRules = ref({

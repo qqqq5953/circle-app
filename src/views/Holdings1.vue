@@ -39,31 +39,15 @@
     <section class="mt-5 px-4 md:px-0 lg:px-4">
       <h2 class="font-semibold text-lg mb-4">Holdings</h2>
 
-      <button @click="isModalOpen = true">open</button>
+      <button @click="openModal">open</button>
       <Teleport to="body">
         <InputModal v-if="isModalOpen" :closeFunc="closeModal">
           <template #title>Trade Panel</template>
           <template #inputs>
-            <NewAdding
-              @isLoading="toggleSkeleton"
-              @updateHoldings="updateHoldings"
-              @toastMessage="activateToast"
-              v-show="!loading"
-            />
+            <NewAdding @closeModal="closeModal" v-show="!loading" />
           </template>
         </InputModal>
       </Teleport>
-
-      <hr class="my-4" />
-
-      <h2>NewAdding</h2>
-      <InputSkeleton v-show="loading" />
-      <NewAdding
-        @isLoading="toggleSkeleton"
-        @updateHoldings="updateHoldings"
-        @toastMessage="activateToast"
-        v-show="!loading"
-      />
 
       <hr class="my-4" />
 
@@ -122,13 +106,11 @@ import Toast from "@/components/Toast.vue";
 import CardSkeleton from "@/components/skeleton/CardSkeleton.vue";
 import TableSkeleton from "@/components/skeleton/TableSkeleton.vue";
 import InputSkeleton from "@/components/skeleton/InputSkeleton.vue";
-
 import NewAdding from "@/components/NewAdding.vue";
-import InputModal from "@/components/InputModal.vue";
 
-import { ref, defineAsyncComponent, computed } from "vue";
-import axios from "axios";
-import useAxios from "@/composables/useAxios.js";
+import { ref, defineAsyncComponent } from "vue";
+import useHoldingStore from "@/stores/holdingStore.js";
+import { storeToRefs } from "pinia";
 
 export default {
   components: {
@@ -143,43 +125,42 @@ export default {
     TradeModal: defineAsyncComponent(() =>
       import("@/components/TradeModal.vue")
     ),
-    InputModal,
+    InputModal: defineAsyncComponent(() =>
+      import("@/components/InputModal.vue")
+    ),
   },
   setup() {
-    const closeModal = () => {
-      // clearInput();
-      isModalOpen.value = false;
+    const $store = useHoldingStore();
+    const {
+      toastMessage,
+      isModalOpen,
+      data,
+      error,
+      loading,
+      lastMarketOpenDate,
+    } = storeToRefs($store);
+
+    const { activateToast, updateHoldings, toggleSkeleton } = $store;
+
+    const openModal = () => {
+      isModalOpen.value = true;
+      disableVerticalScrollbar("overflow:hidden");
     };
 
-    const toastMessage = ref(null);
-    const tickerRef = ref(null);
-    const isModalOpen = ref(false);
+    const closeModal = () => {
+      // clearInput();
+      console.log("closeModal");
+
+      isModalOpen.value = false;
+      disableVerticalScrollbar(null);
+    };
+
+    const disableVerticalScrollbar = (style) => {
+      document.querySelector("body").style = style;
+    };
+
     const stockToBeTraded = ref("");
-    const stock = ref({
-      ticker: "AAPL",
-      cost: 100,
-      shares: 1,
-      date: Date.now(),
-    });
-
-    const { data, error, loading } = useAxios("/api/getHoldings", "get");
-
-    const lastMarketOpenDate = computed(() => {
-      // console.log("data.value", data.value);
-      // console.log("error.value", error.value);
-      // console.log("loading.value", loading.value);
-
-      if (!data.value?.result) return;
-
-      const tickers = [];
-      for (let ticker in data.value?.result) {
-        tickers.push(ticker);
-      }
-
-      return data.value?.result[tickers[0]].date.slice(0, 10);
-    });
-
-    const activateToast = (val) => (toastMessage.value = val);
+    const tickerRef = ref(null);
 
     const openTradeModal = (obj) => {
       const { open, ticker } = obj;
@@ -194,10 +175,6 @@ export default {
       // if (success) await getHoldings();
       // await updateData(success);
     };
-
-    const updateHoldings = (val) => (data.value = val);
-
-    const toggleSkeleton = (isLoading) => (loading.value = isLoading);
 
     const historicalQutoes = ref(null);
     const getHistorical = async () => {
@@ -223,7 +200,6 @@ export default {
       toastMessage,
 
       historicalQutoes,
-      stock,
       getHistorical,
       tickerRef,
       openTradeModal,
@@ -232,6 +208,7 @@ export default {
       stockToBeTraded,
 
       closeModal,
+      openModal,
     };
   },
 };

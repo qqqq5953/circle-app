@@ -65,17 +65,18 @@
 </template>
 
 <script>
-import { ref, watch, computed } from "vue";
-import useAxios from "@/composables/useAxios.js";
+import { ref, computed } from "vue";
+import useWatchlistStore from "@/stores/watchlistStore.js";
+import useHoldingStore from "@/stores/holdingStore.js";
+import { storeToRefs } from "pinia";
+import http from "../api/index";
+
 import InputCost from "@/components/forms/InputCost.vue";
 import InputShares from "@/components/forms/InputShares.vue";
 import ListSkeleton from "@/components/skeleton/ListSkeleton.vue";
 import SearchBar from "@/components/SearchBar.vue";
 import SearchList from "@/components/SearchList.vue";
 import TickerInfo from "@/components/TickerInfo.vue";
-import useWatchlistStore from "@/stores/watchlistStore.js";
-import { storeToRefs } from "pinia";
-import http from "../api/index";
 
 export default {
   components: {
@@ -87,17 +88,23 @@ export default {
     TickerInfo,
   },
   setup(_, { emit }) {
-    const $store = useWatchlistStore();
-    const { isFocus, searchList, isSearchListLoading } = storeToRefs($store);
+    const $watchlistStore = useWatchlistStore();
+    const { isFocus, searchList, isSearchListLoading } =
+      storeToRefs($watchlistStore);
 
-    const validateMessage = ref(null);
+    const $holdingStore = useHoldingStore();
+    const { stock } = storeToRefs($holdingStore);
+    const { activateToast, updateHoldings, toggleSkeleton } = $holdingStore;
 
-    const stock = ref({
+    const inputValidity = ref({
       ticker: null,
       cost: null,
       shares: null,
-      date: Date.now(),
     });
+
+    const isAllValid = computed(() =>
+      Object.values(inputValidity.value).every((item) => !!item)
+    );
 
     const inputCostRef = ref(null);
     const stockLists = ref([]);
@@ -114,119 +121,54 @@ export default {
       getInputValidity({ name: "ticker", validity: true });
     };
 
-    const inputValidity = ref({
-      ticker: null,
-      cost: null,
-      shares: null,
-    });
-
-    const isAllValid = computed(() =>
-      Object.values(inputValidity.value).every((item) => !!item)
-    );
-
     const getInputValidity = (validityObj) => {
       const { name, validity } = validityObj;
       inputValidity.value[name] = validity;
     };
 
-    // ---------------
-
-    function addStock() {
+    const addStock = async () => {
       if (!isAllValid.value) return;
 
       emit("closeModal");
-      emit("isLoading", true);
+      toggleSkeleton(true);
 
-      const stockObj = {
-        ...stock.value,
-        ticker: stock.value.ticker.toUpperCase(),
-      };
+      try {
+        const stockObj = {
+          ...stock.value,
+          ticker: stock.value.ticker.toUpperCase(),
+        };
 
-      const { data, ...rest } = useAxios("/api/checkTicker", "post", stockObj);
+        const res = await http.post(`/api/addStock`, stockObj);
+        console.log("addStock res", res);
 
-      watch([data, ref(rest)], ([checkResponse, checkRest]) => {
-        if (!checkResponse.success) {
-          validateMessage.value = checkResponse;
-          emit("toastMessage", checkResponse);
-          emit("isLoading", checkRest.loading);
-          return;
-        }
-
-        tickerConfirmed(stockObj);
-      });
-    }
-
-    function tickerConfirmed(stockObj) {
-      const { data, error } = useAxios("/api/addStock", "post", stockObj);
-
-      watch([data, error], ([newData, newError]) => {
-        console.log("newData", newData);
-        console.log("newError", newError);
-        updateHoldings(newData, newError);
-      });
-    }
-
-    function updateHoldings(newData, newError) {
-      if (newData.success) {
-        const { data, ...rest } = useAxios("/api/getHoldings", "get", {});
-
-        watch([data, ref(rest)], ([updateData, updateRest]) => {
-          emit("updateHoldings", updateData);
-          emit("isLoading", updateRest.loading);
-          emit("toastMessage", newData);
-        });
-      } else {
-        const error = newError.split(" ").splice(0, 4).join(" ");
-        emit("toastMessage", error);
+        await updateHoldings1(res.data, res.data.errorMessage);
+      } catch (error) {
+        console.log("addStock error", error);
       }
-    }
+    };
 
-    // async function addStock() {
-    //   if (!isAllValid.value) return;
+    const updateHoldings1 = async (newData, errorMessage) => {
+      console.log("updateHoldings newData", newData);
+      console.log("updateHoldings errorMessage", errorMessage);
 
-    //   emit("closeModal");
-    //   emit("isLoading", true);
+      if (newData.success) {
+        try {
+          const res = await http.get(`/api/getHoldings`);
 
-    //   try {
-    //     const stockObj = {
-    //       ...stock.value,
-    //       ticker: stock.value.ticker.toUpperCase(),
-    //     };
-
-    //     const res = await http.post(`/api/addStock`, stockObj);
-    //     console.log("addStock res", res);
-
-    //     await updateHoldings(res.data, res.data.errorMessage);
-    //   } catch (error) {
-    //     console.log("addStock error", error);
-    //   }
-    // }
-
-    // async function updateHoldings(newData, errorMessage) {
-    //   console.log("updateHoldings newData", newData);
-    //   console.log("updateHoldings errorMessage", errorMessage);
-
-    //   if (newData.success) {
-    //     try {
-    //       const res = await http.get(`/api/getHoldings`);
-
-    //       console.log("updateHoldings res", res);
-
-    //       emit("updateHoldings", res.data);
-    //       emit("isLoading", false);
-    //       emit("toastMessage", newData);
-    //     } catch (error) {
-    //       console.log("updateHoldings error", error);
-    //     }
-    //   } else {
-    //     emit("toastMessage", errorMessage);
-    //   }
-    // }
+          updateHoldings(res.data);
+          toggleSkeleton(false);
+          activateToast(newData);
+        } catch (error) {
+          console.log("updateHoldings error", error);
+        }
+      } else {
+        activateToast(errorMessage);
+      }
+    };
 
     return {
       addStock,
       stock,
-      validateMessage,
 
       getInputValidity,
       isAllValid,

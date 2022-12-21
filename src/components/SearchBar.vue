@@ -105,7 +105,10 @@ export default {
     const { toggleSearchList, toggleSearchListSkeleton, passDataToSearchList } =
       $store;
 
-    onMounted(() => searchTickerRef.value.focus());
+    onMounted(() => {
+      console.log("onMounted");
+      searchTickerRef.value.focus();
+    });
 
     const allPromises = [];
     const searchTicker = ref(null);

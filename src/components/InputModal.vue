@@ -18,9 +18,20 @@
           Close
         </button>
         <button
-          class="border rounded px-2 py-1.5 bg-blue-600 text-white"
+          class="
+            border
+            rounded
+            px-2
+            py-1.5
+            bg-blue-600
+            text-white
+            disabled:bg-gray-200
+            disabled:text-gray-400
+            disabled:cursor-not-allowed
+          "
           @click="confirmFunc"
           v-if="confirmFunc"
+          :disabled="isDisabled"
         >
           <slot name="okButton"></slot>
         </button>
@@ -42,6 +53,9 @@ export default {
     },
     confirmFunc: {
       type: Function,
+    },
+    isDisabled: {
+      type: Boolean,
     },
   },
 };

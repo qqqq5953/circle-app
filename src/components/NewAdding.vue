@@ -1,5 +1,5 @@
 <template>
-  <form @submit.prevent="addStock" novalidate class="flex flex-col gap-6">
+  <div class="flex flex-col gap-6">
     <div class="relative w-full pb-14 mb-6">
       <SearchBar />
 
@@ -45,8 +45,8 @@
       @getInputValidity="getInputValidity"
     />
 
-    <button
-      type="submit"
+    <!-- <button
+      type="button"
       class="
         px-4
         py-3
@@ -56,20 +56,20 @@
         disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed
       "
       :disabled="!isAllValid"
+      @click="addStock"
     >
       add
-    </button>
+    </button> -->
 
     isAllValid:{{ isAllValid }}
-  </form>
+  </div>
 </template>
 
 <script>
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import useWatchlistStore from "@/stores/watchlistStore.js";
 import useHoldingStore from "@/stores/holdingStore.js";
 import { storeToRefs } from "pinia";
-import http from "../api/index";
 
 import InputCost from "@/components/forms/InputCost.vue";
 import InputShares from "@/components/forms/InputShares.vue";
@@ -93,18 +93,8 @@ export default {
       storeToRefs($watchlistStore);
 
     const $holdingStore = useHoldingStore();
-    const { stock } = storeToRefs($holdingStore);
+    const { stock, inputValidity, isAllValid } = storeToRefs($holdingStore);
     const { activateToast, updateHoldings, toggleSkeleton } = $holdingStore;
-
-    const inputValidity = ref({
-      ticker: null,
-      cost: null,
-      shares: null,
-    });
-
-    const isAllValid = computed(() =>
-      Object.values(inputValidity.value).every((item) => !!item)
-    );
 
     const inputCostRef = ref(null);
     const stockLists = ref([]);
@@ -126,48 +116,48 @@ export default {
       inputValidity.value[name] = validity;
     };
 
-    const addStock = async () => {
-      if (!isAllValid.value) return;
+    // const addStock = async () => {
+    //   if (!isAllValid.value) return;
 
-      emit("closeModal");
-      toggleSkeleton(true);
+    //   emit("closeModal");
+    //   toggleSkeleton(true);
 
-      try {
-        const stockObj = {
-          ...stock.value,
-          ticker: stock.value.ticker.toUpperCase(),
-        };
+    //   try {
+    //     const stockObj = {
+    //       ...stock.value,
+    //       ticker: stock.value.ticker.toUpperCase(),
+    //     };
 
-        const res = await http.post(`/api/addStock`, stockObj);
-        console.log("addStock res", res);
+    //     const res = await http.post(`/api/addStock`, stockObj);
+    //     console.log("addStock res", res);
 
-        await updateHoldings1(res.data, res.data.errorMessage);
-      } catch (error) {
-        console.log("addStock error", error);
-      }
-    };
+    //     await updateHoldings(res.data, res.data.errorMessage);
+    //   } catch (error) {
+    //     console.log("addStock error", error);
+    //   }
+    // };
 
-    const updateHoldings1 = async (newData, errorMessage) => {
-      console.log("updateHoldings newData", newData);
-      console.log("updateHoldings errorMessage", errorMessage);
+    // const updateHoldings = async (newData, errorMessage) => {
+    //   console.log("updateHoldings newData", newData);
+    //   console.log("updateHoldings errorMessage", errorMessage);
 
-      if (newData.success) {
-        try {
-          const res = await http.get(`/api/getHoldings`);
+    //   if (newData.success) {
+    //     try {
+    //       const res = await http.get(`/api/getHoldings`);
 
-          updateHoldings(res.data);
-          toggleSkeleton(false);
-          activateToast(newData);
-        } catch (error) {
-          console.log("updateHoldings error", error);
-        }
-      } else {
-        activateToast(errorMessage);
-      }
-    };
+    //       updateHoldings(res.data);
+    //       toggleSkeleton(false);
+    //       activateToast(newData);
+    //     } catch (error) {
+    //       console.log("updateHoldings error", error);
+    //     }
+    //   } else {
+    //     activateToast(errorMessage);
+    //   }
+    // };
 
     return {
-      addStock,
+      // addStock,
       stock,
 
       getInputValidity,

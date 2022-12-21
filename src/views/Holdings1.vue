@@ -39,13 +39,19 @@
     <section class="mt-5 px-4 md:px-0 lg:px-4">
       <h2 class="font-semibold text-lg mb-4">Holdings</h2>
 
-      <button @click="openModal">open</button>
+      <button @click="toggleModal($event, true)">open</button>
       <Teleport to="body">
-        <InputModal v-if="isModalOpen" :closeFunc="closeModal">
+        <InputModal
+          v-if="isModalOpen"
+          :closeFunc="toggleModal"
+          :confirmFunc="addStock"
+          :isDisabled="!isAllValid"
+        >
           <template #title>Trade Panel</template>
           <template #inputs>
-            <NewAdding @closeModal="closeModal" v-show="!loading" />
+            <NewAdding v-show="!loading" />
           </template>
+          <template #okButton>Trade</template>
         </InputModal>
       </Teleport>
 
@@ -138,26 +144,10 @@ export default {
       error,
       loading,
       lastMarketOpenDate,
+      isAllValid,
     } = storeToRefs($store);
 
-    const { activateToast, updateHoldings, toggleSkeleton } = $store;
-
-    const openModal = () => {
-      isModalOpen.value = true;
-      disableVerticalScrollbar("overflow:hidden");
-    };
-
-    const closeModal = () => {
-      // clearInput();
-      console.log("closeModal");
-
-      isModalOpen.value = false;
-      disableVerticalScrollbar(null);
-    };
-
-    const disableVerticalScrollbar = (style) => {
-      document.querySelector("body").style = style;
-    };
+    const { addStock, toggleModal } = $store;
 
     const stockToBeTraded = ref("");
     const tickerRef = ref(null);
@@ -194,9 +184,6 @@ export default {
       loading,
       error,
       lastMarketOpenDate,
-      toggleSkeleton,
-      updateHoldings,
-      activateToast,
       toastMessage,
 
       historicalQutoes,
@@ -207,8 +194,9 @@ export default {
       isModalOpen,
       stockToBeTraded,
 
-      closeModal,
-      openModal,
+      toggleModal,
+      addStock,
+      isAllValid,
     };
   },
 };

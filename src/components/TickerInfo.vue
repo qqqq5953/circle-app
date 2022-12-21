@@ -5,9 +5,9 @@
       <BaseTableRow
         :stockLists="stockLists"
         :updatedTickers="updatedTickers"
-        :isMultiRows="true"
-        :isUpdate="true"
-        :toStockInfo="true"
+        :isMultiRows="isMultiRows"
+        :isUpdate="isUpdate"
+        :toStockInfo="toStockInfo"
       >
         <template #optional-td="{ ticker }" v-if="hasOptionalTd">
           <td

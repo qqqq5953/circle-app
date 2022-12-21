@@ -11,7 +11,32 @@
       <Transition>
         <div v-show="isFocus" class="absolute top-12 z-10 w-full">
           <ListSkeleton v-show="isSearchListLoading" />
-          <SearchList v-show="!isSearchListLoading" :searchList="searchList" />
+          <SearchList
+            v-show="!isSearchListLoading"
+            :searchList="searchList"
+            :hasOptionalTd="true"
+          >
+            <template #action-btn="{ ticker }">
+              <div v-if="isAddingProcess" class="lg:text-lg">
+                <i class="fa-solid fa-spinner animate-spin"></i>
+              </div>
+              <div v-else>
+                <a
+                  href="#"
+                  class="text-gray-300 inline-block py-1 hover:text-blue-600"
+                  @click.stop.prevent="addToWatchlist(ticker)"
+                  v-if="!isTickerInCachedList"
+                >
+                  <i class="fas fa-plus text-lg md:text-xl"></i>
+                </a>
+                <span v-else>
+                  <i
+                    class="fa-solid fa-check text-slate-600 text-lg md:text-xl"
+                  ></i>
+                </span>
+              </div>
+            </template>
+          </SearchList>
         </div>
       </Transition>
     </div>
@@ -55,7 +80,7 @@
 </template>
 
 <script>
-import { watch, provide, onMounted } from "vue";
+import { watch, provide, onMounted, computed } from "vue";
 import http from "../api/index";
 import useWatchlistStore from "@/stores/watchlistStore.js";
 import { storeToRefs } from "pinia";
@@ -96,10 +121,53 @@ export default {
       currentTab,
       DEFAULT_TAB,
       updatedTickers,
+      isAddingProcess,
     } = storeToRefs($store);
 
-    const { setTabs, loadWatchlist, displayWatchlist } = $store;
+    const {
+      setTabs,
+      loadWatchlist,
+      displayWatchlist,
+      setSkeletonTableRow,
+      toggleLoadingEffect,
+    } = $store;
 
+    const isTickerInCachedList = computed(() => {
+      const tempTicker = searchList.value[0]?.tempTicker;
+      const isInCachedList =
+        watchlistArr.value
+          .map((item) => item.tempTicker)
+          .indexOf(tempTicker) !== -1;
+
+      return isInCachedList;
+    });
+
+    async function addToWatchlist(ticker) {
+      if (isTickerInCachedList.value) return;
+
+      setSkeletonTableRow({
+        rows: watchlistArr.value.length + 1,
+      });
+      toggleLoadingEffect(true);
+
+      try {
+        const tempTicker = ticker.includes(".") ? ticker.split(".")[0] : ticker;
+        const tickerItem = {
+          ...searchList.value[0],
+          tempTicker,
+        };
+        await http.post(`/api/ticker/${currentTab.value}`, {
+          tickerItem,
+        });
+
+        loadWatchlist({
+          status: "addTicker",
+          params: tickerItem,
+        });
+      } catch (error) {
+        console.log("error", error);
+      }
+    }
     // ----------------------
 
     http.get(`/api/watchlist`).then((res) => {
@@ -128,6 +196,10 @@ export default {
       latestSortRules,
       loadWatchlist,
       displayWatchlist,
+
+      addToWatchlist,
+      isAddingProcess,
+      isTickerInCachedList,
     };
   },
 };

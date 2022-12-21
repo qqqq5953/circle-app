@@ -1,19 +1,37 @@
 <template>
   <form @submit.prevent="addStock" novalidate class="flex flex-col gap-6">
-    <div class="relative w-full pb-14">
+    <div class="relative w-full pb-14 mb-6">
       <SearchBar />
 
       <!-- 搜尋結果 -->
       <Transition>
         <div v-show="isFocus" class="absolute top-12 w-full bg-white">
           <ListSkeleton v-show="isSearchListLoading" />
+          <SearchList
+            v-show="!isSearchListLoading"
+            :searchList="searchList"
+            :hasOptionalTd="true"
+          >
+            <template #action-btn="{ ticker }">
+              <div>
+                <a
+                  href="#"
+                  class="text-gray-300 inline-block py-1 hover:text-blue-600"
+                  @click.stop.prevent="selectTicker(ticker)"
+                >
+                  <i class="fas fa-plus text-lg md:text-xl"></i>
+                </a>
+              </div>
+            </template>
+          </SearchList>
         </div>
       </Transition>
     </div>
 
-    <div class="mt-3 border border-slate-300 rounded">
-      <TickerInfo :stockLists="searchList" />
+    <div class="border border-slate-300 rounded shadow" v-if="stock.ticker">
+      <TickerInfo :stockLists="stockLists" />
     </div>
+
     <InputCost
       :modelValue="stock.cost"
       @input="stock.cost = $event.target.value"
@@ -53,9 +71,11 @@ import InputCost from "@/components/forms/InputCost.vue";
 import InputShares from "@/components/forms/InputShares.vue";
 import ListSkeleton from "@/components/skeleton/ListSkeleton.vue";
 import SearchBar from "@/components/SearchBar.vue";
+import SearchList from "@/components/SearchList.vue";
 import TickerInfo from "@/components/TickerInfo.vue";
 import useWatchlistStore from "@/stores/watchlistStore.js";
 import { storeToRefs } from "pinia";
+import http from "../api/index";
 
 export default {
   components: {
@@ -63,17 +83,10 @@ export default {
     InputShares,
     ListSkeleton,
     SearchBar,
+    SearchList,
     TickerInfo,
   },
   setup(_, { emit }) {
-    const inputCostRef = ref(null);
-    const result = ref("border border-slate-300");
-
-    const selectTicker = (ticker) => {
-      stock.value.ticker = ticker;
-      inputCostRef.value.$refs.costRef.focus();
-    };
-
     const $store = useWatchlistStore();
     const { isFocus, searchList, isSearchListLoading } = storeToRefs($store);
 
@@ -85,6 +98,21 @@ export default {
       shares: null,
       date: Date.now(),
     });
+
+    const inputCostRef = ref(null);
+    const stockLists = ref([]);
+
+    const selectTicker = (ticker) => {
+      inputCostRef.value.$refs.costRef.focus();
+      stock.value.ticker = ticker;
+
+      if (stockLists.value.length) {
+        stockLists.value.pop();
+      }
+      stockLists.value.push(...searchList.value);
+
+      getInputValidity({ name: "ticker", validity: true });
+    };
 
     const inputValidity = ref({
       ticker: null,
@@ -101,8 +129,13 @@ export default {
       inputValidity.value[name] = validity;
     };
 
+    // ---------------
+
     function addStock() {
       if (!isAllValid.value) return;
+
+      emit("closeModal");
+      emit("isLoading", true);
 
       const stockObj = {
         ...stock.value,
@@ -110,8 +143,6 @@ export default {
       };
 
       const { data, ...rest } = useAxios("/api/checkTicker", "post", stockObj);
-
-      emit("isLoading", rest.loading.value);
 
       watch([data, ref(rest)], ([checkResponse, checkRest]) => {
         if (!checkResponse.success) {
@@ -150,6 +181,48 @@ export default {
       }
     }
 
+    // async function addStock() {
+    //   if (!isAllValid.value) return;
+
+    //   emit("closeModal");
+    //   emit("isLoading", true);
+
+    //   try {
+    //     const stockObj = {
+    //       ...stock.value,
+    //       ticker: stock.value.ticker.toUpperCase(),
+    //     };
+
+    //     const res = await http.post(`/api/addStock`, stockObj);
+    //     console.log("addStock res", res);
+
+    //     await updateHoldings(res.data, res.data.errorMessage);
+    //   } catch (error) {
+    //     console.log("addStock error", error);
+    //   }
+    // }
+
+    // async function updateHoldings(newData, errorMessage) {
+    //   console.log("updateHoldings newData", newData);
+    //   console.log("updateHoldings errorMessage", errorMessage);
+
+    //   if (newData.success) {
+    //     try {
+    //       const res = await http.get(`/api/getHoldings`);
+
+    //       console.log("updateHoldings res", res);
+
+    //       emit("updateHoldings", res.data);
+    //       emit("isLoading", false);
+    //       emit("toastMessage", newData);
+    //     } catch (error) {
+    //       console.log("updateHoldings error", error);
+    //     }
+    //   } else {
+    //     emit("toastMessage", errorMessage);
+    //   }
+    // }
+
     return {
       addStock,
       stock,
@@ -164,7 +237,7 @@ export default {
 
       selectTicker,
       inputCostRef,
-      result,
+      stockLists,
     };
   },
 };

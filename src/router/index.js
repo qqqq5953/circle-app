@@ -40,7 +40,7 @@ const routes = [
       },
       {
         path: 'stockInfo/:ticker',
-        name: 'stockInfo',
+        name: 'StockInfo',
         component: () => import('../views/StockInfo.vue'),
         props: true
       }

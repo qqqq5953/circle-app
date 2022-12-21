@@ -1,9 +1,9 @@
 <template>
   <tr
-    class="hover:bg-slate-100"
     :class="{
       'border-t': isMultiRows,
       'update-animation': isUpdate && enableUpdate(item.tempTicker),
+      'hover:bg-slate-100': hasRouterLink,
     }"
     v-for="item in stockLists"
     :key="item.ticker"
@@ -14,46 +14,28 @@
         py-3
         sm:py-3.5
         px-4
-        lg:px-8
+        lg:pl-8 lg:pr-0
         text-xs text-left
         w-5/12
       "
     >
       <router-link
-        class="flex flex-col md:flex-row md:items-center md:gap-x-3"
+        v-if="hasRouterLink"
         :class="hasRouterLink ? 'hover:cursor-pointer' : 'hover:cursor-auto'"
-        :to="
-          hasRouterLink
-            ? {
-                name: 'stockInfo',
-                params: {
-                  ticker: item.ticker,
-                  tempTicker: item.tempTicker,
-                },
-              }
-            : {}
-        "
+        :to="routeParam(item.ticker)"
       >
-        <p
-          class="
-            md:w-2/5
-            max-w-[80px]
-            px-1
-            py-1
-            shrink-0
-            rounded-full
-            text-white text-center
-            font-semibold
-            uppercase
-          "
-          :class="item.style"
-        >
-          {{ item.ticker }}
-        </p>
-        <p class="w-full md:w-3/5 mt-2 md:mt-0 truncate ...">
-          {{ item.name }}
-        </p>
+        <TickerAndName
+          :style="item.style"
+          :ticker="item.ticker"
+          :name="item.name"
+        />
       </router-link>
+      <TickerAndName
+        v-else
+        :style="item.style"
+        :ticker="item.ticker"
+        :name="item.name"
+      />
     </th>
     <td
       class="
@@ -61,7 +43,7 @@
         py-3
         sm:py-3.5
         px-0
-        lg:px-6
+        lg:px-3
         text-xs text-center
         w-[12.5%]
         lg:w-auto
@@ -137,63 +119,156 @@
   </tr>
 </template>
 
-<script>
-import { ref, inject, watch } from "vue";
-export default {
-  props: {
-    toStockInfo: {
-      type: Boolean,
-      default: false,
-    },
-    isMultiRows: {
-      type: Boolean,
-      default: false,
-    },
-    isUpdate: {
-      type: Boolean,
-      default: false,
-    },
-    updatedTickers: {
-      type: Array,
-      default() {
-        return [];
-      },
-    },
-    stockLists: {
-      type: Array,
+<script setup>
+import { ref, inject, watch, h } from "vue";
+
+const props = defineProps({
+  toStockInfo: {
+    type: Boolean,
+    default: false,
+  },
+  isMultiRows: {
+    type: Boolean,
+    default: false,
+  },
+  isUpdate: {
+    type: Boolean,
+    default: false,
+  },
+  updatedTickers: {
+    type: Array,
+    default() {
+      return [];
     },
   },
-  setup(props) {
-    const updatedTarget = ref([]);
-
-    const enableUpdate = (tempTicker) => {
-      return updatedTarget.value.indexOf(tempTicker) !== -1;
-    };
-
-    watch(
-      () => props.updatedTickers,
-      (ticker) => {
-        updatedTarget.value = ticker;
-        setTimeout(() => {
-          updatedTarget.value.length = 0;
-        }, 1000);
-      },
-      { deep: true }
-    );
-
-    const hasRouterLink = ref(null);
-    const injectParam = inject("toStockInfo", false);
-    hasRouterLink.value = props.toStockInfo || injectParam;
-    // console.log("props.toStockInfo", props.toStockInfo);
-    // console.log("injectParam", injectParam);
-    // console.log("hasRouterLink", hasRouterLink.value);
-
-    return {
-      hasRouterLink,
-      enableUpdate,
-    };
+  stockLists: {
+    type: Array,
   },
+});
+
+const TickerAndName = (props) => {
+  const Ticker = h(
+    "p",
+    {
+      class: `md:w-2/5
+            max-w-[80px]
+            px-1
+            py-1
+            shrink-0
+            rounded-full
+            text-white text-center
+            font-semibold
+            uppercase ${props.style}`,
+    },
+    props.ticker
+  );
+  const Name = h("p", { class: "md:grow mt-2 md:mt-0 truncate" }, props.name);
+
+  return h(
+    "div",
+    {
+      class: "flex flex-col md:flex-row md:items-center md:gap-x-3",
+      style: props.style,
+      ticker: props.ticker,
+      name: props.name,
+    },
+    [Ticker, Name]
+  );
 };
+
+const updatedTarget = ref([]);
+
+const enableUpdate = (tempTicker) => {
+  return updatedTarget.value.indexOf(tempTicker) !== -1;
+};
+
+watch(
+  () => props.updatedTickers,
+  (ticker) => {
+    updatedTarget.value = ticker;
+    setTimeout(() => {
+      updatedTarget.value.length = 0;
+    }, 1000);
+  },
+  { deep: true }
+);
+
+const hasRouterLink = ref(null);
+const injectParam = inject("toStockInfo", false);
+hasRouterLink.value = props.toStockInfo || injectParam;
+
+const routeParam = (ticker) => {
+  return {
+    name: hasRouterLink.value ? "StockInfo" : "Holdings1",
+    params: { ticker },
+  };
+};
+
+// export default {
+//   props: {
+//     toStockInfo: {
+//       type: Boolean,
+//       default: false,
+//     },
+//     isMultiRows: {
+//       type: Boolean,
+//       default: false,
+//     },
+//     isUpdate: {
+//       type: Boolean,
+//       default: false,
+//     },
+//     updatedTickers: {
+//       type: Array,
+//       default() {
+//         return [];
+//       },
+//     },
+//     stockLists: {
+//       type: Array,
+//     },
+//   },
+//   setup(props) {
+//     const render = () => {
+//       return h("p", [], "test");
+//     };
+
+//     const updatedTarget = ref([]);
+
+//     const enableUpdate = (tempTicker) => {
+//       return updatedTarget.value.indexOf(tempTicker) !== -1;
+//     };
+
+//     watch(
+//       () => props.updatedTickers,
+//       (ticker) => {
+//         updatedTarget.value = ticker;
+//         setTimeout(() => {
+//           updatedTarget.value.length = 0;
+//         }, 1000);
+//       },
+//       { deep: true }
+//     );
+
+//     const hasRouterLink = ref(null);
+//     const injectParam = inject("toStockInfo", false);
+//     hasRouterLink.value = props.toStockInfo || injectParam;
+
+//     const routeParam = (ticker) => {
+//       return {
+//         name: hasRouterLink.value ? "StockInfo" : "Holdings1",
+//         params: { ticker },
+//       };
+//     };
+
+//     return {
+//       hasRouterLink,
+//       enableUpdate,
+//       routeParam,
+//       render,
+//     };
+//   },
+// };
 </script>
 
 <style scoped>

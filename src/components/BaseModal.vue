@@ -1,20 +1,21 @@
 <template>
-  <div class="fixed inset-0 z-20 bg-slate-700/60">
+  <div class="fixed inset-0 z-50 bg-slate-700/60">
     <div
       class="
         absolute
         top-1/2
         left-1/2
         -translate-x-1/2 -translate-y-1/2
+        flex flex-col
+        gap-2
+        w-full
+        sm:w-1/2
+        lg:max-w-[600px]
+        h-screen
+        sm:h-auto sm:rounded
+        overflow-auto
         bg-white
         p-5
-        flex flex-wrap flex-col
-        gap-4
-        sm:rounded
-        w-full
-        h-screen
-        sm:h-auto sm:w-1/2
-        lg:max-w-[550px]
       "
     >
       <slot name="header"></slot>

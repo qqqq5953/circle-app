@@ -10,7 +10,6 @@
         py-3
         rounded
         w-full
-        shadow
         text-sm text-center
         lg:text-left
         invalid:outline-red-400 invalid:border-red-400 invalid:border

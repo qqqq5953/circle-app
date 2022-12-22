@@ -1,5 +1,5 @@
 <template>
-  <BaseModal>
+  <BaseModal :isFullPage="isFullPage" v-if="isOpen">
     <template #header>
       <h2 class="text-xl lg:text-2xl">
         <slot name="title"></slot>
@@ -10,11 +10,7 @@
     </template>
     <template #footer>
       <div class="text-right">
-        <button
-          class="text-blue-600 px-2 py-1.5 mr-2"
-          @click="closeFunc"
-          v-if="closeFunc"
-        >
+        <button class="text-blue-600 px-2 py-1.5 mr-2" @click="closeModal">
           Close
         </button>
         <button
@@ -36,6 +32,8 @@
           <slot name="okButton"></slot>
         </button>
       </div>
+      {{ closeFunc === undefined }}
+      <br />
     </template>
   </BaseModal>
 </template>
@@ -57,6 +55,23 @@ export default {
     isDisabled: {
       type: Boolean,
     },
+    isOpen: {
+      type: Boolean,
+      default: false,
+    },
+    isFullPage: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  setup(props) {
+    function closeModal() {
+      if (props.closeFunc) props.closeFunc(false);
+    }
+
+    return {
+      closeModal,
+    };
   },
 };
 </script>

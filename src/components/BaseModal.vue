@@ -8,15 +8,14 @@
         -translate-x-1/2 -translate-y-1/2
         flex flex-col
         gap-2
-        w-full
         sm:w-1/2
         lg:max-w-[600px]
-        h-screen
         sm:h-auto sm:rounded
         overflow-auto
         bg-white
         p-5
       "
+      :class="isFullPage ? 'w-full h-screen' : 'w-5/6 h-auto'"
     >
       <slot name="header"></slot>
       <slot name="body"></slot>
@@ -24,3 +23,14 @@
     </div>
   </div>
 </template>
+
+<script>
+export default {
+  props: {
+    isFullPage: {
+      type: Boolean,
+      default: false,
+    },
+  },
+};
+</script>

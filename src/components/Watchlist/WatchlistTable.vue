@@ -195,7 +195,7 @@
 
     <Teleport to="body">
       <InputModal
-        v-if="isModalOpen"
+        :isOpen="isModalOpen"
         :confirmFunc="renameWatchlist"
         :closeFunc="
           () => {

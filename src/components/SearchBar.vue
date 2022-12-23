@@ -133,9 +133,9 @@ export default {
         code: "tw",
         name: "TW Stocks",
         placeholder: "Ex: 0050.TW",
-        maxLength: "8",
+        maxLength: "9",
         style: "bg-slate-700",
-        rule: /^\d{4,5}\.tw$/i,
+        rule: /^\d{4,6}\.tw$/i,
       },
       {
         code: "uk",

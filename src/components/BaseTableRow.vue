@@ -151,7 +151,7 @@ const TickerAndName = (props) => {
     "p",
     {
       class: `md:w-2/5
-            max-w-[80px]
+            max-w-[85px]
             px-1
             py-1
             shrink-0
@@ -159,6 +159,7 @@ const TickerAndName = (props) => {
             text-white text-center
             font-semibold
             uppercase ${props.style}`,
+      style: props.ticker.length >= 9 ? "font-size:10px" : null,
     },
     props.ticker
   );
@@ -168,9 +169,6 @@ const TickerAndName = (props) => {
     "div",
     {
       class: "flex flex-col md:flex-row md:items-center md:gap-x-3",
-      style: props.style,
-      ticker: props.ticker,
-      name: props.name,
     },
     [Ticker, Name]
   );

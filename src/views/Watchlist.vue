@@ -82,6 +82,7 @@
 <script>
 import { watch, provide, onMounted, computed } from "vue";
 import http from "../api/index";
+import useSearchStore from "@/stores/searchStore.js";
 import useWatchlistStore from "@/stores/watchlistStore.js";
 import { storeToRefs } from "pinia";
 
@@ -108,12 +109,13 @@ export default {
       currentTab.value = DEFAULT_TAB.value;
     });
 
-    const $store = useWatchlistStore();
+    const $searchStore = useSearchStore();
+    const { searchList, isFocus, isSearchListLoading } =
+      storeToRefs($searchStore);
+
+    const $watchlistStore = useWatchlistStore();
     const {
-      searchList,
       watchlistTableSkeletonContent,
-      isSearchListLoading,
-      isFocus,
       isWatchlistLoading,
       latestSortRules,
       watchlistArr,
@@ -122,7 +124,7 @@ export default {
       DEFAULT_TAB,
       updatedTickers,
       isAddingProcess,
-    } = storeToRefs($store);
+    } = storeToRefs($watchlistStore);
 
     const {
       setTabs,
@@ -130,7 +132,7 @@ export default {
       displayWatchlist,
       setSkeletonTableRow,
       toggleLoadingEffect,
-    } = $store;
+    } = $watchlistStore;
 
     const isTickerInCachedList = computed(() => {
       const tempTicker = searchList.value[0]?.tempTicker;

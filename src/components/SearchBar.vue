@@ -90,7 +90,7 @@
 <script>
 import { ref, watch, onMounted } from "vue";
 import axios from "axios";
-import useWatchlistStore from "@/stores/watchlistStore.js";
+import useSearchStore from "@/stores/searchStore.js";
 
 export default {
   directives: {
@@ -101,7 +101,7 @@ export default {
     },
   },
   setup() {
-    const $store = useWatchlistStore();
+    const $store = useSearchStore();
     const { toggleSearchList, toggleSearchListSkeleton, passDataToSearchList } =
       $store;
 

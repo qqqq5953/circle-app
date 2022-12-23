@@ -11,9 +11,11 @@ const useWatchlistStore = defineStore('watchlist', () => {
   const cachedList = ref({})
 
   onBeforeUnmount(() => {
-    console.log('onBeforeUnmount')
-    searchList.value = null
+    console.log('useWatchlistStore onBeforeUnmount')
     clearTimeout(timeoutId.value)
+
+    // reset to true so that searchBar will focus()
+    isWatchlistLoading.value = true
   })
 
   const setTabsInfo = (tab, listLength) => {
@@ -38,37 +40,6 @@ const useWatchlistStore = defineStore('watchlist', () => {
   }
 
   showCurrentTab(DEFAULT_TAB.value)
-
-  // ---------------------
-  // searchList section
-  const searchList = ref([])
-  const isSearchListLoading = ref(null)
-  const isFocus = ref(false)
-
-  const toggleSearchListSkeleton = (isLoading) => {
-    isSearchListLoading.value = isLoading
-  }
-
-  const toggleSearchList = (focus) => {
-    isFocus.value = focus
-  }
-
-  const passDataToSearchList = (tickerObject) => {
-    switch (tickerObject) {
-      case undefined:
-        searchList.value = undefined // 無搜尋結果
-        break
-      case null:
-        searchList.value = null // 輸入不符格式
-        break
-      default:
-        const { code, ticker } = tickerObject
-        const tempTicker =
-          code !== 'us' || code !== 'mf' ? ticker.split('.')[0] : ticker
-
-        searchList.value = [{ ...tickerObject, tempTicker }]
-    }
-  }
 
   // watchlist section
   const watchlistTableSkeletonContent = ref({
@@ -455,13 +426,6 @@ const useWatchlistStore = defineStore('watchlist', () => {
     showCurrentTab,
     setTabs,
     setTabsInfo,
-    // searchList section
-    searchList,
-    isSearchListLoading,
-    isFocus,
-    toggleSearchList,
-    toggleSearchListSkeleton,
-    passDataToSearchList,
     // watchlist section
     watchlistTableSkeletonContent,
     isWatchlistLoading,

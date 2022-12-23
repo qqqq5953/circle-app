@@ -143,7 +143,7 @@
                 sm:text-left
               "
             >
-              <span class="mx-auto">{{ item.symbol }}</span>
+              <span class="mx-auto">{{ item.ticker }}</span>
             </th>
             <!-- Profit / Loss -->
             <td
@@ -263,7 +263,7 @@
                   ml-auto
                   block
                 "
-                @click="openTradeModal(item.symbol)"
+                @click="openTradeModal(item.ticker)"
               >
                 Trade
               </button>

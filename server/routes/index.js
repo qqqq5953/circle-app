@@ -114,58 +114,74 @@ router.get('/historicalHolding/:period/:from/:to', async (req, res) => {
 })
 
 router.get('/getHoldings', async (req, res) => {
-  console.log(req.protocol + '://' + req.get('host') + req.originalUrl)
-
-  const tickerRef = await holdingRef.once('value')
-  const holdings = tickerRef.val()
-  // console.log('holdings', holdings)
-  if (!holdings) return res.send('no holdings in DB')
-
-  const tickers = Object.keys(holdings)
-  let yesterdayQuote = null
-  let isMarketOpen = false
-  let backward = 0
-  while (!isMarketOpen) {
-    const quoteOptions = {
-      symbols: tickers,
-      from: getFormattedDate(backward + 1),
-      to: getFormattedDate(backward),
-      period: 'd'
-    }
-
-    try {
-      yesterdayQuote = await yahooFinance.historical(quoteOptions)
-      console.log('yesterdayQuote', yesterdayQuote)
-
-      isMarketOpen = Object.values(yesterdayQuote).some(
-        (quote) => quote.length !== 0
-      )
-    } catch (error) {
-      res.send({
-        content: '資料庫含有無效標的',
-        success: false,
-        errorMessage: error.message
+  try {
+    const tickerRef = await holdingRef.once('value')
+    const holdingsObj = tickerRef.val()
+    if (!holdingsObj) {
+      return res.send({
+        success: true,
+        content: '無標的',
+        errorMessage: null,
+        result: null
       })
     }
 
-    backward++
+    const holdingsArray = Object.values(holdingsObj)
+    const { tempTickers, quotePromises } = holdingsArray.reduce(
+      (obj, holding) => {
+        const { ticker, tempTicker } = Object.values(holding)[0]
+        const quoteOptions = {
+          symbol: ticker,
+          modules: ['price']
+        }
+        const quotePromises = yahooFinance.quote(quoteOptions)
+
+        obj.tempTickers.push(tempTicker)
+        obj.quotePromises.push(quotePromises)
+        return obj
+      },
+      {
+        tempTickers: [],
+        quotePromises: []
+      }
+    )
+
+    const quoteResult = await Promise.allSettled(quotePromises)
+    const latestQuotes = quoteResult.map((item) => {
+      const {
+        regularMarketPrice: close,
+        regularMarketPreviousClose: previousClose,
+        regularMarketTime: date,
+        symbol: ticker
+      } = item.value.price
+      return { close, previousClose, date, ticker }
+    })
+
+    const holdingsTradeInfo = getHoldingsTradeInfo(holdingsArray, tempTickers)
+    const holdingsTotalInfo = getHoldingsTotalInfo(
+      holdingsTradeInfo,
+      latestQuotes,
+      tempTickers
+    )
+
+    const msg = {
+      success: true,
+      content: '成功獲得所有標的',
+      errorMessage: null,
+      result: holdingsTotalInfo || null
+    }
+
+    res.send(msg)
+  } catch (error) {
+    const msg = {
+      success: false,
+      content: '獲得標的失敗',
+      errorMessage: error.message,
+      result: null
+    }
+
+    res.send(msg)
   }
-
-  const holdingsTradeInfo = getHoldingsTradeInfo(holdings)
-  const holdingsTotalInfo = getHoldingsTotalInfo(
-    tickers,
-    yesterdayQuote,
-    holdingsTradeInfo
-  )
-
-  const msg = {
-    success: true,
-    content: '成功獲得所有標的',
-    errorMessage: null,
-    result: holdingsTotalInfo || {}
-  }
-
-  res.send(msg)
 })
 
 router.get('/getHolding/:ticker', async (req, res) => {
@@ -208,18 +224,29 @@ router.post('/checkTicker', (req, res) => {
 })
 
 router.post('/addStock', async (req, res) => {
-  let message = {}
-  const { ticker, cost, shares, date } = req.body
+  const { ticker, tempTicker, cost, shares, date } = req.body
 
-  const stockInfo = holdingRef.child(ticker).push()
-  stockInfo.set({ cost, shares, date })
-  message = {
-    success: true,
-    content: '標的新增成功',
-    errorMessage: null,
-    result: { ticker, cost, shares }
+  console.log('req.body', req.body)
+
+  try {
+    const stockInfo = holdingRef.child(tempTicker).push()
+    stockInfo.set({ ticker, tempTicker, cost, shares, date })
+    const message = {
+      success: true,
+      content: '標的新增成功',
+      errorMessage: null,
+      result: { ticker, tempTicker, cost, shares, date }
+    }
+    res.send(message)
+  } catch (error) {
+    const message = {
+      success: true,
+      content: '標的新增失敗',
+      errorMessage: error.message,
+      result: null
+    }
+    res.send(message)
   }
-  res.send(message)
 
   // const checkTickerValid = yahooFinance.quote(ticker, ['summaryProfile'])
 

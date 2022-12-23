@@ -1,22 +1,21 @@
 // const parseFloatByDecimal = require('../tools/parseFloatByDecimal')
 
-const getHoldingsTradeInfo = (holdings) => {
+const getHoldingsTradeInfo = (holdingsArray, tempTickers) => {
   let holdingsTradeInfo = {}
 
-  const holdingsArray = Object.entries(holdings)
   for (let i = 0; i < holdingsArray.length; i++) {
-    const stock = holdingsArray[i]
-    const [ticker, tradeDetails] = stock
+    const tempTicker = tempTickers[i]
+    const tradeDetails = holdingsArray[i]
     let totalCost = 0
     let totalShares = 0
 
-    for (let uid in tradeDetails) {
+    for (const uid in tradeDetails) {
       const trade = tradeDetails[uid]
       totalCost += parseFloat(trade.cost) * parseFloat(trade.shares)
       totalShares += parseFloat(trade.shares)
     }
 
-    holdingsTradeInfo[ticker] = {
+    holdingsTradeInfo[tempTicker] = {
       totalCost,
       totalShares,
       averageCost: parseFloat((totalCost / totalShares).toFixed(2))

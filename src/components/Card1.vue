@@ -84,7 +84,7 @@ export default {
       return Object.values(holdings)
         .map((item) => {
           const obj = {};
-          obj.ticker = item.symbol;
+          obj.ticker = item.ticker;
           obj.profitOrLossPercentage = item.profitOrLossPercentage;
           return obj;
         })

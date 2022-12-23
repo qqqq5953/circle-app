@@ -39,10 +39,13 @@
     <section class="mt-5 px-4 md:px-0 lg:px-4">
       <h2 class="font-semibold text-lg mb-4">Holdings</h2>
 
-      <button @click="toggleModal($event, true)">open</button>
+      <button @click="toggleModal(true)">open</button>
+      <br />
+      isModalOpen:{{ isModalOpen }}
       <Teleport to="body">
         <InputModal
-          v-if="isModalOpen"
+          :isFullPage="true"
+          :isOpen="isModalOpen"
           :closeFunc="toggleModal"
           :confirmFunc="addStock"
           :isDisabled="!isAllValid"
@@ -114,9 +117,10 @@ import TableSkeleton from "@/components/skeleton/TableSkeleton.vue";
 import InputSkeleton from "@/components/skeleton/InputSkeleton.vue";
 import NewAdding from "@/components/NewAdding.vue";
 
-import { ref, defineAsyncComponent } from "vue";
+import { ref, defineAsyncComponent, computed } from "vue";
 import useHoldingStore from "@/stores/holdingStore.js";
 import { storeToRefs } from "pinia";
+import http from "../api/index";
 
 export default {
   components: {
@@ -144,10 +148,57 @@ export default {
       error,
       loading,
       lastMarketOpenDate,
-      isAllValid,
+      stock,
+      inputValidity,
     } = storeToRefs($store);
 
-    const { addStock, toggleModal } = $store;
+    const { toggleModal, toggleSkeleton, activateToast } = $store;
+
+    const isAllValid = computed(() =>
+      Object.values(inputValidity.value).every((item) => !!item)
+    );
+
+    const addStock = async () => {
+      if (!isAllValid.value) return;
+
+      toggleModal(false);
+      toggleSkeleton(true);
+
+      try {
+        const stockObj = {
+          ...stock.value,
+          ticker: stock.value.ticker,
+          tempTicker: stock.value.tempTicker.toUpperCase(),
+        };
+
+        console.log("stockObj", stockObj);
+
+        const res = await http.post(`/api/addStock`, stockObj);
+
+        await updateHoldings(res.data, res.data.errorMessage);
+      } catch (error) {
+        console.log("addStock error", error);
+      }
+    };
+
+    const updateHoldings = async (newData, errorMessage) => {
+      console.log("updateHoldings newData", newData);
+
+      if (newData.success) {
+        try {
+          const res = await http.get(`/api/getHoldings`);
+          console.log("res", res);
+
+          data.value = res.data;
+          toggleSkeleton(false);
+          activateToast(newData);
+        } catch (error) {
+          console.log("updateHoldings error", error);
+        }
+      } else {
+        activateToast(errorMessage);
+      }
+    };
 
     const stockToBeTraded = ref("");
     const tickerRef = ref(null);

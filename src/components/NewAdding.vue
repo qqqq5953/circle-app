@@ -44,24 +44,6 @@
       @input="stock.shares = $event.target.value"
       @getInputValidity="getInputValidity"
     />
-
-    <!-- <button
-      type="button"
-      class="
-        px-4
-        py-3
-        rounded-full
-        text-center
-        border
-        disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed
-      "
-      :disabled="!isAllValid"
-      @click="addStock"
-    >
-      add
-    </button> -->
-
-    isAllValid:{{ isAllValid }}
   </div>
 </template>
 
@@ -87,26 +69,27 @@ export default {
     SearchList,
     TickerInfo,
   },
-  setup(_, { emit }) {
+  setup() {
     const $watchlistStore = useWatchlistStore();
     const { isFocus, searchList, isSearchListLoading } =
       storeToRefs($watchlistStore);
 
     const $holdingStore = useHoldingStore();
-    const { stock, inputValidity, isAllValid } = storeToRefs($holdingStore);
-    const { activateToast, updateHoldings, toggleSkeleton } = $holdingStore;
+    const { stock, inputValidity } = storeToRefs($holdingStore);
 
     const inputCostRef = ref(null);
     const stockLists = ref([]);
 
     const selectTicker = (ticker) => {
-      inputCostRef.value.$refs.costRef.focus();
+      const [tickerInfo] = searchList.value;
       stock.value.ticker = ticker;
+      stock.value.tempTicker = tickerInfo.tempTicker;
+      inputCostRef.value.$refs.costRef.focus();
 
       if (stockLists.value.length) {
         stockLists.value.pop();
       }
-      stockLists.value.push(...searchList.value);
+      stockLists.value.push(tickerInfo);
 
       getInputValidity({ name: "ticker", validity: true });
     };
@@ -116,52 +99,10 @@ export default {
       inputValidity.value[name] = validity;
     };
 
-    // const addStock = async () => {
-    //   if (!isAllValid.value) return;
-
-    //   emit("closeModal");
-    //   toggleSkeleton(true);
-
-    //   try {
-    //     const stockObj = {
-    //       ...stock.value,
-    //       ticker: stock.value.ticker.toUpperCase(),
-    //     };
-
-    //     const res = await http.post(`/api/addStock`, stockObj);
-    //     console.log("addStock res", res);
-
-    //     await updateHoldings(res.data, res.data.errorMessage);
-    //   } catch (error) {
-    //     console.log("addStock error", error);
-    //   }
-    // };
-
-    // const updateHoldings = async (newData, errorMessage) => {
-    //   console.log("updateHoldings newData", newData);
-    //   console.log("updateHoldings errorMessage", errorMessage);
-
-    //   if (newData.success) {
-    //     try {
-    //       const res = await http.get(`/api/getHoldings`);
-
-    //       updateHoldings(res.data);
-    //       toggleSkeleton(false);
-    //       activateToast(newData);
-    //     } catch (error) {
-    //       console.log("updateHoldings error", error);
-    //     }
-    //   } else {
-    //     activateToast(errorMessage);
-    //   }
-    // };
-
     return {
-      // addStock,
       stock,
 
       getInputValidity,
-      isAllValid,
 
       searchList,
       isSearchListLoading,

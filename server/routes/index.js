@@ -9,7 +9,7 @@ const watchlistRef = firebaseDb.ref('/watchlist/')
 const tabsRef = firebaseDb.ref('/tabs/')
 
 const getHoldingsTradeInfo = require('../actions/getHoldingsTradeInfo')
-const getHoldingsTotalInfo = require('../actions/getHoldingsTotalInfo')
+const getLatestQuotes = require('../actions/getLatestQuotes')
 const getFormattedDate = require('../tools/getFormattedDate')
 
 /* GET home page. */
@@ -74,6 +74,123 @@ router.get('/quote/:ticker', async (req, res) => {
   }
 })
 
+router.get('/getHoldings', async (req, res) => {
+  try {
+    const tickerRef = await holdingRef.once('value')
+    const holdingsObj = tickerRef.val()
+    if (!holdingsObj) {
+      return res.send({
+        success: true,
+        content: '無標的',
+        errorMessage: null,
+        result: null
+      })
+    }
+
+    const holdingsArray = Object.values(holdingsObj)
+
+    const latestQuotes = await getLatestQuotes(
+      holdingsArray,
+      holdingRef,
+      yahooFinance
+    )
+
+    const holdingsTradeInfo = getHoldingsTradeInfo(holdingsArray, latestQuotes)
+
+    const msg = {
+      success: true,
+      content: '成功獲得所有標的',
+      errorMessage: null,
+      result: holdingsTradeInfo || null
+    }
+
+    res.send(msg)
+  } catch (error) {
+    const msg = {
+      success: false,
+      content: '獲得標的失敗',
+      errorMessage: error.message,
+      result: null
+    }
+
+    res.send(msg)
+  }
+})
+
+router.post('/addStock', async (req, res) => {
+  console.log('req.body', req.body)
+  const { previousCloseChange, previousCloseChangePercent, price, ...rest } =
+    req.body
+
+  const {
+    style,
+    name,
+    marketState,
+    code,
+    regularMarketTime,
+    tempTicker,
+    ticker,
+    ...tradeInfo
+  } = rest
+
+  try {
+    const latestInfo = holdingRef.child(tempTicker).child('latestInfo').set({
+      close: price,
+      style,
+      name,
+      marketState,
+      code,
+      regularMarketTime,
+      tempTicker,
+      ticker
+    })
+
+    const stockInfo = holdingRef.child(tempTicker).child('trade').push()
+    const id = stockInfo.key
+
+    stockInfo.set({ ...tradeInfo, id })
+
+    const message = {
+      success: true,
+      content: '標的新增成功',
+      errorMessage: null,
+      result: { latestInfo, stockInfo }
+    }
+    res.send(message)
+  } catch (error) {
+    const message = {
+      success: true,
+      content: '標的新增失敗',
+      errorMessage: error.message,
+      result: null
+    }
+    res.send(message)
+  }
+
+  // const checkTickerValid = yahooFinance.quote(ticker, ['summaryProfile'])
+
+  // checkTickerValid
+  //   .then(() => {
+  //     const stockInfo = holdingRef.child(ticker).push()
+  //     stockInfo.set({ cost, shares, date })
+  //     message = {
+  //       success: true,
+  //       content: '標的新增成功',
+  //       errorMessage: null
+  //     }
+  //     res.send(message)
+  //   })
+  //   .catch((error) => {
+  //     console.log('error', error)
+  //     message = {
+  //       success: false,
+  //       content: '無此標的',
+  //       errorMessage: error.message
+  //     }
+  //     res.send(message)
+  //   })
+})
+
 router.get('/historicalHolding/:period/:from/:to', async (req, res) => {
   const tickerRef = await holdingRef.once('value')
   const currentHoldings = tickerRef.val()
@@ -110,77 +227,6 @@ router.get('/historicalHolding/:period/:from/:to', async (req, res) => {
     res.send(historicalQuote)
   } catch (err) {
     console.log('err', err.message)
-  }
-})
-
-router.get('/getHoldings', async (req, res) => {
-  try {
-    const tickerRef = await holdingRef.once('value')
-    const holdingsObj = tickerRef.val()
-    if (!holdingsObj) {
-      return res.send({
-        success: true,
-        content: '無標的',
-        errorMessage: null,
-        result: null
-      })
-    }
-
-    const holdingsArray = Object.values(holdingsObj)
-    const { tempTickers, quotePromises } = holdingsArray.reduce(
-      (obj, holding) => {
-        const { ticker, tempTicker } = Object.values(holding)[0]
-        const quoteOptions = {
-          symbol: ticker,
-          modules: ['price']
-        }
-        const quotePromises = yahooFinance.quote(quoteOptions)
-
-        obj.tempTickers.push(tempTicker)
-        obj.quotePromises.push(quotePromises)
-        return obj
-      },
-      {
-        tempTickers: [],
-        quotePromises: []
-      }
-    )
-
-    const quoteResult = await Promise.allSettled(quotePromises)
-    const latestQuotes = quoteResult.map((item) => {
-      const {
-        regularMarketPrice: close,
-        regularMarketPreviousClose: previousClose,
-        regularMarketTime: date,
-        symbol: ticker
-      } = item.value.price
-      return { close, previousClose, date, ticker }
-    })
-
-    const holdingsTradeInfo = getHoldingsTradeInfo(holdingsArray, tempTickers)
-    const holdingsTotalInfo = getHoldingsTotalInfo(
-      holdingsTradeInfo,
-      latestQuotes,
-      tempTickers
-    )
-
-    const msg = {
-      success: true,
-      content: '成功獲得所有標的',
-      errorMessage: null,
-      result: holdingsTotalInfo || null
-    }
-
-    res.send(msg)
-  } catch (error) {
-    const msg = {
-      success: false,
-      content: '獲得標的失敗',
-      errorMessage: error.message,
-      result: null
-    }
-
-    res.send(msg)
   }
 })
 
@@ -221,55 +267,6 @@ router.post('/checkTicker', (req, res) => {
         ticker
       })
     })
-})
-
-router.post('/addStock', async (req, res) => {
-  const { ticker, tempTicker, cost, shares, date } = req.body
-
-  console.log('req.body', req.body)
-
-  try {
-    const stockInfo = holdingRef.child(tempTicker).push()
-    stockInfo.set({ ticker, tempTicker, cost, shares, date })
-    const message = {
-      success: true,
-      content: '標的新增成功',
-      errorMessage: null,
-      result: { ticker, tempTicker, cost, shares, date }
-    }
-    res.send(message)
-  } catch (error) {
-    const message = {
-      success: true,
-      content: '標的新增失敗',
-      errorMessage: error.message,
-      result: null
-    }
-    res.send(message)
-  }
-
-  // const checkTickerValid = yahooFinance.quote(ticker, ['summaryProfile'])
-
-  // checkTickerValid
-  //   .then(() => {
-  //     const stockInfo = holdingRef.child(ticker).push()
-  //     stockInfo.set({ cost, shares, date })
-  //     message = {
-  //       success: true,
-  //       content: '標的新增成功',
-  //       errorMessage: null
-  //     }
-  //     res.send(message)
-  //   })
-  //   .catch((error) => {
-  //     console.log('error', error)
-  //     message = {
-  //       success: false,
-  //       content: '無此標的',
-  //       errorMessage: error.message
-  //     }
-  //     res.send(message)
-  //   })
 })
 
 // WATCHLIST PAGE

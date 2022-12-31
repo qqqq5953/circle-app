@@ -1,44 +1,46 @@
-// const parseFloatByDecimal = require('../tools/parseFloatByDecimal')
+const parseFloatByDecimal = require('../tools/parseFloatByDecimal')
 
-const getHoldingsTradeInfo = (holdingsArray, tempTickers) => {
-  let holdingsTradeInfo = {}
+const getHoldingsTradeInfo = (holdingsArray, latestQuotes) => {
+  const holdingsTradeInfo = {}
 
   for (let i = 0; i < holdingsArray.length; i++) {
-    const tempTicker = tempTickers[i]
-    const tradeDetails = holdingsArray[i]
-    let totalCost = 0
-    let totalShares = 0
+    const { latestInfo, trade: tickerTradeInfo } = holdingsArray[i]
+    const tempTicker = latestInfo.tempTicker
+    const close = latestQuotes[i].close
 
-    for (const uid in tradeDetails) {
-      const trade = tradeDetails[uid]
-      totalCost += parseFloat(trade.cost) * parseFloat(trade.shares)
-      totalShares += parseFloat(trade.shares)
-    }
+    const { totalCost, totalShares } = Object.values(tickerTradeInfo).reduce(
+      (obj, trade) => {
+        obj.totalCost += parseFloat(trade.cost) * parseFloat(trade.shares)
+        obj.totalShares += parseFloat(trade.shares)
+
+        return obj
+      },
+      { totalCost: 0, totalShares: 0 }
+    )
+
+    const averageCost = parseFloatByDecimal(totalCost / totalShares, 2)
+    const profitOrLossPercentage = parseFloatByDecimal(
+      ((close - averageCost) * 100) / close,
+      2
+    )
+    const profitOrLossValue = parseFloatByDecimal(
+      (close - averageCost) * totalShares,
+      2
+    )
 
     holdingsTradeInfo[tempTicker] = {
-      totalCost,
-      totalShares,
-      averageCost: parseFloat((totalCost / totalShares).toFixed(2))
+      latestInfo,
+      trade: {
+        close,
+        totalCost,
+        totalShares,
+        averageCost,
+        profitOrLossPercentage,
+        profitOrLossValue
+      }
     }
   }
 
-  // Object.entries(holdings).forEach((stock) => {
-  //   const [ticker, tradeDetails] = stock
-  //   let totalCost = 0
-  //   let totalShares = 0
-
-  //   for (let uid in tradeDetails) {
-  //     const trade = tradeDetails[uid]
-  //     totalCost += parseFloat(trade.cost) * parseFloat(trade.shares)
-  //     totalShares += parseFloat(trade.shares)
-  //   }
-
-  //   holdingsTradeInfo[ticker] = {
-  //     totalCost,
-  //     totalShares,
-  //     averageCost: parseFloatByDecimal(totalCost / totalShares, 2)
-  //   }
-  // })
   return holdingsTradeInfo
 }
 

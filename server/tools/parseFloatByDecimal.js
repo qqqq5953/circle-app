@@ -1,5 +1,5 @@
 const parseFloatByDecimal = (float, decimal) => {
-  return parseFloat(float.toFixed(decimal))
+  return decimal ? parseFloat(float.toFixed(decimal)) : parseFloat(float)
 }
 
 module.exports = parseFloatByDecimal

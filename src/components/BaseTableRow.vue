@@ -38,35 +38,14 @@
       />
     </th>
     <td
-      class="
-        border-t-0 border-x-0
-        py-3
-        sm:py-3.5
-        px-0
-        lg:px-3
-        text-xs text-center
-        w-[12.5%]
-        lg:w-auto
-      "
+      class="watchlistTable-table-cell lg:px-3 text-center w-[12.5%] lg:w-auto"
     >
       <span>{{ item.price }}</span>
     </td>
-    <td
-      class="
-        border-t-0 border-x-0
-        py-3
-        sm:py-3.5
-        px-0
-        lg:px-6
-        text-xs
-        font-medium
-        w-3/12
-        xl:w-auto
-      "
-    >
+    <td class="watchlistTable-table-cell lg:px-6 font-medium w-3/12 xl:w-auto">
       <div class="flex m-auto">
         <div
-          class="flex items-center gap-2 m-auto px-3 py-2 rounded font-medium"
+          class="flex items-center gap-2 m-auto px-3 py-2 rounded"
           :class="
             item.previousCloseChange > 0
               ? 'text-red-600 bg-red-100/70'
@@ -94,11 +73,8 @@
     </td>
     <td
       class="
-        border-t-0 border-x-0
-        py-3
-        sm:py-3.5
-        px-0
-        text-xs text-center
+        watchlistTable-table-cell
+        text-center
         hidden
         lg:table-cell lg:w-auto
         font-medium

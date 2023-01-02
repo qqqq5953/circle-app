@@ -136,7 +136,7 @@
                 pt-5
                 pb-0
                 text-xs text-center
-                sm:pr-0 sm:pl-4 sm:py-3.5 sm:w-1/5
+                sm:table-cell sm:pr-0 sm:pl-4 sm:py-3.5 sm:w-1/5
               "
             >
               <p class="ticker-badge mx-auto" :class="item.latestInfo.style">
@@ -146,13 +146,13 @@
             <!-- Profit / Loss -->
             <td
               class="
+                holdingTable-table-cell
+                sm:table-cell
+                border-b border-gray-100
+                sm:border-0
                 flex
                 items-center
-                px-4
-                pt-5
-                pb-0
-                border-b border-gray-100
-                sm:px-0 sm:py-3.5 sm:border-0 sm:table-cell sm:w-1/4
+                sm:w-1/4
               "
             >
               <span class="sm:hidden font-semibold mr-2 text-xs">P / L:</span>
@@ -216,16 +216,14 @@
             <!-- Price -->
             <td
               class="
-                px-4
-                pt-5
-                pb-0
-                sm:px-0 sm:py-3.5
+                holdingTable-table-cell
+                sm:table-cell
+                text-xs
                 border-b border-gray-100
                 sm:border-0
-                text-xs
                 flex
                 items-center
-                sm:table-cell sm:w-[13%]
+                sm:w-[13%]
               "
             >
               <span class="sm:hidden font-semibold mr-2">Price:</span>
@@ -236,16 +234,14 @@
             <!-- Avg. Cost -->
             <td
               class="
-                px-4
-                pt-5
-                pb-0
-                sm:px-0 sm:py-3.5
+                holdingTable-table-cell
+                sm:table-cell
+                text-xs
                 border-b border-gray-100
                 sm:border-0
-                text-xs
                 flex
                 items-center
-                sm:table-cell sm:w-[15%]
+                sm:w-[15%]
               "
             >
               <span class="sm:hidden font-semibold mr-2">Average Cost:</span>
@@ -256,16 +252,14 @@
             <!-- Shares -->
             <td
               class="
-                px-4
-                pt-5
-                pb-0
-                sm:px-0 sm:py-3.5
+                holdingTable-table-cell
+                sm:table-cell
+                text-xs
                 border-b border-gray-100
                 sm:border-0
-                text-xs
                 flex
                 items-center
-                sm:table-cell sm:w-[13%]
+                sm:w-[13%]
               "
             >
               <span class="sm:hidden font-semibold mr-2">Share:</span>
@@ -275,15 +269,12 @@
             </td>
             <td
               class="
-                px-4
-                pt-5
-                pb-0
-                sm:pl-0 sm:py-3.5
+                holdingTable-table-cell
+                text-xs
                 block
                 sm:table-cell
                 md:hidden
-                lg:block
-                text-xs
+                lg:table-cell
                 sm:w-[14%]
               "
             >
@@ -296,6 +287,7 @@
                   py-1
                   hover:bg-blue-900 hover:text-white
                   ml-auto
+                  sm:mx-auto
                   block
                 "
                 @click="openTradeModal(item.trade.ticker)"

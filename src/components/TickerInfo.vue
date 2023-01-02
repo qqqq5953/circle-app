@@ -10,17 +10,7 @@
         :toStockInfo="toStockInfo"
       >
         <template #optional-td="{ ticker }" v-if="hasOptionalTd">
-          <td
-            class="
-              border-t-0 border-x-0
-              py-3
-              sm:py-4
-              pr-3
-              lg:pr-4
-              text-xs text-center
-              w-1/12
-            "
-          >
+          <td class="watchlistTable-table-cell pr-3 lg:pr-4 text-center w-1/12">
             <slot name="action-btn" :ticker="`${ticker}`"></slot>
           </td>
         </template>

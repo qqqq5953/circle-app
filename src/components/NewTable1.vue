@@ -139,18 +139,7 @@
                 sm:pr-0 sm:pl-4 sm:py-3.5 sm:w-1/5
               "
             >
-              <p
-                class="
-                  uppercase
-                  max-w-[85px]
-                  p-1
-                  rounded-full
-                  text-white text-center
-                  font-semibold
-                  mx-auto
-                "
-                :class="item.latestInfo.style"
-              >
+              <p class="ticker-badge mx-auto" :class="item.latestInfo.style">
                 {{ item.latestInfo.ticker }}
               </p>
             </th>

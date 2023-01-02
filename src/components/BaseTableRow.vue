@@ -150,15 +150,7 @@ const TickerAndName = (props) => {
   const Ticker = h(
     "p",
     {
-      class: `md:w-2/5
-            max-w-[85px]
-            px-1
-            py-1
-            shrink-0
-            rounded-full
-            text-white text-center
-            font-semibold
-            uppercase ${props.style}`,
+      class: `md:w-2/5 ticker-badge ${props.style}`,
       style: props.ticker.length >= 9 ? "font-size:10px" : null,
     },
     props.ticker

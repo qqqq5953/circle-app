@@ -1,5 +1,9 @@
 @tailwind base;
-
 @tailwind components;
-
 @tailwind utilities;
+
+@layer components {
+  .ticker-badge {
+    @apply uppercase max-w-[85px] p-1 rounded-full text-white text-center text-xs font-semibold;
+  }
+}

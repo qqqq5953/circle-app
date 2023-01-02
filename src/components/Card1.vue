@@ -17,18 +17,7 @@
     <!-- card-header -->
     <div class="flex flex-wrap">
       <div class="flex-1">
-        <p
-          class="
-            uppercase
-            max-w-[85px]
-            p-1
-            rounded-full
-            text-white text-center text-xs
-            font-semibold
-            mb-2
-          "
-          :class="item.style"
-        >
+        <p class="ticker-badge mb-2" :class="item.style">
           {{ item.ticker }}
         </p>
         <span

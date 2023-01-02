@@ -51,6 +51,7 @@
                 font-semibold
                 text-xs text-center
                 sm:w-1/5
+                lg:w-1/4
               "
             >
               Stocks
@@ -67,6 +68,7 @@
                 font-semibold
                 text-center
                 sm:w-1/4
+                lg:w-1/5
               "
             >
               Profit / Loss
@@ -115,11 +117,12 @@
                 font-semibold
                 text-center
                 sm:w-[13%]
+                lg:w-[10%]
               "
             >
               Shares
             </th>
-            <th class="px-4 py-3 md:hidden lg:block sm:w-[14%]"></th>
+            <th class="px-4 py-3 md:hidden lg:block sm:w-[14%] lg:w-[12%]"></th>
           </tr>
         </thead>
         <tbody>
@@ -135,13 +138,29 @@
                 pr-6
                 pt-5
                 pb-0
-                text-xs text-center
-                sm:table-cell sm:pr-0 sm:pl-4 sm:py-3.5 sm:w-1/5
+                sm:pr-0 sm:pl-4 sm:py-3.5
+                text-xs
+                sm:table-cell
               "
             >
-              <p class="ticker-badge mx-auto" :class="item.latestInfo.style">
-                {{ item.latestInfo.ticker }}
-              </p>
+              <div class="flex flex-col gap-y-2">
+                <p
+                  class="ticker-badge mx-auto lg:mx-0"
+                  :class="item.latestInfo.style"
+                >
+                  {{ item.latestInfo.ticker }}
+                </p>
+                <p
+                  class="
+                    sm:hidden
+                    lg:block
+                    break-words
+                    lg:break-normal lg:truncate lg:text-left
+                  "
+                >
+                  {{ item.latestInfo.name }}
+                </p>
+              </div>
             </th>
             <!-- Profit / Loss -->
             <td
@@ -152,7 +171,6 @@
                 sm:border-0
                 flex
                 items-center
-                sm:w-1/4
               "
             >
               <span class="sm:hidden font-semibold mr-2 text-xs">P / L:</span>
@@ -223,7 +241,6 @@
                 sm:border-0
                 flex
                 items-center
-                sm:w-[13%]
               "
             >
               <span class="sm:hidden font-semibold mr-2">Price:</span>
@@ -241,7 +258,6 @@
                 sm:border-0
                 flex
                 items-center
-                sm:w-[15%]
               "
             >
               <span class="sm:hidden font-semibold mr-2">Average Cost:</span>
@@ -259,7 +275,6 @@
                 sm:border-0
                 flex
                 items-center
-                sm:w-[13%]
               "
             >
               <span class="sm:hidden font-semibold mr-2">Share:</span>

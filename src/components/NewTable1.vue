@@ -139,76 +139,89 @@
                 sm:pr-0 sm:pl-4 sm:py-3.5 sm:w-1/5
               "
             >
-              <div
+              <p
                 class="
-                  mx-auto
+                  uppercase
                   max-w-[85px]
-                  px-1
-                  py-1
-                  shrink-0
+                  p-1
                   rounded-full
                   text-white text-center
                   font-semibold
-                  uppercase
+                  mx-auto
                 "
                 :class="item.latestInfo.style"
               >
                 {{ item.latestInfo.ticker }}
-              </div>
+              </p>
             </th>
             <!-- Profit / Loss -->
             <td
               class="
+                flex
+                items-center
                 px-4
                 pt-5
                 pb-0
-                sm:px-0 sm:py-3.5
                 border-b border-gray-100
-                sm:border-0
-                text-xs
-                flex
-                items-center
-                sm:table-cell sm:w-1/4
+                sm:px-0 sm:py-3.5 sm:border-0 sm:table-cell sm:w-1/4
               "
             >
-              <span class="sm:hidden font-semibold mr-2">P / L:</span>
-              <div class="ml-auto text-right sm:text-center">
-                <span
-                  class="inline-block px-2 py-1 rounded"
+              <span class="sm:hidden font-semibold mr-2 text-xs">P / L:</span>
+              <div class="ml-auto sm:ml-0 text-right sm:text-center">
+                <div
+                  class="
+                    inline-block
+                    sm:px-3 sm:py-2 sm:rounded
+                    font-semibold
+                    sm:font-medium sm:text-xs
+                  "
                   :class="
                     item.trade.profitOrLossPercentage > 0
-                      ? 'text-red-600 bg-red-100/70'
+                      ? 'text-red-600 sm:bg-red-100/70'
                       : item.trade.profitOrLossPercentage < 0
-                      ? 'text-green-700 bg-green-100'
-                      : 'text-slate-500 bg-slate-200'
+                      ? 'text-green-700 sm:bg-green-100'
+                      : 'text-slate-500 sm:bg-slate-200'
                   "
                 >
                   <span v-if="item.trade.profitOrLossPercentage !== 0">
                     <i
-                      class="fas fa-arrow-up mr-1 text-red-600"
+                      class="fas fa-arrow-up text-red-600"
                       v-if="item.trade.profitOrLossPercentage > 0"
                     ></i>
                     <i
-                      class="fas fa-arrow-down mr-1 text-green-700"
+                      class="fas fa-arrow-down text-green-700"
                       v-else-if="item.trade.profitOrLossPercentage < 0"
                     ></i>
                   </span>
                   <span v-else>--</span>
-                  {{ item.trade.profitOrLossPercentage }} %
-                </span>
-                <p
-                  class="mt-1"
+                  <span class="ml-1.5"
+                    >{{
+                      item.trade.profitOrLossPercentage < 0
+                        ? item.trade.profitOrLossPercentage * -1
+                        : item.trade.profitOrLossPercentage
+                    }}
+                    %</span
+                  >
+                </div>
+                <div
+                  class="mt-1 text-xs"
                   :class="
-                    item.trade.profitOrLossPercentage > 0
+                    item.trade.profitOrLossValue > 0
                       ? 'text-red-600'
-                      : item.trade.profitOrLossPercentage < 0
+                      : item.trade.profitOrLossValue < 0
                       ? 'text-green-700'
                       : 'text-slate-500'
                   "
                 >
-                  <span class="mr-px">$</span>
-                  <span>{{ item.trade.profitOrLossValue }}</span>
-                </p>
+                  <div v-if="item.trade.profitOrLossValue >= 0">
+                    <span class="mr-px">$</span>
+                    <span>{{ item.trade.profitOrLossValue }}</span>
+                  </div>
+                  <div v-else>
+                    <span class="mr-px">-$</span>
+                    <span>{{ item.trade.profitOrLossValue * -1 }}</span>
+                  </div>
+                </div>
               </div>
             </td>
             <!-- Price -->

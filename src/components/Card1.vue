@@ -17,11 +17,66 @@
     <!-- card-header -->
     <div class="flex flex-wrap">
       <div class="flex-1">
-        <h5 class="uppercase font-bold text-sm">
+        <p
+          class="
+            uppercase
+            max-w-[85px]
+            p-1
+            rounded-full
+            text-white text-center text-xs
+            font-semibold
+            mb-2
+          "
+          :class="item.style"
+        >
           {{ item.ticker }}
-        </h5>
-        <span class="font-semibold text-xl text-blueGray-700">
-          {{ item.profitOrLossPercentage }} %
+        </p>
+        <span
+          class="font-semibold px-2 py-1 rounded"
+          :class="
+            item.profitOrLossPercentage > 0
+              ? 'text-red-600'
+              : item.profitOrLossPercentage < 0
+              ? 'text-green-700'
+              : 'text-slate-500'
+          "
+        >
+          <span v-if="item.profitOrLossPercentage !== 0">
+            <i
+              class="fas fa-arrow-up mr-px text-red-600"
+              v-if="item.profitOrLossPercentage > 0"
+            ></i>
+            <i
+              class="fas fa-arrow-down mr-px text-green-700"
+              v-else-if="item.profitOrLossPercentage < 0"
+            ></i>
+          </span>
+          <span v-else>--</span>
+          {{
+            item.profitOrLossPercentage < 0
+              ? item.profitOrLossPercentage * -1
+              : item.profitOrLossPercentage
+          }}
+          %
+        </span>
+        <span
+          class="text-xs"
+          :class="
+            item.profitOrLossValue > 0
+              ? 'text-red-600'
+              : item.profitOrLossValue < 0
+              ? 'text-green-700'
+              : 'text-slate-500'
+          "
+        >
+          <span v-if="item.profitOrLossValue >= 0">
+            <span class="mr-px">$</span>
+            <span>{{ item.profitOrLossValue }}</span>
+          </span>
+          <span v-else>
+            <span class="mr-px">-$</span>
+            <span>{{ item.profitOrLossValue * -1 }}</span>
+          </span>
         </span>
       </div>
       <div
@@ -35,7 +90,7 @@
           ml-3
           shadow-lg
           rounded-full
-          bg-red-500
+          bg-gray-300
         "
       >
         <i class="far fa-chart-bar"></i>
@@ -86,7 +141,9 @@ export default {
           const { latestInfo, trade } = item;
           return {
             ticker: latestInfo.ticker,
+            style: latestInfo.style,
             profitOrLossPercentage: trade.profitOrLossPercentage,
+            profitOrLossValue: trade.profitOrLossValue,
           };
         })
         .sort((a, b) => {

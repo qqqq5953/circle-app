@@ -83,10 +83,11 @@ export default {
 
       return Object.values(holdings)
         .map((item) => {
-          const obj = {};
-          obj.ticker = item.ticker;
-          obj.profitOrLossPercentage = item.profitOrLossPercentage;
-          return obj;
+          const { latestInfo, trade } = item;
+          return {
+            ticker: latestInfo.ticker,
+            profitOrLossPercentage: trade.profitOrLossPercentage,
+          };
         })
         .sort((a, b) => {
           return b.profitOrLossPercentage - a.profitOrLossPercentage;

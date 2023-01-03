@@ -1,5 +1,5 @@
 <template>
-  <BaseModal :isFullPage="isFullPage" v-if="isOpen">
+  <BaseModal :isFullPage="isFullPage" v-show="isOpen">
     <template #header>
       <h2 class="text-xl lg:text-2xl">
         <slot name="title"></slot>

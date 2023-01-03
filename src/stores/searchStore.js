@@ -70,31 +70,13 @@ const useSearchStore = defineStore('search', () => {
     isFocus.value = focus
   }
 
-  const passDataToSearchList = (tickerObject) => {
-    switch (tickerObject) {
-      case undefined:
-        searchList.value = undefined // 無搜尋結果
-        break
-      case null:
-        searchList.value = null // 輸入不符格式
-        break
-      default:
-        const { code, ticker } = tickerObject
-        const tempTicker =
-          code !== 'us' || code !== 'mf' ? ticker.split('.')[0] : ticker
-
-        searchList.value = [{ ...tickerObject, tempTicker }]
-    }
-  }
-
   return {
     countries,
     searchList,
     isSearchListLoading,
     isFocus,
     toggleSearchListSkeleton,
-    toggleSearchList,
-    passDataToSearchList
+    toggleSearchList
   }
 })
 

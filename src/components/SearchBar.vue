@@ -103,9 +103,8 @@ export default {
   },
   setup() {
     const $store = useSearchStore();
-    const { countries } = storeToRefs($store);
-    const { toggleSearchList, toggleSearchListSkeleton, passDataToSearchList } =
-      $store;
+    const { countries, searchList } = storeToRefs($store);
+    const { toggleSearchList, toggleSearchListSkeleton } = $store;
 
     // countries dropdown
     const searchTickerRef = ref(null);
@@ -159,6 +158,23 @@ export default {
 
       passDataToSearchList(tickerObject);
     });
+
+    const passDataToSearchList = (tickerObject) => {
+      switch (tickerObject) {
+        case undefined:
+          searchList.value = undefined; // 無搜尋結果
+          break;
+        case null:
+          searchList.value = null; // 輸入不符格式
+          break;
+        default:
+          const { code, ticker } = tickerObject;
+          const tempTicker =
+            code !== "us" || code !== "mf" ? ticker.split(".")[0] : ticker;
+
+          searchList.value = [{ ...tickerObject, tempTicker }];
+      }
+    };
 
     const typingResponse = async (newSearch) => {
       const isInputNew = !cacheInput.value.has(newSearch);

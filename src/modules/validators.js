@@ -1,4 +1,4 @@
-const tickerValidation = (isPatternMatch, ref, inputValue) => {
+const tickerValidation = ({ isPatternMatch, ref, inputValue }) => {
   const maxLength = ref.maxLength
 
   // 清空錯誤訊息
@@ -22,7 +22,7 @@ const tickerValidation = (isPatternMatch, ref, inputValue) => {
   return ref.validationMessage
 }
 
-const twoDecimal = (isPatternMatch, ref, inputValue) => {
+const twoDecimal = ({ isPatternMatch, ref, inputValue }) => {
   ref.setCustomValidity('')
 
   if (isPatternMatch) return
@@ -44,19 +44,15 @@ const twoDecimal = (isPatternMatch, ref, inputValue) => {
   return ref.validationMessage
 }
 
-const isEmpty = (isPatternMatch, ref, inputValue) => {
-  // console.log('空值', ref.validity.valueMissing)
-
+const isEmpty = ({ ref, inputValue }) => {
   if (inputValue !== '') return null
-
-  // console.log('required field')
 
   ref.setCustomValidity('required field')
   const validationMessage = ref.validationMessage
   return validationMessage
 }
 
-const isPositive = (isPatternMatch, ref, inputValue) => {
+const isPositive = ({ ref, inputValue }) => {
   if (inputValue <= 0 && inputValue !== '') {
     ref?.setCustomValidity('value must greater than or equal to 0')
     return ref?.validationMessage
@@ -65,4 +61,10 @@ const isPositive = (isPatternMatch, ref, inputValue) => {
   return null
 }
 
-export { tickerValidation, isPositive, isEmpty, twoDecimal }
+const isYYYYMMDD = ({ isPatternMatch, ref }) => {
+  ref.setCustomValidity('')
+  if (!isPatternMatch) ref.setCustomValidity('invalid date')
+  return ref.validationMessage
+}
+
+export { tickerValidation, isPositive, isEmpty, twoDecimal, isYYYYMMDD }

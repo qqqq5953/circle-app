@@ -44,17 +44,23 @@
       @input="stock.shares = $event.target.value"
       @getInputValidity="getInputValidity"
     />
+    <InputDate
+      :modelValue="stock.date"
+      @input="stock.date = $event.target.value"
+      @getInputValidity="getInputValidity"
+    />
   </div>
 </template>
 
 <script>
 import { ref } from "vue";
-import useWatchlistStore from "@/stores/watchlistStore.js";
+import useSearchStore from "@/stores/searchStore.js";
 import useHoldingStore from "@/stores/holdingStore.js";
 import { storeToRefs } from "pinia";
 
 import InputCost from "@/components/forms/InputCost.vue";
 import InputShares from "@/components/forms/InputShares.vue";
+import InputDate from "@/components/forms/InputDate.vue";
 import ListSkeleton from "@/components/skeleton/ListSkeleton.vue";
 import SearchBar from "@/components/SearchBar.vue";
 import SearchList from "@/components/SearchList.vue";
@@ -64,15 +70,16 @@ export default {
   components: {
     InputCost,
     InputShares,
+    InputDate,
     ListSkeleton,
     SearchBar,
     SearchList,
     TickerInfo,
   },
   setup() {
-    const $watchlistStore = useWatchlistStore();
-    const { isFocus, searchList, isSearchListLoading } =
-      storeToRefs($watchlistStore);
+    const $searchStore = useSearchStore();
+    const { searchList, isFocus, isSearchListLoading } =
+      storeToRefs($searchStore);
 
     const $holdingStore = useHoldingStore();
     const { stock, inputValidity } = storeToRefs($holdingStore);
@@ -80,10 +87,13 @@ export default {
     const inputCostRef = ref(null);
     const stockLists = ref([]);
 
-    const selectTicker = (ticker) => {
+    const selectTicker = () => {
       const [tickerInfo] = searchList.value;
-      stock.value.ticker = ticker;
-      stock.value.tempTicker = tickerInfo.tempTicker;
+      stock.value = {
+        ...stock.value,
+        ...tickerInfo,
+      };
+
       inputCostRef.value.$refs.costRef.focus();
 
       if (stockLists.value.length) {
@@ -101,7 +111,6 @@ export default {
 
     return {
       stock,
-
       getInputValidity,
 
       searchList,

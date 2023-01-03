@@ -3,12 +3,17 @@ import { ref, computed } from 'vue'
 import useAxios from '@/composables/useAxios.js'
 
 const useHoldingStore = defineStore('holding', () => {
+  const today = computed(() => {
+    return new Date().toISOString().split('T')[0]
+  })
+
   const stock = ref({
     ticker: null,
     tempTicker: null,
     cost: null,
     shares: null,
-    date: Date.now()
+    style: null,
+    date: today.value
   })
 
   const inputValidity = ref({
@@ -28,15 +33,12 @@ const useHoldingStore = defineStore('holding', () => {
     // console.log("data.value", data.value);
     // console.log("error.value", error.value);
     // console.log("loading.value", loading.value);
-
-    if (!data.value?.result) return
-
-    const tickers = []
-    for (let ticker in data.value?.result) {
-      tickers.push(ticker)
-    }
-
-    return data.value?.result[tickers[0]].date.slice(0, 10)
+    // if (!data.value?.result) return
+    // const tickers = []
+    // for (let ticker in data.value?.result) {
+    //   tickers.push(ticker)
+    // }
+    // return data.value?.result[tickers[0]].date.slice(0, 10)
   })
 
   const toastMessage = ref(null)
@@ -63,6 +65,7 @@ const useHoldingStore = defineStore('holding', () => {
     loading,
     lastMarketOpenDate,
     inputValidity,
+    today,
     toggleModal,
     activateToast,
     toggleSkeleton

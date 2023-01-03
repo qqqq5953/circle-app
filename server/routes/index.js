@@ -144,11 +144,13 @@ router.post('/addStock', async (req, res) => {
       tempTicker,
       ticker
     })
-
     const stockInfo = holdingRef.child(tempTicker).child('trade').push()
-    const id = stockInfo.key
 
-    stockInfo.set({ ...tradeInfo, id })
+    const id = stockInfo.key
+    const date = new Date(tradeInfo.date)
+    const unix = Math.floor(date.getTime() / 1000)
+
+    stockInfo.set({ ...tradeInfo, id, unix })
 
     const message = {
       success: true,

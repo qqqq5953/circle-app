@@ -15,12 +15,12 @@ export default function ({
     const isPatternMatch = regex.test(newValue)
     const newSubstr = oldValue || ''
 
-    if (!isPatternMatch) {
+    if (!isPatternMatch && replaceCharacter) {
       inputValue.value = newValue.replace(replaceCharacter, newSubstr)
     }
 
     inputError.value = validators.map((validator) =>
-      validator(isPatternMatch, DOM.value, newValue)
+      validator({ isPatternMatch, inputValue: newValue, ref: DOM.value })
     )
 
     inputValidity.value.name = DOM.value?.name

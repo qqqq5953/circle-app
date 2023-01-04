@@ -9,7 +9,8 @@
       shadow-lg
       rounded
       bg-white
-      border border-gray-100
+      border border-slate-300
+      sm:border-gray-200
     "
   >
     <!-- head -->
@@ -19,9 +20,8 @@
         px-4
         py-3
         border-0
-        flex flex-wrap
-        items-center
-        md:flex
+        hidden
+        md:flex md:items-center md:flex-wrap
         lg:hidden
       "
     >
@@ -36,7 +36,15 @@
     <div class="block w-full overflow-x-auto pb-5">
       <table class="w-full border-collapse">
         <thead
-          class="bg-gray-100 border-t border-b hidden sm:table-header-group"
+          class="
+            bg-gray-100
+            border-b border-t
+            sm:border-t-0
+            md:border-t
+            lg:border-t-0
+            hidden
+            sm:table-header-group
+          "
         >
           <tr>
             <!-- Stocks -->
@@ -127,7 +135,7 @@
         </thead>
         <tbody>
           <tr
-            class="flex flex-col sm:table-row mx-2 mb-3 sm:m-0 rounded border"
+            class="flex flex-col sm:table-row mx-2 mb-3 sm:m-0 rounded"
             v-for="item in holdingsTotalInfo"
             :key="item"
           >
@@ -167,7 +175,7 @@
               class="
                 holdingTable-table-cell
                 sm:table-cell
-                border-b border-gray-100
+                border-b border-slate-300
                 sm:border-0
                 flex
                 items-center
@@ -237,7 +245,7 @@
                 holdingTable-table-cell
                 sm:table-cell
                 text-xs
-                border-b border-gray-100
+                border-b border-slate-300
                 sm:border-0
                 flex
                 items-center
@@ -254,7 +262,7 @@
                 holdingTable-table-cell
                 sm:table-cell
                 text-xs
-                border-b border-gray-100
+                border-b border-slate-300
                 sm:border-0
                 flex
                 items-center
@@ -271,7 +279,7 @@
                 holdingTable-table-cell
                 sm:table-cell
                 text-xs
-                border-b border-gray-100
+                border-b border-slate-300
                 sm:border-0
                 flex
                 items-center

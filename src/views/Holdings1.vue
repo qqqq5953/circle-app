@@ -70,6 +70,9 @@
           <button
             type="button"
             class="
+              hidden
+              md:block
+              lg:hidden
               text-xs
               border border-blue-900
               rounded

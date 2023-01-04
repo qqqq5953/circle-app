@@ -1,12 +1,7 @@
 import { defineStore } from 'pinia'
-import { ref, onBeforeUnmount } from 'vue'
+import { ref } from 'vue'
 
 const useSearchStore = defineStore('search', () => {
-  onBeforeUnmount(() => {
-    console.log('useSearchStore onBeforeUnmount')
-    searchList.value = null
-  })
-
   const countries = ref([
     {
       code: 'us',

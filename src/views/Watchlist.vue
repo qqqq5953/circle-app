@@ -106,7 +106,9 @@ export default {
     provide("toStockInfo", true);
 
     onMounted(() => {
+      console.log("watchlist onMounted");
       currentTab.value = DEFAULT_TAB.value;
+      searchList.value = null;
     });
 
     const $searchStore = useSearchStore();

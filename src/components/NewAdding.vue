@@ -12,12 +12,12 @@
             :searchList="searchList"
             :hasOptionalTd="true"
           >
-            <template #action-btn="{ ticker }">
+            <template #action-btn>
               <div>
                 <a
                   href="#"
                   class="text-gray-300 inline-block py-1 hover:text-blue-600"
-                  @click.stop.prevent="selectTicker(ticker)"
+                  @click.stop.prevent="selectTicker"
                 >
                   <i class="fas fa-plus text-lg md:text-xl"></i>
                 </a>
@@ -28,8 +28,11 @@
       </Transition>
     </div>
 
-    <div class="border border-slate-300 rounded shadow" v-if="stock.ticker">
-      <TickerInfo :stockLists="stockLists" />
+    <div v-if="stock.ticker">
+      <TickerInfo
+        class="border border-slate-300 rounded shadow"
+        :stockLists="stockLists"
+      />
     </div>
 
     <InputCost

@@ -117,8 +117,9 @@ import TableSkeleton from "@/components/skeleton/TableSkeleton.vue";
 import InputSkeleton from "@/components/skeleton/InputSkeleton.vue";
 import NewAdding from "@/components/NewAdding.vue";
 
-import { ref, defineAsyncComponent, computed } from "vue";
+import { ref, defineAsyncComponent, computed, onMounted } from "vue";
 import useHoldingStore from "@/stores/holdingStore.js";
+import useSearchStore from "@/stores/searchStore.js";
 import { storeToRefs } from "pinia";
 import http from "../api/index";
 
@@ -140,7 +141,10 @@ export default {
     ),
   },
   setup() {
-    const $store = useHoldingStore();
+    const $searchStore = useSearchStore();
+    const { searchList } = storeToRefs($searchStore);
+
+    const $holdingStore = useHoldingStore();
     const {
       toastMessage,
       isModalOpen,
@@ -150,9 +154,14 @@ export default {
       lastMarketOpenDate,
       stock,
       inputValidity,
-    } = storeToRefs($store);
+    } = storeToRefs($holdingStore);
 
-    const { toggleModal, toggleSkeleton, activateToast } = $store;
+    const { toggleModal, toggleSkeleton, activateToast } = $holdingStore;
+
+    onMounted(() => {
+      console.log("holdings onMounted");
+      searchList.value = null;
+    });
 
     const isAllValid = computed(() =>
       Object.values(inputValidity.value).every((item) => !!item)

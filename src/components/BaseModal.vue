@@ -8,7 +8,7 @@
         -translate-x-1/2 -translate-y-1/2
         flex flex-col
         gap-2
-        sm:w-1/2
+        sm:w-2/3
         lg:max-w-[600px]
         sm:h-auto sm:rounded
         overflow-auto

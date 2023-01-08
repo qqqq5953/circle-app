@@ -17,55 +17,11 @@
     <!-- card-header -->
     <div class="flex flex-wrap">
       <div class="flex-1">
-        <p class="ticker-badge mb-2" :class="item.style">
+        <h5 class="uppercase font-bold text-sm">
           {{ item.ticker }}
-        </p>
-        <span
-          class="font-semibold px-2 py-1 rounded"
-          :class="
-            item.profitOrLossPercentage > 0
-              ? 'text-red-600'
-              : item.profitOrLossPercentage < 0
-              ? 'text-green-700'
-              : 'text-slate-500'
-          "
-        >
-          <span v-if="item.profitOrLossPercentage !== 0">
-            <i
-              class="fas fa-arrow-up mr-px text-red-600"
-              v-if="item.profitOrLossPercentage > 0"
-            ></i>
-            <i
-              class="fas fa-arrow-down mr-px text-green-700"
-              v-else-if="item.profitOrLossPercentage < 0"
-            ></i>
-          </span>
-          <span v-else>--</span>
-          {{
-            item.profitOrLossPercentage < 0
-              ? item.profitOrLossPercentage * -1
-              : item.profitOrLossPercentage
-          }}
-          %
-        </span>
-        <span
-          class="text-xs"
-          :class="
-            item.profitOrLossValue > 0
-              ? 'text-red-600'
-              : item.profitOrLossValue < 0
-              ? 'text-green-700'
-              : 'text-slate-500'
-          "
-        >
-          <span v-if="item.profitOrLossValue >= 0">
-            <span class="mr-px">$</span>
-            <span>{{ item.profitOrLossValue }}</span>
-          </span>
-          <span v-else>
-            <span class="mr-px">-$</span>
-            <span>{{ item.profitOrLossValue * -1 }}</span>
-          </span>
+        </h5>
+        <span class="font-semibold text-xl text-blueGray-700">
+          {{ item.profitOrLossPercentage }} %
         </span>
       </div>
       <div
@@ -79,7 +35,7 @@
           ml-3
           shadow-lg
           rounded-full
-          bg-gray-300
+          bg-red-500
         "
       >
         <i class="far fa-chart-bar"></i>
@@ -112,34 +68,27 @@
 <script>
 import { computed } from "vue";
 export default {
-  props: {
-    holdingsTotalInfo: {
-      type: Object,
-    },
-  },
+  props: ["holdingsTotalInfo"],
   setup(props) {
-    const topThreePerformance = computed(() =>
-      calculatePerformance(props.holdingsTotalInfo)
-    );
-
     const calculatePerformance = (holdings) => {
-      if (!holdings) return;
-
-      return Object.values(holdings)
+      const performance = Object.values(holdings)
         .map((item) => {
-          const { latestInfo, trade } = item;
-          return {
-            ticker: latestInfo.ticker,
-            style: latestInfo.style,
-            profitOrLossPercentage: trade.profitOrLossPercentage,
-            profitOrLossValue: trade.profitOrLossValue,
-          };
+          const obj = {};
+          obj.ticker = item.symbol;
+          obj.profitOrLossPercentage = item.profitOrLossPercentage;
+          return obj;
         })
         .sort((a, b) => {
           return b.profitOrLossPercentage - a.profitOrLossPercentage;
         })
         .slice(0, 3);
+      return performance;
     };
+
+    const topThreePerformance = computed(() => {
+      if (!props.holdingsTotalInfo) return null;
+      return calculatePerformance(props.holdingsTotalInfo);
+    });
 
     return {
       topThreePerformance,

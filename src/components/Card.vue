@@ -9,19 +9,61 @@
       mb-6
       xl:mb-0
       shadow-lg
-      border border-gray-100
+      border
     "
-    v-for="item in topThreePerformance"
-    :key="item.ticker"
   >
     <!-- card-header -->
     <div class="flex flex-wrap">
       <div class="flex-1">
-        <h5 class="uppercase font-bold text-sm">
-          {{ item.ticker }}
-        </h5>
-        <span class="font-semibold text-xl text-blueGray-700">
-          {{ item.profitOrLossPercentage }} %
+        <p class="ticker-badge mb-2" :class="cardData.style">
+          {{ cardData.ticker }}
+        </p>
+        <span
+          class="font-semibold px-2 py-1 rounded"
+          :class="
+            cardData.profitOrLossPercentage > 0
+              ? 'text-red-600'
+              : cardData.profitOrLossPercentage < 0
+              ? 'text-green-700'
+              : 'text-slate-500'
+          "
+        >
+          <span v-if="cardData.profitOrLossPercentage !== 0">
+            <i
+              class="fas fa-arrow-up mr-px text-red-600"
+              v-if="cardData.profitOrLossPercentage > 0"
+            ></i>
+            <i
+              class="fas fa-arrow-down mr-px text-green-700"
+              v-else-if="cardData.profitOrLossPercentage < 0"
+            ></i>
+          </span>
+          <span v-else>--</span>
+          {{
+            cardData.profitOrLossPercentage < 0
+              ? cardData.profitOrLossPercentage * -1
+              : cardData.profitOrLossPercentage
+          }}
+          %
+        </span>
+        <span
+          class="text-xs"
+          :class="
+            cardData.profitOrLossValue > 0
+              ? 'text-red-600'
+              : cardData.profitOrLossValue < 0
+              ? 'text-green-700'
+              : 'text-slate-500'
+          "
+        >
+          <span v-if="cardData.profitOrLossValue >= 0">
+            <span class="mr-px">$</span>
+            <span>{{ cardData.profitOrLossValue }}</span>
+          </span>
+          <span v-else>
+            <span class="mr-px">-$</span>
+            <span>{{ cardData.profitOrLossValue * -1 }}</span>
+          </span>
         </span>
       </div>
       <div
@@ -35,7 +77,7 @@
           ml-3
           shadow-lg
           rounded-full
-          bg-red-500
+          bg-gray-300
         "
       >
         <i class="far fa-chart-bar"></i>
@@ -46,19 +88,19 @@
       <span
         class="flex-shrink-0 inline-block px-2 py-1 mr-4 rounded"
         :class="
-          item.monthlyGrowth > 0
+          cardData.monthlyGrowth > 0
             ? 'text-green-700 bg-green-100'
             : 'text-red-700 bg-red-100'
         "
       >
-        <span v-if="item.monthlyGrowth !== 0">
+        <span v-if="cardData.monthlyGrowth !== 0">
           <i
             class="fas fa-arrow-up mr-1 text-green-700"
-            v-if="item.monthlyGrowth > 0"
+            v-if="cardData.monthlyGrowth > 0"
           ></i>
           <i class="fas fa-arrow-down mr-1 text-red-700" v-else></i>
         </span>
-        {{ item.monthlyGrowth }} %
+        {{ cardData.monthlyGrowth }} %
       </span>
       <span> Since last month</span>
     </p>
@@ -68,32 +110,12 @@
 <script>
 import { computed } from "vue";
 export default {
-  props: ["holdingsTotalInfo"],
-  setup(props) {
-    const calculatePerformance = (holdings) => {
-      const performance = Object.values(holdings)
-        .map((item) => {
-          const obj = {};
-          obj.ticker = item.symbol;
-          obj.profitOrLossPercentage = item.profitOrLossPercentage;
-          return obj;
-        })
-        .sort((a, b) => {
-          return b.profitOrLossPercentage - a.profitOrLossPercentage;
-        })
-        .slice(0, 3);
-      return performance;
-    };
-
-    const topThreePerformance = computed(() => {
-      if (!props.holdingsTotalInfo) return null;
-      return calculatePerformance(props.holdingsTotalInfo);
-    });
-
-    return {
-      topThreePerformance,
-    };
+  props: {
+    cardData: {
+      type: Object,
+    },
   },
+  setup(props) {},
 };
 
 // export default {

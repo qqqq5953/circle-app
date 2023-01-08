@@ -9,8 +9,7 @@
       shadow-lg
       rounded
       bg-white
-      border border-slate-300
-      sm:border-gray-200
+      border
     "
   >
     <!-- head -->
@@ -175,7 +174,7 @@
               class="
                 holdingTable-table-cell
                 sm:table-cell
-                border-b border-slate-300
+                border-b
                 sm:border-0
                 flex
                 items-center
@@ -245,7 +244,7 @@
                 holdingTable-table-cell
                 sm:table-cell
                 text-xs
-                border-b border-slate-300
+                border-b
                 sm:border-0
                 flex
                 items-center
@@ -262,7 +261,7 @@
                 holdingTable-table-cell
                 sm:table-cell
                 text-xs
-                border-b border-slate-300
+                border-b
                 sm:border-0
                 flex
                 items-center
@@ -279,7 +278,7 @@
                 holdingTable-table-cell
                 sm:table-cell
                 text-xs
-                border-b border-slate-300
+                border-b
                 sm:border-0
                 flex
                 items-center

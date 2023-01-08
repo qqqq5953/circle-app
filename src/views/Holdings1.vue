@@ -27,7 +27,9 @@
       </div>
       <div class="lg:flex lg:justify-between gap-3">
         <CardSkeleton v-if="loading" />
-        <Card1 :holdingsTotalInfo="data.result" v-else></Card1>
+        <div v-else v-for="item in topThreePerformance" :key="item.ticker">
+          <Card :cardData="item"></Card>
+        </div>
       </div>
     </section>
 
@@ -41,7 +43,6 @@
 
       <button @click="toggleModal(true)">open</button>
       <br />
-      isModalOpen:{{ isModalOpen }}
       <Teleport to="body">
         <InputModal
           :isFullPage="true"
@@ -113,7 +114,7 @@
 <script>
 import HoldingTable from "@/components/HoldingTable.vue";
 import NewTable1 from "@/components/NewTable1.vue";
-import Card1 from "@/components/Card1.vue";
+import Card from "@/components/Card.vue";
 import Toast from "@/components/Toast.vue";
 import CardSkeleton from "@/components/skeleton/CardSkeleton.vue";
 import TableSkeleton from "@/components/skeleton/TableSkeleton.vue";
@@ -131,7 +132,7 @@ export default {
     HoldingTable,
     NewAdding,
     NewTable1,
-    Card1,
+    Card,
     CardSkeleton,
     TableSkeleton,
     InputSkeleton,
@@ -242,7 +243,33 @@ export default {
       return response.data;
     };
 
+    // Card
+    const topThreePerformance = computed(() => {
+      if (!data.value) return;
+      return calculatePerformance(data.value.result);
+    });
+
+    const calculatePerformance = (holdings) => {
+      if (!holdings) return;
+
+      return Object.values(holdings)
+        .map((item) => {
+          const { latestInfo, trade } = item;
+          return {
+            ticker: latestInfo.ticker,
+            style: latestInfo.style,
+            profitOrLossPercentage: trade.profitOrLossPercentage,
+            profitOrLossValue: trade.profitOrLossValue,
+          };
+        })
+        .sort((a, b) => {
+          return b.profitOrLossPercentage - a.profitOrLossPercentage;
+        })
+        .slice(0, 3);
+    };
+
     return {
+      topThreePerformance,
       data,
       loading,
       error,

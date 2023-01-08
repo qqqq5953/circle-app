@@ -189,7 +189,7 @@
 <script>
 import HoldingTable from "@/components/HoldingTable.vue";
 import NewTable from "@/components/NewTable.vue";
-import Card from "@/components/Card.vue";
+import Card from "@/components/Card2.vue";
 import CardSkeleton from "@/components/skeleton/CardSkeleton.vue";
 import TableSkeleton from "@/components/skeleton/TableSkeleton.vue";
 import { ref, defineAsyncComponent } from "vue";

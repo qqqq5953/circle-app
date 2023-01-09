@@ -35,18 +35,16 @@
             <span
               class="px-2 py-1 rounded"
               :class="
-                stock.price?.previousCloseChangePercent > 0
+                stock.price.previousCloseChangePercent > 0
                   ? 'bg-red-100'
                   : 'bg-green-100'
               "
               ><i
                 class="fas fa-arrow-up"
-                v-if="stock.price?.previousCloseChangePercent > 0"
+                v-if="stock.price.previousCloseChangePercent > 0"
               ></i>
               <i class="fas fa-arrow-down" v-else></i>
-              <span class="ml-1.5"
-                >{{ stock.price?.previousCloseChangePercent }}%</span
-              >
+              <span class="ml-1.5">{{ previousCloseChangePercent }}%</span>
             </span>
             <span>{{ stock.price?.previousCloseChange }}</span>
             <span>Today</span>
@@ -64,8 +62,8 @@
         >
           <span>
             <span class="font-medium">{{ marketState }}: </span>
-            <span>{{ regularMarketTime }}</span></span
-          >
+            <span>{{ regularMarketTime }}</span>
+          </span>
           <span>
             <span class="font-medium">CURRENT TIME: </span>
             <span>{{ currentTime }}</span>
@@ -168,13 +166,11 @@ export default {
     const regularMarketTime = computed(() => {
       if (!stock.value.price) return;
 
-      const year = new Date(stock.value.price.regularMarketTime).getFullYear();
-      const month =
-        new Date(stock.value.price.regularMarketTime).getMonth() + 1;
-      const date = new Date(stock.value.price.regularMarketTime).getDate();
-      const time = new Date(stock.value.price.regularMarketTime)
-        .toString()
-        .split("2022")[1];
+      const dateObj = new Date(stock.value.price.regularMarketTime);
+      const year = dateObj.getFullYear();
+      const month = dateObj.getMonth() + 1;
+      const date = dateObj.getDate();
+      const time = dateObj.toString().split(year)[1];
 
       return `${year}/${month}/${date} ${time}`;
     });
@@ -188,14 +184,21 @@ export default {
     });
 
     const currentTime = computed(() => {
-      const year = new Date(Date.now()).getFullYear();
-      const month = new Date(Date.now()).getMonth() + 1;
-      const date = new Date(Date.now()).getDate();
-      const hour = new Date(Date.now()).getHours();
-      const minute = new Date(Date.now()).getMinutes();
-      const second = new Date(Date.now()).getSeconds();
+      const dateObj = new Date(Date.now());
+      const year = dateObj.getFullYear();
+      const month = dateObj.getMonth() + 1;
+      const date = dateObj.getDate();
+      const hour = dateObj.getHours();
+      const minute = dateObj.getMinutes();
+      const second = dateObj.getSeconds();
 
       return `${year}/${month}/${date} ${hour}:${minute}:${second}`;
+    });
+
+    const previousCloseChangePercent = computed(() => {
+      if (!stock.value.price) return;
+      const close = parseFloat(stock.value.price.previousCloseChangePercent);
+      return close > 0 ? close : close * -1;
     });
 
     (async function getTickerInfo() {
@@ -258,6 +261,7 @@ export default {
       regularMarketTime,
       marketState,
       currentTime,
+      previousCloseChangePercent,
     };
   },
 };

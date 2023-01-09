@@ -30,7 +30,13 @@
       >
         <i class="fas fa-arrow-up" v-if="closeChangePercent > 0"></i>
         <i class="fas fa-arrow-down" v-else></i>
-        <span class="ml-1.5">{{ closeChangePercent }}%</span>
+        <span class="ml-1.5"
+          >{{
+            closeChangePercent > 0
+              ? closeChangePercent
+              : closeChangePercent * -1
+          }}%</span
+        >
       </span>
       <span>
         <span v-if="closeChange > 0">+</span>
@@ -74,9 +80,23 @@ export default {
     const year = new Date().getFullYear();
     const month = new Date().getMonth() + 1;
     const date = new Date().getDate();
+    const adjustMonthObj = {
+      0: 12,
+      "-1": 11,
+      "-2": 10,
+      "-3": 9,
+      "-4": 8,
+      "-5": 7,
+    };
     const startDateObj = {
-      ["1M"]: `${year}/${month - 1}/${date}`,
-      ["6M"]: `${year}/${month - 6}/${date}`,
+      ["1M"]:
+        month - 1 === 0
+          ? `${year - 1}/12/${date}`
+          : `${year}/${month - 1}/${date}`,
+      ["6M"]:
+        month - 6 <= 0
+          ? `${year - 1}/${adjustMonthObj[`${month - 6}`]}/${date}`
+          : `${year}/${month - 6}/${date}`,
       ["YTD"]: `${year - 1}/12/31`,
       ["1Y"]: `${year - 1}/${month}/${date}`,
       ["5Y"]: `${year - 5}/${month}/${date}`,
@@ -134,6 +154,8 @@ export default {
     }
 
     function iteratePriceMapToLineChartData(priceMap, startDate) {
+      console.log("startDate", startDate);
+
       const [_, m, d] = startDate.split("/");
       const isYTD = m + d === "1231";
       const xAxisData = [];
@@ -160,7 +182,6 @@ export default {
       // 重新找開始日期
       if (timespan.value !== "1Y" && !isStartDateExist) {
         const newStartDate = getNewStartDate(xAxisData, startDate);
-
         xAxisData.length = 0;
         seriesData.length = 0;
 
@@ -247,12 +268,13 @@ export default {
 
       switch (closeType) {
         case "change":
-          return (lastClosingPrice - firstClosingPrice).toFixed(2);
+          return parseFloat((lastClosingPrice - firstClosingPrice).toFixed(2));
         case "change percent":
-          return (
+          const closePercent = (
             ((lastClosingPrice - firstClosingPrice) * 100) /
             firstClosingPrice
           ).toFixed(2);
+          return parseFloat(closePercent);
       }
     }
 

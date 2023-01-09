@@ -1,7 +1,7 @@
 <template>
   <main class="px-4 md:p-10 mx-auto w-full relative">
     <Teleport to="body">
-      <Toast class="fixed right-6 top-6 z-10" :toastMessage="toastMessage" />
+      <Toast :toastMessage="toastMessage" />
     </Teleport>
 
     <!-- <button
@@ -204,7 +204,10 @@ export default {
 
           data.value = res.data;
           toggleSkeleton(false);
-          activateToast(newData);
+          activateToast({
+            ...newData,
+            result: newData.result.tradeInfo,
+          });
         } catch (error) {
           console.log("updateHoldings error", error);
         }

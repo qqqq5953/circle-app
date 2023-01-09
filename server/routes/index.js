@@ -156,7 +156,7 @@ router.post('/addStock', async (req, res) => {
       success: true,
       content: '標的新增成功',
       errorMessage: null,
-      result: { latestInfo, stockInfo }
+      result: { latestInfo, tradeInfo }
     }
     res.send(message)
   } catch (error) {

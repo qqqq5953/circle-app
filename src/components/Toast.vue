@@ -1,7 +1,20 @@
 <template>
   <div
     v-if="isActivate"
-    class="bg-slate-600 w-1/5 rounded text-gray-200 opacity-50"
+    class="
+      fixed
+      right-6
+      left-6
+      top-6
+      z-10
+      sm:ml-auto sm:w-2/5
+      md:w-1/3
+      lg:w-1/5
+      rounded
+      bg-slate-600
+      text-gray-200
+      opacity-50
+    "
     :class="{
       'animate-toast-in': isToastIn,
       'animate-toast-out': isToastOut,
@@ -22,7 +35,7 @@
       </a>
     </div>
 
-    <div class="py-3 px-8">
+    <div class="py-3 px-8" v-if="toastMessage.result">
       <ul v-for="(item, index) in toastMessage.result" :key="item.ticker">
         <li class="flex">
           <span class="font-bold tracking-wide">{{ index }} : </span>

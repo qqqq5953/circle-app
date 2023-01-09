@@ -7,7 +7,7 @@
     @apply uppercase max-w-[85px] p-1 rounded-full text-white text-center text-xs font-semibold w-full;
   }
   .holdingTable-table-cell {
-    @apply px-4 py-3 sm:px-0 sm:py-3.5;
+    @apply px-4 py-2 sm:px-0 sm:py-3.5;
   }
   .watchlistTable-table-cell {
     @apply px-0 py-3 sm:py-3.5 text-xs;

@@ -19,7 +19,7 @@
           {{ cardData.ticker }}
         </p>
         <span
-          class="font-semibold px-2 py-1 rounded"
+          class="font-bold px-2 py-1 rounded"
           :class="
             cardData.profitOrLossPercentage > 0
               ? 'text-red-600'
@@ -57,11 +57,11 @@
           "
         >
           <span v-if="cardData.profitOrLossValue >= 0">
-            <span class="mr-px">$</span>
+            <span class="mr-px">+</span>
             <span>{{ cardData.profitOrLossValue }}</span>
           </span>
           <span v-else>
-            <span class="mr-px">-$</span>
+            <span class="mr-0.5">-</span>
             <span>{{ cardData.profitOrLossValue * -1 }}</span>
           </span>
         </span>

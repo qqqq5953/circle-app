@@ -178,16 +178,17 @@
                 sm:border-0
                 flex
                 items-center
+                text-xs
               "
             >
-              <span class="sm:hidden font-semibold mr-2 text-xs">P / L:</span>
+              <span class="sm:hidden mr-2 text-slate-600">P / L:</span>
               <div class="ml-auto sm:ml-0 text-right sm:text-center">
                 <div
                   class="
                     inline-block
                     sm:px-3 sm:py-2 sm:rounded
-                    font-semibold
-                    sm:font-medium sm:text-xs
+                    font-extrabold
+                    sm:font-medium
                   "
                   :class="
                     item.trade.profitOrLossPercentage > 0
@@ -197,7 +198,10 @@
                       : 'text-slate-500 sm:bg-slate-200'
                   "
                 >
-                  <span v-if="item.trade.profitOrLossPercentage !== 0">
+                  <span
+                    class="hidden sm:inline"
+                    v-if="item.trade.profitOrLossPercentage !== 0"
+                  >
                     <i
                       class="fas fa-arrow-up text-red-600"
                       v-if="item.trade.profitOrLossPercentage > 0"
@@ -208,17 +212,17 @@
                     ></i>
                   </span>
                   <span v-else>--</span>
-                  <span class="ml-1.5"
-                    >{{
+                  <span class="ml-1.5">
+                    <span>{{
                       item.trade.profitOrLossPercentage < 0
                         ? item.trade.profitOrLossPercentage * -1
                         : item.trade.profitOrLossPercentage
-                    }}
+                    }}</span>
                     %</span
                   >
                 </div>
                 <div
-                  class="mt-1 text-xs"
+                  class="mt-0.5 font-medium"
                   :class="
                     item.trade.profitOrLossValue > 0
                       ? 'text-red-600'
@@ -227,14 +231,14 @@
                       : 'text-slate-500'
                   "
                 >
-                  <div v-if="item.trade.profitOrLossValue >= 0">
-                    <span class="mr-px">$</span>
+                  <!-- <span>{{ item.trade.profitOrLossValue }}</span> -->
+                  <span v-if="item.trade.profitOrLossValue >= 0">
+                    <span class="mr-px">+</span>
                     <span>{{ item.trade.profitOrLossValue }}</span>
-                  </div>
-                  <div v-else>
-                    <span class="mr-px">-$</span>
-                    <span>{{ item.trade.profitOrLossValue * -1 }}</span>
-                  </div>
+                  </span>
+                  <span v-else>
+                    {{ item.trade.profitOrLossValue }}
+                  </span>
                 </div>
               </div>
             </td>
@@ -250,8 +254,16 @@
                 items-center
               "
             >
-              <span class="sm:hidden font-semibold mr-2">Price:</span>
-              <p class="ml-auto text-right sm:text-center">
+              <span class="sm:hidden mr-2 text-slate-600">Price:</span>
+              <p
+                class="
+                  ml-auto
+                  text-right
+                  sm:text-center
+                  font-medium
+                  sm:font-normal
+                "
+              >
                 {{ item.trade.close }}
               </p>
             </td>
@@ -267,8 +279,16 @@
                 items-center
               "
             >
-              <span class="sm:hidden font-semibold mr-2">Average Cost:</span>
-              <p class="ml-auto text-right sm:text-center">
+              <span class="sm:hidden mr-2 text-slate-600">Average Cost:</span>
+              <p
+                class="
+                  ml-auto
+                  text-right
+                  sm:text-center
+                  font-medium
+                  sm:font-normal
+                "
+              >
                 {{ item.trade.averageCost }}
               </p>
             </td>
@@ -284,8 +304,16 @@
                 items-center
               "
             >
-              <span class="sm:hidden font-semibold mr-2">Share:</span>
-              <p class="ml-auto text-right sm:text-center">
+              <span class="sm:hidden mr-2 text-slate-600">Share:</span>
+              <p
+                class="
+                  ml-auto
+                  text-right
+                  sm:text-center
+                  font-medium
+                  sm:font-normal
+                "
+              >
                 {{ item.trade.totalShares }}
               </p>
             </td>

@@ -340,9 +340,9 @@
                   sm:mx-auto
                   block
                 "
-                @click="openTradeModal(item.trade.ticker)"
+                @click="openTradeModal(item.latestInfo)"
               >
-                Trade
+                Buy
               </button>
             </td>
           </tr>
@@ -353,17 +353,23 @@
 </template>
 
 <script>
+import http from "../api/index";
 export default {
   props: {
     holdingsTotalInfo: {
       type: Object,
     },
   },
-  setup(props, { emit }) {
-    const openTradeModal = (ticker) => {
+  setup(_, { emit }) {
+    const openTradeModal = (latestInfo) => {
+      const { code, ticker, tempTicker, style } = latestInfo;
+      const promiseObj = http.get(`/api/quote/${ticker}`);
       const obj = {
         open: true,
-        ticker,
+        promiseObj,
+        code,
+        tempTicker,
+        style,
       };
       emit("openTradeModal", obj);
     };

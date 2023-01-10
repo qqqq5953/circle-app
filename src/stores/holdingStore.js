@@ -11,7 +11,7 @@ const useHoldingStore = defineStore('holding', () => {
     ticker: null,
     tempTicker: null,
     cost: null,
-    shares: null,
+    shares: '1',
     style: null,
     date: today.value
   })

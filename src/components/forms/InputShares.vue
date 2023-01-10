@@ -58,6 +58,10 @@ export default {
       () => emit("getInputValidity", inputValidity.value)
     );
 
+    if (props.modelValue) {
+      emit("getInputValidity", { name: "shares", validity: true });
+    }
+
     return {
       sharesRef,
       inputError,

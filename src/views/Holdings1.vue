@@ -53,7 +53,11 @@
         >
           <template #title>Trade Panel</template>
           <template #inputs>
-            <NewAdding v-show="!loading" />
+            <NewAdding
+              :stockToBeTraded="stockToBeTraded"
+              :isBuyMore="isBuyMore"
+              v-show="!loading"
+            />
           </template>
           <template #okButton>Trade</template>
         </InputModal>
@@ -88,14 +92,6 @@
       </NewTable1>
     </section>
 
-    <!-- <Transition name="modal">
-      <TradeModal
-        v-if="isModalOpen"
-        :stockToBeTraded="stockToBeTraded"
-        @closeTradeModal="closeTradeModal"
-      />
-    </Transition> -->
-
     <div class="px-4 md:px-0 lg:px-4">
       <button type="button" class="border px-2 py-1" @click="getHistorical">
         getHistorical
@@ -121,7 +117,7 @@ import TableSkeleton from "@/components/skeleton/TableSkeleton.vue";
 import InputSkeleton from "@/components/skeleton/InputSkeleton.vue";
 import NewAdding from "@/components/NewAdding.vue";
 
-import { ref, defineAsyncComponent, computed, onMounted } from "vue";
+import { ref, defineAsyncComponent, computed, onMounted, watch } from "vue";
 import useHoldingStore from "@/stores/holdingStore.js";
 import useSearchStore from "@/stores/searchStore.js";
 import { storeToRefs } from "pinia";
@@ -203,6 +199,7 @@ export default {
           console.log("res", res);
 
           data.value = res.data;
+
           toggleSkeleton(false);
           activateToast({
             ...newData,
@@ -216,22 +213,29 @@ export default {
       }
     };
 
-    const stockToBeTraded = ref("");
-    const tickerRef = ref(null);
+    const stockToBeTraded = ref(null);
+    const isBuyMore = ref(null);
 
-    const openTradeModal = (obj) => {
-      const { open, ticker } = obj;
+    const openTradeModal = async (obj) => {
+      const { open, promiseObj, ...rest } = obj;
       isModalOpen.value = open;
-      stockToBeTraded.value = ticker;
-      // tickerRef.value.focus();
+      isBuyMore.value = true;
+
+      const res = await Promise.all([promiseObj]);
+      console.log("res", res);
+
+      stockToBeTraded.value = {
+        ...res[0].data.result,
+        ...rest,
+      };
     };
 
-    const closeTradeModal = async (obj) => {
-      const { open, success } = obj;
-      isModalOpen.value = open;
-      // if (success) await getHoldings();
-      // await updateData(success);
-    };
+    watch(isModalOpen, (newVal) => {
+      if (!newVal) {
+        isBuyMore.value = false;
+        stockToBeTraded.value = null;
+      }
+    });
 
     const historicalQutoes = ref(null);
     const getHistorical = async () => {
@@ -281,15 +285,14 @@ export default {
 
       historicalQutoes,
       getHistorical,
-      tickerRef,
       openTradeModal,
-      closeTradeModal,
       isModalOpen,
       stockToBeTraded,
 
       toggleModal,
       addStock,
       isAllValid,
+      isBuyMore,
     };
   },
 };

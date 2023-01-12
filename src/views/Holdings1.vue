@@ -178,6 +178,7 @@ export default {
           ...stock.value,
           ticker: stock.value.ticker,
           tempTicker: stock.value.tempTicker.toUpperCase(),
+          addTime: Date.now(),
         };
 
         console.log("stockObj", stockObj);

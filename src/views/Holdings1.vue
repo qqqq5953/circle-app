@@ -4,20 +4,6 @@
       <Toast :toastMessage="toastMessage" />
     </Teleport>
 
-    <!-- <button
-      type="button"
-      class="border px-2 py-1"
-      @click="
-        activateToast({
-          success: true,
-          content: '標的新增成功',
-          result: { cost: 200, ticker: 'AAPL', shares: 20 },
-        })
-      "
-    >
-      activateToast
-    </button> -->
-
     <section class="px-4 md:px-0 lg:px-4">
       <div class="flex items-center mb-4">
         <h2 class="font-semibold text-lg">Top 3 Performance</h2>
@@ -191,26 +177,37 @@ export default {
       }
     };
 
+    const tradeResult = ref(null);
+
     const updateHoldings = async (newData, errorMessage) => {
       console.log("updateHoldings newData", newData);
+      if (!newData.success) return activateToast(errorMessage);
 
-      if (newData.success) {
-        try {
-          const res = await http.get(`/api/getHoldings`);
-          console.log("res", res);
+      try {
+        const res = await http.get(`/api/getHoldings`);
+        data.value = res.data;
+        console.log("res", res);
 
-          data.value = res.data;
+        const { latestInfo, tradeInfo } = newData.result;
+        const { ticker } = latestInfo;
+        const { cost, shares, date } = tradeInfo;
+        const addDate = new Date(tradeInfo.addTime);
 
-          toggleSkeleton(false);
-          activateToast({
-            ...newData,
-            result: newData.result.tradeInfo,
-          });
-        } catch (error) {
-          console.log("updateHoldings error", error);
-        }
-      } else {
-        activateToast(errorMessage);
+        tradeResult.value = {
+          Ticker: ticker,
+          Cost: cost,
+          Shares: shares,
+          "Trade date": date,
+          "Record time": addDate.toLocaleString("zh-TW").replace(/\//g, "-"),
+        };
+
+        toggleSkeleton(false);
+        activateToast({
+          ...newData,
+          result: tradeResult.value,
+        });
+      } catch (error) {
+        console.log("updateHoldings error", error);
       }
     };
 
@@ -294,6 +291,7 @@ export default {
       addStock,
       isAllValid,
       isBuyMore,
+      tradeResult,
     };
   },
 };

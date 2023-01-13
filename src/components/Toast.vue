@@ -14,13 +14,14 @@
       bg-slate-600
       text-gray-200
       opacity-50
+      text-sm
     "
     :class="{
       'animate-toast-in': isToastIn,
       'animate-toast-out': isToastOut,
     }"
   >
-    <div class="flex items-center border-b border-slate-200 py-2 px-8">
+    <div class="flex items-center border-b border-slate-200 py-2 px-6">
       <i
         class="fa-solid fa-square fa-xs"
         :class="
@@ -29,20 +30,29 @@
             : 'text-green-400'
         "
       ></i>
-      <span class="ml-4 text-xs">{{ toastMessage.title }}</span>
+      <span class="ml-4 font-semibold tracking-wider">{{
+        toastMessage.title
+      }}</span>
       <a href="#" @click.prevent="closeToast(true)" class="ml-auto">
         <i class="fa-solid fa-xmark fa-sm"></i>
       </a>
     </div>
 
-    <div class="py-3 px-8" v-if="toastMessage.result">
-      <ul v-for="(item, index) in toastMessage.result" :key="item.ticker">
-        <li class="flex">
-          <span class="font-bold tracking-wide">{{ index }} : </span>
-          <span class="ml-auto">{{ item }}</span>
+    <div class="pt-4 pb-5 px-6 flex flex-wrap" v-if="toastMessage.result">
+      <ul class="w-full pb-3">
+        <li
+          class="flex py-0.5"
+          v-for="(item, index) in toastMessage.result"
+          :key="index"
+        >
+          <span class="tracking-wide">{{ index }} : </span>
+          <span class="ml-auto font-medium">{{ item }}</span>
         </li>
       </ul>
       <p v-if="error">error: {{ error }}</p>
+      <div class="w-full text-right">
+        <slot name="btn"></slot>
+      </div>
     </div>
   </div>
 </template>
@@ -84,8 +94,8 @@ export default {
     });
 
     watch(toastMessage, () => {
-      activateToast(1, 10000);
-      deactivateToast(11000);
+      activateToast(1, 1000000);
+      deactivateToast(1100000);
     });
 
     watch(isActivate, (newVal) => {

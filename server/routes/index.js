@@ -76,8 +76,8 @@ router.get('/quote/:ticker', async (req, res) => {
 
 router.get('/getHoldings', async (req, res) => {
   try {
-    const tickerRef = await holdingRef.once('value')
-    const holdingsObj = tickerRef.val()
+    const holdingSnapshot = await holdingRef.once('value')
+    const holdingsObj = holdingSnapshot.val()
     if (!holdingsObj) {
       return res.send({
         success: true,
@@ -134,7 +134,11 @@ router.post('/addStock', async (req, res) => {
   } = rest
 
   try {
-    const latestInfo = holdingRef.child(tempTicker).child('latestInfo').set({
+    const stockInfo = holdingRef.child(tempTicker).child('trade').push()
+    const id = stockInfo.key
+    const unix = Math.floor(Date.parse(tradeInfo.date) / 1000)
+
+    const latestInfo = {
       close: price,
       style,
       name,
@@ -143,14 +147,10 @@ router.post('/addStock', async (req, res) => {
       regularMarketTime,
       tempTicker,
       ticker
-    })
-    const stockInfo = holdingRef.child(tempTicker).child('trade').push()
-
-    const id = stockInfo.key
-    const date = new Date(tradeInfo.date)
-    const unix = Math.floor(date.getTime() / 1000)
+    }
 
     stockInfo.set({ ...tradeInfo, id, unix })
+    holdingRef.child(tempTicker).child('latestInfo').set(latestInfo)
 
     const message = {
       success: true,
@@ -191,6 +191,36 @@ router.post('/addStock', async (req, res) => {
   //     }
   //     res.send(message)
   //   })
+})
+
+router.get('/tradeDetails/:ticker', async (req, res) => {
+  try {
+    const ticker = req.params.ticker
+    const tickerRef = await holdingRef.child(ticker).once('value')
+    const tradeDetails = tickerRef.val()
+    console.log('tradeDetails', tradeDetails)
+
+    if (!tradeDetails) {
+      return res.send({
+        success: false,
+        content: '無標的',
+        errorMessage: 'no ticker found in the holdings',
+        result: null
+      })
+    }
+
+    const tradeObj = tradeDetails.trade
+    const tradeArray = [...Object.values(tradeObj)].sort((a, b) => {
+      return b.unix - a.unix
+    })
+
+    res.send({
+      success: true,
+      content: '成功獲得交易紀錄',
+      errorMessage: null,
+      result: tradeArray
+    })
+  } catch (error) {}
 })
 
 router.get('/historicalHolding/:period/:from/:to', async (req, res) => {

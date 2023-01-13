@@ -1,7 +1,53 @@
 <template>
   <main class="px-4 md:p-10 mx-auto w-full relative">
     <Teleport to="body">
-      <Toast :toastMessage="toastMessage" />
+      <Toast
+        v-if="isWeb && notificationMessage"
+        :toastMessage="notificationMessage"
+      >
+        <template #btn>
+          <router-link
+            :to="{ name: 'History' }"
+            class="
+              inline-block
+              px-2
+              py-1.5
+              rounded
+              mt-3.5
+              text-xs
+              bg-blue-600
+              text-white
+              hover:bg-blue-500
+            "
+            >View records</router-link
+          >
+        </template>
+      </Toast>
+      <Snackbar
+        v-if="!isWeb && notificationMessage"
+        :barMessage="notificationMessage"
+      >
+        <template #btn>
+          <router-link
+            :to="{
+              name: 'TradeResult',
+              params: {
+                tradeResult: JSON.stringify(tradeResult),
+              },
+            }"
+            class="
+              px-2
+              py-1.5
+              rounded
+              text-xs
+              bg-blue-600
+              text-white
+              hover:bg-blue-500
+            "
+            >View details</router-link
+          >
+        </template>
+      </Snackbar>
     </Teleport>
 
     <section class="px-4 md:px-0 lg:px-4">
@@ -97,7 +143,6 @@
 import HoldingTable from "@/components/HoldingTable.vue";
 import NewTable1 from "@/components/NewTable1.vue";
 import Card from "@/components/Card.vue";
-import Toast from "@/components/Toast.vue";
 import CardSkeleton from "@/components/skeleton/CardSkeleton.vue";
 import TableSkeleton from "@/components/skeleton/TableSkeleton.vue";
 import InputSkeleton from "@/components/skeleton/InputSkeleton.vue";
@@ -118,7 +163,8 @@ export default {
     CardSkeleton,
     TableSkeleton,
     InputSkeleton,
-    Toast,
+    Toast: defineAsyncComponent(() => import("@/components/Toast.vue")),
+    Snackbar: defineAsyncComponent(() => import("@/components/Snackbar.vue")),
     TradeModal: defineAsyncComponent(() =>
       import("@/components/TradeModal.vue")
     ),
@@ -132,7 +178,7 @@ export default {
 
     const $holdingStore = useHoldingStore();
     const {
-      toastMessage,
+      notificationMessage,
       isModalOpen,
       data,
       error,
@@ -142,7 +188,7 @@ export default {
       inputValidity,
     } = storeToRefs($holdingStore);
 
-    const { toggleModal, toggleSkeleton, activateToast } = $holdingStore;
+    const { toggleModal, toggleSkeleton, activateNotification } = $holdingStore;
 
     onMounted(() => {
       console.log("holdings onMounted");
@@ -152,6 +198,8 @@ export default {
     const isAllValid = computed(() =>
       Object.values(inputValidity.value).every((item) => !!item)
     );
+
+    const isWeb = ref(window.matchMedia("(min-width:768px)").matches);
 
     const addStock = async () => {
       if (!isAllValid.value) return;
@@ -181,7 +229,7 @@ export default {
 
     const updateHoldings = async (newData, errorMessage) => {
       console.log("updateHoldings newData", newData);
-      if (!newData.success) return activateToast(errorMessage);
+      if (!newData.success) return activateNotification(errorMessage);
 
       try {
         const res = await http.get(`/api/getHoldings`);
@@ -192,8 +240,7 @@ export default {
         const { ticker } = latestInfo;
         const { cost, shares, date } = tradeInfo;
         const addDate = new Date(tradeInfo.addTime);
-
-        tradeResult.value = {
+        const result = {
           Ticker: ticker,
           Cost: cost,
           Shares: shares,
@@ -202,10 +249,15 @@ export default {
         };
 
         toggleSkeleton(false);
-        activateToast({
-          ...newData,
-          result: tradeResult.value,
-        });
+
+        if (isWeb.value) {
+          // toast
+          activateNotification({ ...newData, result });
+        } else {
+          // snackbar
+          activateNotification({ ...newData, result: null });
+          tradeResult.value = result;
+        }
       } catch (error) {
         console.log("updateHoldings error", error);
       }
@@ -279,7 +331,7 @@ export default {
       loading,
       error,
       lastMarketOpenDate,
-      toastMessage,
+      notificationMessage,
 
       historicalQutoes,
       getHistorical,
@@ -292,6 +344,7 @@ export default {
       isAllValid,
       isBuyMore,
       tradeResult,
+      isWeb,
     };
   },
 };

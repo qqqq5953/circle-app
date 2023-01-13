@@ -41,8 +41,8 @@ const useHoldingStore = defineStore('holding', () => {
     // return data.value?.result[tickers[0]].date.slice(0, 10)
   })
 
-  const toastMessage = ref(null)
-  const activateToast = (val) => (toastMessage.value = val)
+  const notificationMessage = ref(null)
+  const activateNotification = (val) => (notificationMessage.value = val)
 
   const isModalOpen = ref(false)
 
@@ -57,7 +57,7 @@ const useHoldingStore = defineStore('holding', () => {
   }
 
   return {
-    toastMessage,
+    notificationMessage,
     isModalOpen,
     stock,
     data,
@@ -67,7 +67,7 @@ const useHoldingStore = defineStore('holding', () => {
     inputValidity,
     today,
     toggleModal,
-    activateToast,
+    activateNotification,
     toggleSkeleton
   }
 })

@@ -136,7 +136,7 @@ router.post('/addStock', async (req, res) => {
   try {
     const stockInfo = holdingRef.child(tempTicker).child('trade').push()
     const id = stockInfo.key
-    const unix = Math.floor(Date.parse(tradeInfo.date) / 1000)
+    const tradeUnix = Math.floor(Date.parse(tradeInfo.tradeDate) / 1000)
 
     const latestInfo = {
       close: price,
@@ -149,7 +149,7 @@ router.post('/addStock', async (req, res) => {
       ticker
     }
 
-    stockInfo.set({ ...tradeInfo, id, unix })
+    stockInfo.set({ ...tradeInfo, id, tradeUnix })
     holdingRef.child(tempTicker).child('latestInfo').set(latestInfo)
 
     const message = {
@@ -168,29 +168,6 @@ router.post('/addStock', async (req, res) => {
     }
     res.send(message)
   }
-
-  // const checkTickerValid = yahooFinance.quote(ticker, ['summaryProfile'])
-
-  // checkTickerValid
-  //   .then(() => {
-  //     const stockInfo = holdingRef.child(ticker).push()
-  //     stockInfo.set({ cost, shares, date })
-  //     message = {
-  //       success: true,
-  //       content: '標的新增成功',
-  //       errorMessage: null
-  //     }
-  //     res.send(message)
-  //   })
-  //   .catch((error) => {
-  //     console.log('error', error)
-  //     message = {
-  //       success: false,
-  //       content: '無此標的',
-  //       errorMessage: error.message
-  //     }
-  //     res.send(message)
-  //   })
 })
 
 router.get('/tradeDetails/:ticker', async (req, res) => {
@@ -211,7 +188,7 @@ router.get('/tradeDetails/:ticker', async (req, res) => {
 
     const tradeObj = tradeDetails.trade
     const tradeArray = [...Object.values(tradeObj)].sort((a, b) => {
-      return b.unix - a.unix
+      return b.tradeUnix - a.tradeUnix
     })
 
     res.send({

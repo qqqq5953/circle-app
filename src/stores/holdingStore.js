@@ -13,7 +13,7 @@ const useHoldingStore = defineStore('holding', () => {
     cost: null,
     shares: '1',
     style: null,
-    date: today.value
+    tradeDate: today.value
   })
 
   const inputValidity = ref({

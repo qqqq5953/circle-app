@@ -51,8 +51,8 @@
       @getInputValidity="getInputValidity"
     />
     <InputDate
-      :modelValue="stock.date"
-      @input="stock.date = $event.target.value"
+      :modelValue="stock.tradeDate"
+      @input="stock.tradeDate = $event.target.value"
       @getInputValidity="getInputValidity"
     />
   </div>

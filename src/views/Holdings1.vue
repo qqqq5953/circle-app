@@ -1,10 +1,7 @@
 <template>
   <main class="px-4 md:p-10 mx-auto w-full relative">
     <Teleport to="body">
-      <Toast
-        v-if="isWeb && notificationMessage"
-        :toastMessage="notificationMessage"
-      >
+      <Toast v-if="isWeb" :toastMessage="notificationMessage">
         <template #btn>
           <router-link
             :to="{ name: 'History' }"
@@ -23,10 +20,8 @@
           >
         </template>
       </Toast>
-      <Snackbar
-        v-if="!isWeb && notificationMessage"
-        :barMessage="notificationMessage"
-      >
+
+      <Snackbar v-if="!isWeb" :barMessage="notificationMessage">
         <template #btn>
           <router-link
             :to="{
@@ -212,7 +207,7 @@ export default {
           ...stock.value,
           ticker: stock.value.ticker,
           tempTicker: stock.value.tempTicker.toUpperCase(),
-          addTime: Date.now(),
+          recordUnix: Date.now(),
         };
 
         console.log("stockObj", stockObj);
@@ -238,13 +233,13 @@ export default {
 
         const { latestInfo, tradeInfo } = newData.result;
         const { ticker } = latestInfo;
-        const { cost, shares, date } = tradeInfo;
-        const addDate = new Date(tradeInfo.addTime);
+        const { cost, shares, tradeDate } = tradeInfo;
+        const addDate = new Date(tradeInfo.recordUnix);
         const result = {
           Ticker: ticker,
           Cost: cost,
           Shares: shares,
-          "Trade date": date,
+          "Trade date": tradeDate,
           "Record time": addDate.toLocaleString("zh-TW").replace(/\//g, "-"),
         };
 
@@ -348,66 +343,6 @@ export default {
     };
   },
 };
-// export default {
-//   components: {
-//     HoldingTable,
-//     NewTable,
-//     Card,
-//   },
-//   data() {
-//     return {
-//       holdingsTotalInfo: null,
-//       regularMarketPrice: null,
-//       stock: {
-//         ticker: "AAPL",
-//         cost: "130",
-//         shares: "10",
-//         date: Date.now(),
-//       },
-//       test: null,
-//     };
-//   },
-//   methods: {
-//     getQuote() {
-//       this.axios.get("/api/quote").then((res) => {
-//         console.log("getQuote= ", res.data);
-//       });
-//     },
-//     getHistorical() {
-//       this.axios.get("/api/historical").then((res) => {
-//         console.log("getHistorical= ", res.data);
-//         // this.quote = res.data;
-
-//         // this.quote = res.data;
-//       });
-//     },
-//     getHolding() {
-//       this.axios.get(`/api/getHolding/${this.ticker}`).then((res) => {
-//         console.log("getHolding= ", res.data);
-//       });
-//     },
-//     async getHoldings() {
-//       const response = await this.axios.get(`/api/getHoldings`);
-//       console.log("getHoldings= ", response.data);
-//       this.holdingsTotalInfo = response.data;
-//     },
-//     addStock() {
-//       this.axios.post("/api/addStock", this.stock).then((res) => {
-//         console.log("addStock= ", res);
-//         // this.msg = res;
-//       });
-//     },
-//     addTest() {
-//       this.test = "testttttt";
-//     },
-//     addTest1() {
-//       this.test = "another testttttt";
-//     },
-//   },
-//   created() {
-//     // this.getHoldings();
-//   },
-// };
 </script>
 
 <style scoped>

@@ -212,7 +212,7 @@
                     ></i>
                   </span>
                   <span v-else>--</span>
-                  <span class="ml-1.5">
+                  <span class="ml-1">
                     <span>{{
                       item.trade.profitOrLossPercentage < 0
                         ? item.trade.profitOrLossPercentage * -1
@@ -328,22 +328,47 @@
                 sm:w-[14%]
               "
             >
-              <button
-                type="button"
-                class="
-                  border border-blue-900
-                  rounded
-                  px-2
-                  py-1
-                  hover:bg-blue-900 hover:text-white
-                  ml-auto
-                  sm:mx-auto
-                  block
-                "
-                @click="openTradeModal(item.latestInfo)"
-              >
-                Buy
-              </button>
+              <div class="flex gap-x-2">
+                <button
+                  type="button"
+                  class="
+                    border border-blue-900
+                    rounded
+                    ml-auto
+                    px-2
+                    py-1
+                    hover:bg-blue-900 hover:text-white
+                    sm:mx-auto
+                    block
+                  "
+                  @click="openTradeModal(item.latestInfo)"
+                >
+                  Buy
+                </button>
+                <router-link
+                  :to="{
+                    name: 'TradeDetails',
+                    params: {
+                      holdings: JSON.stringify(item),
+                    },
+                  }"
+                  class="
+                    border border-blue-900
+                    sm:border-none
+                    block
+                    rounded
+                    px-2
+                    py-1
+                    hover:bg-blue-900 hover:text-white
+                    sm:hover:text-blue-700 sm:hover:bg-transparent sm:mx-auto
+                  "
+                >
+                  <span class="sm:hidden">More</span>
+                  <span class="hidden sm:inline">
+                    <i class="fa-solid fa-chevron-right lg:fa-xl"></i>
+                  </span>
+                </router-link>
+              </div>
             </td>
           </tr>
         </tbody>

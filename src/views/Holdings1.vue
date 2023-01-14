@@ -60,16 +60,26 @@
       </div>
     </section>
 
-    error:
-    <div v-if="error" class="text-center text-2xl text-red-500">
-      {{ error }}
-    </div>
-
     <section class="mt-5 px-4 md:px-0 lg:px-4">
-      <h2 class="font-semibold text-lg mb-4">Holdings</h2>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-semibold text-lg">Holdings</h2>
+        <button
+          class="
+            bg-blue-600
+            text-white
+            hover:bg-blue-500
+            rounded-full
+            px-2
+            py-1
+            text-xs
+          "
+          @click="toggleModal(true)"
+        >
+          <span>+</span>
+          <span class="mx-1">Invest</span>
+        </button>
+      </div>
 
-      <button @click="toggleModal(true)">open</button>
-      <br />
       <Teleport to="body">
         <InputModal
           :isFullPage="true"
@@ -89,8 +99,6 @@
           <template #okButton>Trade</template>
         </InputModal>
       </Teleport>
-
-      <hr class="my-4" />
 
       <TableSkeleton v-if="loading" />
       <NewTable1
@@ -118,19 +126,6 @@
         </template>
       </NewTable1>
     </section>
-
-    <div class="px-4 md:px-0 lg:px-4">
-      <button type="button" class="border px-2 py-1" @click="getHistorical">
-        getHistorical
-      </button>
-      <button type="button" class="border px-2 py-1" @click="getHolding">
-        getHolding
-      </button>
-      <button type="button" class="border px-2 py-1" @click="execute">
-        getHoldings
-      </button>
-      <br />
-    </div>
   </main>
 </template>
 

@@ -20,7 +20,7 @@ const getHoldingsTradeInfo = (holdingsArray, latestQuotes) => {
 
     const averageCost = parseFloatByDecimal(totalCost / totalShares, 2)
     const profitOrLossPercentage = parseFloatByDecimal(
-      ((close - averageCost) * 100) / close,
+      ((close - averageCost) * 100) / averageCost,
       2
     )
     const profitOrLossValue = parseFloatByDecimal(

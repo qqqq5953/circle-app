@@ -5,13 +5,13 @@
       fixed
       right-6
       left-6
-      top-6
+      bottom-6
       z-10
       sm:ml-auto sm:w-2/5
       md:w-1/3
-      lg:max-w-[350px]
+      lg:w-1/5
       rounded
-      border
+      border-slate-300 border
       shadow
       bg-white
       text-slate-600 text-sm
@@ -21,28 +21,30 @@
       'animate-toast-out': isToastOut,
     }"
   >
-    <div class="flex items-center border-b border-slate-200 py-2 px-6">
+    <div
+      class="flex items-center py-3 px-6"
+      :class="{ 'border-b border-slate-200': message.result }"
+    >
       <i
         class="fa-solid fa-square fa-xs"
         :class="
-          toastMessage.status === false || error
-            ? 'text-red-400'
-            : 'text-green-400'
+          message.status === false || error ? 'text-red-400' : 'text-green-400'
         "
       ></i>
-      <span class="ml-4 font-semibold tracking-wider">{{
-        toastMessage.title
-      }}</span>
-      <a href="#" @click.prevent="closeToast(true)" class="ml-auto">
+      <span class="ml-4 font-semibold tracking-wider">{{ message.title }}</span>
+      <div class="ml-auto text-xs">
+        <slot name="btn"></slot>
+      </div>
+      <a href="#" @click.prevent="closeToast(true)" class="ml-4">
         <i class="fa-solid fa-xmark fa-sm"></i>
       </a>
     </div>
 
-    <div class="pt-4 pb-5 px-6 flex flex-wrap" v-if="toastMessage.result">
-      <ul class="w-full">
+    <div class="pt-4 pb-5 px-6 flex flex-wrap" v-if="message.result">
+      <ul class="w-full pb-3">
         <li
           class="flex py-0.5"
-          v-for="(item, index) in toastMessage.result"
+          v-for="(item, index) in message.result"
           :key="index"
         >
           <span class="tracking-wide">{{ index }} : </span>
@@ -50,9 +52,6 @@
         </li>
       </ul>
       <p v-if="error">error: {{ error }}</p>
-      <div class="w-full text-right">
-        <slot name="btn"></slot>
-      </div>
     </div>
   </div>
 </template>
@@ -61,7 +60,7 @@
 import { computed, ref, watch } from "vue";
 export default {
   props: {
-    toastMessage: {
+    barMessage: {
       type: [String, Object],
     },
   },
@@ -72,20 +71,20 @@ export default {
     const isActivate = ref(false);
     const error = ref(null);
 
-    const toastMessage = computed(() => {
+    const message = computed(() => {
       let obj;
 
-      if (typeof props.toastMessage === "object") {
+      if (typeof props.barMessage === "object") {
         obj = {
-          status: props.toastMessage?.success,
-          title: props.toastMessage?.content,
-          result: props.toastMessage?.result,
+          status: props.barMessage?.success,
+          title: props.barMessage?.content,
+          result: props.barMessage?.result,
         };
       } else {
         // error passed from AddStock.vue is of string type
         obj = {
           status: false,
-          title: props.toastMessage,
+          title: props.barMessage,
           result: null,
         };
       }
@@ -93,7 +92,7 @@ export default {
       return obj;
     });
 
-    watch(toastMessage, () => {
+    watch(message, () => {
       activateNotification(1, 1000000);
       deactivateToast(1100000);
     });
@@ -146,7 +145,7 @@ export default {
     };
 
     return {
-      toastMessage,
+      message,
       isToastIn,
       isToastOut,
       isActivate,

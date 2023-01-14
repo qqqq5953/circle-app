@@ -1,22 +1,49 @@
 <template>
   <main class="px-4 md:p-10 mx-auto w-full relative">
     <Teleport to="body">
-      <Toast :toastMessage="toastMessage" />
-    </Teleport>
+      <Toast v-if="isWeb" :toastMessage="notificationMessage">
+        <template #btn>
+          <router-link
+            :to="{ name: 'History' }"
+            class="
+              inline-block
+              px-2
+              py-1.5
+              rounded
+              mt-3.5
+              text-xs
+              bg-blue-600
+              text-white
+              hover:bg-blue-500
+            "
+            >View records</router-link
+          >
+        </template>
+      </Toast>
 
-    <!-- <button
-      type="button"
-      class="border px-2 py-1"
-      @click="
-        activateToast({
-          success: true,
-          content: '標的新增成功',
-          result: { cost: 200, ticker: 'AAPL', shares: 20 },
-        })
-      "
-    >
-      activateToast
-    </button> -->
+      <Snackbar v-if="!isWeb" :barMessage="notificationMessage">
+        <template #btn>
+          <router-link
+            :to="{
+              name: 'TradeResult',
+              params: {
+                tradeResult: JSON.stringify(tradeResult),
+              },
+            }"
+            class="
+              px-2
+              py-1.5
+              rounded
+              text-xs
+              bg-blue-600
+              text-white
+              hover:bg-blue-500
+            "
+            >View details</router-link
+          >
+        </template>
+      </Snackbar>
+    </Teleport>
 
     <section class="px-4 md:px-0 lg:px-4">
       <div class="flex items-center mb-4">
@@ -33,16 +60,26 @@
       </div>
     </section>
 
-    error:
-    <div v-if="error" class="text-center text-2xl text-red-500">
-      {{ error }}
-    </div>
-
     <section class="mt-5 px-4 md:px-0 lg:px-4">
-      <h2 class="font-semibold text-lg mb-4">Holdings</h2>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-semibold text-lg">Holdings</h2>
+        <button
+          class="
+            bg-blue-600
+            text-white
+            hover:bg-blue-500
+            rounded-full
+            px-2
+            py-1
+            text-xs
+          "
+          @click="toggleModal(true)"
+        >
+          <span>+</span>
+          <span class="mx-1">Invest</span>
+        </button>
+      </div>
 
-      <button @click="toggleModal(true)">open</button>
-      <br />
       <Teleport to="body">
         <InputModal
           :isFullPage="true"
@@ -53,13 +90,15 @@
         >
           <template #title>Trade Panel</template>
           <template #inputs>
-            <NewAdding v-show="!loading" />
+            <NewAdding
+              :stockToBeTraded="stockToBeTraded"
+              :isBuyMore="isBuyMore"
+              v-show="!loading"
+            />
           </template>
           <template #okButton>Trade</template>
         </InputModal>
       </Teleport>
-
-      <hr class="my-4" />
 
       <TableSkeleton v-if="loading" />
       <NewTable1
@@ -87,27 +126,6 @@
         </template>
       </NewTable1>
     </section>
-
-    <!-- <Transition name="modal">
-      <TradeModal
-        v-if="isModalOpen"
-        :stockToBeTraded="stockToBeTraded"
-        @closeTradeModal="closeTradeModal"
-      />
-    </Transition> -->
-
-    <div class="px-4 md:px-0 lg:px-4">
-      <button type="button" class="border px-2 py-1" @click="getHistorical">
-        getHistorical
-      </button>
-      <button type="button" class="border px-2 py-1" @click="getHolding">
-        getHolding
-      </button>
-      <button type="button" class="border px-2 py-1" @click="execute">
-        getHoldings
-      </button>
-      <br />
-    </div>
   </main>
 </template>
 
@@ -115,13 +133,12 @@
 import HoldingTable from "@/components/HoldingTable.vue";
 import NewTable1 from "@/components/NewTable1.vue";
 import Card from "@/components/Card.vue";
-import Toast from "@/components/Toast.vue";
 import CardSkeleton from "@/components/skeleton/CardSkeleton.vue";
 import TableSkeleton from "@/components/skeleton/TableSkeleton.vue";
 import InputSkeleton from "@/components/skeleton/InputSkeleton.vue";
 import NewAdding from "@/components/NewAdding.vue";
 
-import { ref, defineAsyncComponent, computed, onMounted } from "vue";
+import { ref, defineAsyncComponent, computed, onMounted, watch } from "vue";
 import useHoldingStore from "@/stores/holdingStore.js";
 import useSearchStore from "@/stores/searchStore.js";
 import { storeToRefs } from "pinia";
@@ -136,7 +153,8 @@ export default {
     CardSkeleton,
     TableSkeleton,
     InputSkeleton,
-    Toast,
+    Toast: defineAsyncComponent(() => import("@/components/Toast.vue")),
+    Snackbar: defineAsyncComponent(() => import("@/components/Snackbar.vue")),
     TradeModal: defineAsyncComponent(() =>
       import("@/components/TradeModal.vue")
     ),
@@ -150,7 +168,7 @@ export default {
 
     const $holdingStore = useHoldingStore();
     const {
-      toastMessage,
+      notificationMessage,
       isModalOpen,
       data,
       error,
@@ -160,7 +178,7 @@ export default {
       inputValidity,
     } = storeToRefs($holdingStore);
 
-    const { toggleModal, toggleSkeleton, activateToast } = $holdingStore;
+    const { toggleModal, toggleSkeleton, activateNotification } = $holdingStore;
 
     onMounted(() => {
       console.log("holdings onMounted");
@@ -170,6 +188,8 @@ export default {
     const isAllValid = computed(() =>
       Object.values(inputValidity.value).every((item) => !!item)
     );
+
+    const isWeb = ref(window.matchMedia("(min-width:768px)").matches);
 
     const addStock = async () => {
       if (!isAllValid.value) return;
@@ -182,6 +202,7 @@ export default {
           ...stock.value,
           ticker: stock.value.ticker,
           tempTicker: stock.value.tempTicker.toUpperCase(),
+          recordUnix: Date.now(),
         };
 
         console.log("stockObj", stockObj);
@@ -194,44 +215,67 @@ export default {
       }
     };
 
+    const tradeResult = ref(null);
+
     const updateHoldings = async (newData, errorMessage) => {
       console.log("updateHoldings newData", newData);
+      if (!newData.success) return activateNotification(errorMessage);
 
-      if (newData.success) {
-        try {
-          const res = await http.get(`/api/getHoldings`);
-          console.log("res", res);
+      try {
+        const res = await http.get(`/api/getHoldings`);
+        data.value = res.data;
+        console.log("res", res);
 
-          data.value = res.data;
-          toggleSkeleton(false);
-          activateToast({
-            ...newData,
-            result: newData.result.tradeInfo,
-          });
-        } catch (error) {
-          console.log("updateHoldings error", error);
+        const { latestInfo, tradeInfo } = newData.result;
+        const { ticker } = latestInfo;
+        const { cost, shares, tradeDate } = tradeInfo;
+        const addDate = new Date(tradeInfo.recordUnix);
+        const result = {
+          Ticker: ticker,
+          Cost: cost,
+          Shares: shares,
+          "Trade date": tradeDate,
+          "Record time": addDate.toLocaleString("zh-TW").replace(/\//g, "-"),
+        };
+
+        toggleSkeleton(false);
+
+        if (isWeb.value) {
+          // toast
+          activateNotification({ ...newData, result });
+        } else {
+          // snackbar
+          activateNotification({ ...newData, result: null });
+          tradeResult.value = { ...newData, result };
         }
-      } else {
-        activateToast(errorMessage);
+      } catch (error) {
+        console.log("updateHoldings error", error);
       }
     };
 
-    const stockToBeTraded = ref("");
-    const tickerRef = ref(null);
+    const stockToBeTraded = ref(null);
+    const isBuyMore = ref(null);
 
-    const openTradeModal = (obj) => {
-      const { open, ticker } = obj;
+    const openTradeModal = async (obj) => {
+      const { open, promiseObj, ...rest } = obj;
       isModalOpen.value = open;
-      stockToBeTraded.value = ticker;
-      // tickerRef.value.focus();
+      isBuyMore.value = true;
+
+      const res = await Promise.all([promiseObj]);
+      console.log("res", res);
+
+      stockToBeTraded.value = {
+        ...res[0].data.result,
+        ...rest,
+      };
     };
 
-    const closeTradeModal = async (obj) => {
-      const { open, success } = obj;
-      isModalOpen.value = open;
-      // if (success) await getHoldings();
-      // await updateData(success);
-    };
+    watch(isModalOpen, (newVal) => {
+      if (!newVal) {
+        isBuyMore.value = false;
+        stockToBeTraded.value = null;
+      }
+    });
 
     const historicalQutoes = ref(null);
     const getHistorical = async () => {
@@ -277,82 +321,23 @@ export default {
       loading,
       error,
       lastMarketOpenDate,
-      toastMessage,
+      notificationMessage,
 
       historicalQutoes,
       getHistorical,
-      tickerRef,
       openTradeModal,
-      closeTradeModal,
       isModalOpen,
       stockToBeTraded,
 
       toggleModal,
       addStock,
       isAllValid,
+      isBuyMore,
+      tradeResult,
+      isWeb,
     };
   },
 };
-// export default {
-//   components: {
-//     HoldingTable,
-//     NewTable,
-//     Card,
-//   },
-//   data() {
-//     return {
-//       holdingsTotalInfo: null,
-//       regularMarketPrice: null,
-//       stock: {
-//         ticker: "AAPL",
-//         cost: "130",
-//         shares: "10",
-//         date: Date.now(),
-//       },
-//       test: null,
-//     };
-//   },
-//   methods: {
-//     getQuote() {
-//       this.axios.get("/api/quote").then((res) => {
-//         console.log("getQuote= ", res.data);
-//       });
-//     },
-//     getHistorical() {
-//       this.axios.get("/api/historical").then((res) => {
-//         console.log("getHistorical= ", res.data);
-//         // this.quote = res.data;
-
-//         // this.quote = res.data;
-//       });
-//     },
-//     getHolding() {
-//       this.axios.get(`/api/getHolding/${this.ticker}`).then((res) => {
-//         console.log("getHolding= ", res.data);
-//       });
-//     },
-//     async getHoldings() {
-//       const response = await this.axios.get(`/api/getHoldings`);
-//       console.log("getHoldings= ", response.data);
-//       this.holdingsTotalInfo = response.data;
-//     },
-//     addStock() {
-//       this.axios.post("/api/addStock", this.stock).then((res) => {
-//         console.log("addStock= ", res);
-//         // this.msg = res;
-//       });
-//     },
-//     addTest() {
-//       this.test = "testttttt";
-//     },
-//     addTest1() {
-//       this.test = "another testttttt";
-//     },
-//   },
-//   created() {
-//     // this.getHoldings();
-//   },
-// };
 </script>
 
 <style scoped>

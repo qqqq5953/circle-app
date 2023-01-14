@@ -129,43 +129,76 @@
             >
               Shares
             </th>
-            <th class="px-4 py-3 md:hidden lg:block sm:w-[14%] lg:w-[12%]"></th>
+            <th class="px-4 py-3 sm:w-[14%] md:hidden lg:block lg:w-[12%]"></th>
           </tr>
         </thead>
         <tbody>
           <tr
-            class="flex flex-col sm:table-row mx-2 mb-3 sm:m-0 rounded"
+            class="flex flex-col rounded sm:table-row mx-2 mb-3 sm:m-0"
             v-for="item in holdingsTotalInfo"
             :key="item"
           >
             <!-- Stocks -->
             <th
               class="
-                px-6
-                pr-6
+                px-2
                 pt-5
                 pb-0
-                sm:pr-0 sm:pl-4 sm:py-3.5
                 text-xs
-                sm:table-cell
+                sm:pr-0 sm:pl-4 sm:py-3.5 sm:table-cell
               "
             >
-              <div class="flex flex-col gap-y-2">
-                <p
-                  class="ticker-badge mx-auto lg:mx-0"
-                  :class="item.latestInfo.style"
-                >
+              <div class="flex flex-col gap-y-1.5">
+                <p class="ticker-badge lg:mx-0" :class="item.latestInfo.style">
                   {{ item.latestInfo.ticker }}
                 </p>
                 <p
                   class="
-                    sm:hidden
-                    lg:block
+                    flex
+                    items-center
+                    pl-1.5
                     break-words
-                    lg:break-normal lg:truncate lg:text-left
+                    sm:hidden
+                    lg:block lg:break-normal lg:truncate lg:text-left
                   "
                 >
-                  {{ item.latestInfo.name }}
+                  <span class="grow text-left">{{ item.latestInfo.name }}</span>
+                  <span
+                    class="
+                      inline-block
+                      sm:hidden
+                      ml-auto
+                      px-2
+                      py-1
+                      rounded
+                      font-medium
+                    "
+                    :class="
+                      item.trade.profitOrLossPercentage > 0
+                        ? 'text-red-600 bg-red-100/70'
+                        : item.trade.profitOrLossPercentage < 0
+                        ? 'text-green-700 bg-green-100'
+                        : 'text-slate-500 bg-slate-200'
+                    "
+                  >
+                    <i
+                      class="fas fa-arrow-up text-red-600"
+                      v-if="item.trade.profitOrLossPercentage > 0"
+                    ></i>
+                    <i
+                      class="fas fa-arrow-down text-green-700"
+                      v-else-if="item.trade.profitOrLossPercentage < 0"
+                    ></i>
+                    <span v-else>--</span>
+                    <span class="ml-1">
+                      <span>{{
+                        item.trade.profitOrLossPercentage < 0
+                          ? item.trade.profitOrLossPercentage * -1
+                          : item.trade.profitOrLossPercentage
+                      }}</span>
+                      %</span
+                    >
+                  </span>
                 </p>
               </div>
             </th>
@@ -185,34 +218,32 @@
               <div class="ml-auto sm:ml-0 text-right sm:text-center">
                 <div
                   class="
-                    inline-block
-                    sm:px-3 sm:py-2 sm:rounded
-                    font-extrabold
-                    sm:font-medium
+                    hidden
+                    sm:inline-block
+                    px-2
+                    py-1
+                    rounded
+                    font-medium
+                    sm:px-3 sm:py-2
                   "
                   :class="
                     item.trade.profitOrLossPercentage > 0
-                      ? 'text-red-600 sm:bg-red-100/70'
+                      ? 'text-red-600 bg-red-100/70'
                       : item.trade.profitOrLossPercentage < 0
-                      ? 'text-green-700 sm:bg-green-100'
-                      : 'text-slate-500 sm:bg-slate-200'
+                      ? 'text-green-700 bg-green-100'
+                      : 'text-slate-500 bg-slate-200'
                   "
                 >
-                  <span
-                    class="hidden sm:inline"
-                    v-if="item.trade.profitOrLossPercentage !== 0"
-                  >
-                    <i
-                      class="fas fa-arrow-up text-red-600"
-                      v-if="item.trade.profitOrLossPercentage > 0"
-                    ></i>
-                    <i
-                      class="fas fa-arrow-down text-green-700"
-                      v-else-if="item.trade.profitOrLossPercentage < 0"
-                    ></i>
-                  </span>
+                  <i
+                    class="fas fa-arrow-up text-red-600"
+                    v-if="item.trade.profitOrLossPercentage > 0"
+                  ></i>
+                  <i
+                    class="fas fa-arrow-down text-green-700"
+                    v-else-if="item.trade.profitOrLossPercentage < 0"
+                  ></i>
                   <span v-else>--</span>
-                  <span class="ml-1.5">
+                  <span class="ml-1">
                     <span>{{
                       item.trade.profitOrLossPercentage < 0
                         ? item.trade.profitOrLossPercentage * -1
@@ -222,7 +253,7 @@
                   >
                 </div>
                 <div
-                  class="mt-0.5 font-medium"
+                  class="mt-1 font-medium"
                   :class="
                     item.trade.profitOrLossValue > 0
                       ? 'text-red-600'
@@ -231,13 +262,11 @@
                       : 'text-slate-500'
                   "
                 >
-                  <!-- <span>{{ item.trade.profitOrLossValue }}</span> -->
                   <span v-if="item.trade.profitOrLossValue >= 0">
-                    <span class="mr-px">+</span>
-                    <span>{{ item.trade.profitOrLossValue }}</span>
+                    +${{ item.trade.profitOrLossValue }}
                   </span>
                   <span v-else>
-                    {{ item.trade.profitOrLossValue }}
+                    -${{ item.trade.profitOrLossValue * -1 }}
                   </span>
                 </div>
               </div>
@@ -328,22 +357,52 @@
                 sm:w-[14%]
               "
             >
-              <button
-                type="button"
-                class="
-                  border border-blue-900
-                  rounded
-                  px-2
-                  py-1
-                  hover:bg-blue-900 hover:text-white
-                  ml-auto
-                  sm:mx-auto
-                  block
-                "
-                @click="openTradeModal(item.trade.ticker)"
-              >
-                Trade
-              </button>
+              <div class="flex items-center gap-x-2 py-1">
+                <button
+                  class="
+                    bg-blue-600
+                    text-white
+                    hover:bg-blue-500
+                    rounded
+                    px-2
+                    py-1
+                    block
+                    order-2
+                    sm:order-1 sm:mx-auto
+                  "
+                  type="button"
+                  @click="openTradeModal(item.latestInfo)"
+                >
+                  Buy
+                </button>
+                <router-link
+                  class="
+                    hover:text-blue-500
+                    text-blue-600
+                    ml-auto
+                    rounded
+                    block
+                    order-1
+                    sm:order-2
+                    sm:border-none
+                    sm:hover:bg-transparent
+                    sm:mx-auto
+                    sm:text-black
+                    sm:hover:text-blue-600
+                  "
+                  :to="{
+                    name: 'TradeDetails',
+                    params: {
+                      holdings: JSON.stringify(item),
+                    },
+                  }"
+                >
+                  <span class="sm:hidden">More</span>
+                  <span class="hidden sm:inline">
+                    <i class="fa-solid fa-chevron-right lg:fa-xl"></i>
+                  </span>
+                </router-link>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -353,17 +412,23 @@
 </template>
 
 <script>
+import http from "../api/index";
 export default {
   props: {
     holdingsTotalInfo: {
       type: Object,
     },
   },
-  setup(props, { emit }) {
-    const openTradeModal = (ticker) => {
+  setup(_, { emit }) {
+    const openTradeModal = (latestInfo) => {
+      const { code, ticker, tempTicker, style } = latestInfo;
+      const promiseObj = http.get(`/api/quote/${ticker}`);
       const obj = {
         open: true,
-        ticker,
+        promiseObj,
+        code,
+        tempTicker,
+        style,
       };
       emit("openTradeModal", obj);
     };

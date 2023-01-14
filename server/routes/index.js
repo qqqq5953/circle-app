@@ -76,8 +76,8 @@ router.get('/quote/:ticker', async (req, res) => {
 
 router.get('/getHoldings', async (req, res) => {
   try {
-    const tickerRef = await holdingRef.once('value')
-    const holdingsObj = tickerRef.val()
+    const holdingSnapshot = await holdingRef.once('value')
+    const holdingsObj = holdingSnapshot.val()
     if (!holdingsObj) {
       return res.send({
         success: true,
@@ -134,7 +134,11 @@ router.post('/addStock', async (req, res) => {
   } = rest
 
   try {
-    const latestInfo = holdingRef.child(tempTicker).child('latestInfo').set({
+    const stockInfo = holdingRef.child(tempTicker).child('trade').push()
+    const id = stockInfo.key
+    const tradeUnix = Math.floor(Date.parse(tradeInfo.tradeDate) / 1000)
+
+    const latestInfo = {
       close: price,
       style,
       name,
@@ -143,14 +147,10 @@ router.post('/addStock', async (req, res) => {
       regularMarketTime,
       tempTicker,
       ticker
-    })
-    const stockInfo = holdingRef.child(tempTicker).child('trade').push()
+    }
 
-    const id = stockInfo.key
-    const date = new Date(tradeInfo.date)
-    const unix = Math.floor(date.getTime() / 1000)
-
-    stockInfo.set({ ...tradeInfo, id, unix })
+    stockInfo.set({ ...tradeInfo, id, tradeUnix })
+    holdingRef.child(tempTicker).child('latestInfo').set(latestInfo)
 
     const message = {
       success: true,
@@ -168,29 +168,36 @@ router.post('/addStock', async (req, res) => {
     }
     res.send(message)
   }
+})
 
-  // const checkTickerValid = yahooFinance.quote(ticker, ['summaryProfile'])
+router.get('/tradeDetails/:ticker', async (req, res) => {
+  try {
+    const ticker = req.params.ticker
+    const tickerRef = await holdingRef.child(ticker).once('value')
+    const tradeDetails = tickerRef.val()
+    console.log('tradeDetails', tradeDetails)
 
-  // checkTickerValid
-  //   .then(() => {
-  //     const stockInfo = holdingRef.child(ticker).push()
-  //     stockInfo.set({ cost, shares, date })
-  //     message = {
-  //       success: true,
-  //       content: '標的新增成功',
-  //       errorMessage: null
-  //     }
-  //     res.send(message)
-  //   })
-  //   .catch((error) => {
-  //     console.log('error', error)
-  //     message = {
-  //       success: false,
-  //       content: '無此標的',
-  //       errorMessage: error.message
-  //     }
-  //     res.send(message)
-  //   })
+    if (!tradeDetails) {
+      return res.send({
+        success: false,
+        content: '無標的',
+        errorMessage: 'no ticker found in the holdings',
+        result: null
+      })
+    }
+
+    const tradeObj = tradeDetails.trade
+    const tradeArray = [...Object.values(tradeObj)].sort((a, b) => {
+      return b.tradeUnix - a.tradeUnix
+    })
+
+    res.send({
+      success: true,
+      content: '成功獲得交易紀錄',
+      errorMessage: null,
+      result: tradeArray
+    })
+  } catch (error) {}
 })
 
 router.get('/historicalHolding/:period/:from/:to', async (req, res) => {

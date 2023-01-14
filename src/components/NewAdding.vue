@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col gap-6">
-    <div class="relative w-full pb-14 mb-6">
+    <div class="relative w-full pb-14 mb-6" v-if="!isBuyMore">
       <SearchBar />
 
       <!-- 搜尋結果 -->
@@ -28,9 +28,12 @@
       </Transition>
     </div>
 
-    <div v-if="stock.ticker">
+    <div v-if="isBuyMore && !stockToBeTraded">
+      <ListSkeleton v-show="!stockToBeTraded" />
+    </div>
+    <div v-else-if="stock.ticker">
       <TickerInfo
-        class="border border-slate-300 rounded shadow"
+        class="outline outline-1 outline-slate-300 rounded shadow"
         :stockLists="stockLists"
       />
     </div>
@@ -48,15 +51,15 @@
       @getInputValidity="getInputValidity"
     />
     <InputDate
-      :modelValue="stock.date"
-      @input="stock.date = $event.target.value"
+      :modelValue="stock.tradeDate"
+      @input="stock.tradeDate = $event.target.value"
       @getInputValidity="getInputValidity"
     />
   </div>
 </template>
 
 <script>
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import useSearchStore from "@/stores/searchStore.js";
 import useHoldingStore from "@/stores/holdingStore.js";
 import { storeToRefs } from "pinia";
@@ -79,7 +82,16 @@ export default {
     SearchList,
     TickerInfo,
   },
-  setup() {
+  props: {
+    stockToBeTraded: {
+      type: Object,
+    },
+    isBuyMore: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  setup(props) {
     const $searchStore = useSearchStore();
     const { searchList, isFocus, isSearchListLoading } =
       storeToRefs($searchStore);
@@ -92,17 +104,15 @@ export default {
 
     const selectTicker = () => {
       const [tickerInfo] = searchList.value;
+
+      if (stockLists.value.length) stockLists.value.pop();
+      stockLists.value.push(tickerInfo);
+      inputCostRef.value.$refs.costRef.focus();
+
       stock.value = {
         ...stock.value,
         ...tickerInfo,
       };
-
-      inputCostRef.value.$refs.costRef.focus();
-
-      if (stockLists.value.length) {
-        stockLists.value.pop();
-      }
-      stockLists.value.push(tickerInfo);
 
       getInputValidity({ name: "ticker", validity: true });
     };
@@ -111,6 +121,33 @@ export default {
       const { name, validity } = validityObj;
       inputValidity.value[name] = validity;
     };
+
+    watch(
+      () => props.stockToBeTraded,
+      (tickerInfo) => {
+        stockLists.value.length = 0;
+
+        if (!tickerInfo) {
+          stock.value.ticker = null;
+
+          if (searchList.value) {
+            searchList.value.length = 0;
+          }
+          return;
+        }
+
+        inputCostRef.value.$refs.costRef.focus();
+        inputCostRef.value.$refs.costRef.select();
+
+        stockLists.value.push(tickerInfo);
+        stock.value = {
+          ...stock.value,
+          ...tickerInfo,
+        };
+
+        getInputValidity({ name: "ticker", validity: true });
+      }
+    );
 
     return {
       stock,

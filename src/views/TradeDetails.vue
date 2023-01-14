@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col gap-4 p-2">
+  <div class="flex flex-col gap-4 py-2 px-4">
     <section>
       <h1 class="flex items-center gap-x-3 pb-2" v-if="basicInfo">
         <span class="ticker-badge" :class="basicInfo.style">
@@ -8,166 +8,103 @@
         <span class="font-medium text-lg text-wrap"> {{ basicInfo.name }}</span>
       </h1>
 
-      <ul>
-        <li
-          class="
-            flex
-            items-end
-            gap-x-1.5
-            py-2
-            text-xs
-            border-b
-            font-semibold
-            text-slate-800
-          "
-        >
-          <div class="w-1/5">Today</div>
-          <div class="w-[15%] text-right">Price</div>
-          <div class="w-[15%] text-right">Total shares</div>
-          <div class="grow text-right">P / L %</div>
-        </li>
-      </ul>
-
-      <ul v-if="totalStats">
-        <li
-          class="
-            flex
-            items-center
-            gap-x-1.5
-            py-2
-            text-xs
-            border-b
-            text-slate-800
-          "
-        >
-          <div class="w-1/5">
-            {{ new Date().toLocaleDateString("zh-TW").replace(/\//g, "-") }}
-          </div>
-          <div class="w-[15%] text-right">{{ totalStats.close }}</div>
-          <div class="w-[15%] text-right">{{ totalStats.totalShares }}</div>
-          <div class="grow text-right">
-            <span
-              class="inline-block px-3 py-2 rounded font-medium"
-              :class="
-                totalStats.profitOrLossPercentage > 0
-                  ? 'text-red-600 bg-red-100/70'
-                  : totalStats.profitOrLossPercentage < 0
-                  ? 'text-green-700 bg-green-100'
-                  : 'text-slate-500 bg-slate-200'
-              "
-            >
-              <i
-                class="fas fa-arrow-up text-red-700"
-                v-if="totalStats.profitOrLossPercentage > 0"
-              ></i>
-              <i
-                class="fas fa-arrow-down text-green-700"
-                v-else-if="totalStats.profitOrLossPercentage < 0"
-              ></i>
-              <span v-else>--</span>
-              <span class="ml-1">
-                {{
-                  totalStats.profitOrLossPercentage >= 0
-                    ? `${totalStats.profitOrLossPercentage}`
-                    : `${totalStats.profitOrLossPercentage * -1}`
-                }}
-              </span>
-              %</span
-            >
-            <span
-              class="inline-block px-1.5 py-px rounded font-medium"
-              :class="
-                totalStats.profitOrLossValue > 0
-                  ? 'text-red-600'
-                  : totalStats.profitOrLossValue < 0
-                  ? 'text-green-700'
-                  : 'text-slate-500'
-              "
-              >{{
-                totalStats.profitOrLossValue > 0
-                  ? `+$${totalStats.profitOrLossValue}`
-                  : totalStats.profitOrLossValue < 0
-                  ? `-$${totalStats.profitOrLossValue * -1}`
-                  : `${totalStats.profitOrLossValue}`
-              }}</span
-            >
-          </div>
-        </li>
-      </ul>
+      <TitleList :titles="titles_Total" />
+      <ContentList :list="totalStats" v-if="totalStats">
+        <template #diff-percent>
+          <span
+            class="inline-block px-2 py-1 rounded font-medium"
+            :class="
+              totalStats[0].profitOrLossPercentage > 0
+                ? 'text-red-600 bg-red-100/70'
+                : totalStats[0].profitOrLossPercentage < 0
+                ? 'text-green-700 bg-green-100'
+                : 'text-slate-500 bg-slate-200'
+            "
+          >
+            <i
+              class="fas fa-arrow-up text-red-700"
+              v-if="totalStats[0].profitOrLossPercentage > 0"
+            ></i>
+            <i
+              class="fas fa-arrow-down text-green-700"
+              v-else-if="totalStats[0].profitOrLossPercentage < 0"
+            ></i>
+            <span v-else>--</span>
+            <span class="ml-1">
+              {{
+                totalStats[0].profitOrLossPercentage >= 0
+                  ? `${totalStats[0].profitOrLossPercentage}`
+                  : `${totalStats[0].profitOrLossPercentage * -1}`
+              }}%
+            </span>
+          </span>
+        </template>
+        <template #diff-value>
+          <span
+            class="inline-block px-1.5 py-px rounded font-medium"
+            :class="
+              totalStats[0].profitOrLossValue > 0
+                ? 'text-red-600'
+                : totalStats[0].profitOrLossValue < 0
+                ? 'text-green-700'
+                : 'text-slate-500'
+            "
+            >{{
+              totalStats[0].profitOrLossValue > 0
+                ? `+$${totalStats[0].profitOrLossValue}`
+                : totalStats[0].profitOrLossValue < 0
+                ? `-$${totalStats[0].profitOrLossValue * -1}`
+                : `${totalStats[0].profitOrLossValue}`
+            }}</span
+          >
+        </template>
+      </ContentList>
     </section>
 
     <section>
       <h2 class="text-lg font-medium pb-2">Trade Records</h2>
-      <ul>
-        <li
-          class="
-            flex
-            items-end
-            gap-x-1.5
-            py-2
-            text-xs
-            border-b
-            font-semibold
-            text-slate-800
-          "
-        >
-          <div class="w-1/5">Trade date</div>
-          <div class="w-[15%] text-right">Cost</div>
-          <div class="w-[15%] text-right">Shares</div>
-          <div class="grow text-right">P / L %</div>
-        </li>
-      </ul>
-
-      <ul>
-        <li
-          class="
-            flex
-            items-center
-            gap-x-1.5
-            py-2
-            text-xs
-            border-b
-            text-slate-800
-          "
-          v-for="trade in tradeList"
-          :key="trade.id"
-        >
-          <div class="w-1/5">{{ trade.tradeDate }}</div>
-          <div class="w-[15%] text-right">{{ trade.cost }}</div>
-          <div class="w-[15%] text-right">{{ trade.shares }}</div>
-          <div class="grow text-right">
-            <span
-              class="inline-block px-1.5 py-px font-medium"
-              :class="
-                basicInfo.close > trade.cost
-                  ? 'text-red-600'
-                  : basicInfo.close < trade.cost
-                  ? 'text-green-700'
-                  : 'text-slate-500'
-              "
-            >
-              <i
-                class="fas fa-arrow-up mr-px text-red-700"
-                v-if="basicInfo.close > trade.cost"
-              ></i>
-              <i class="fas fa-arrow-down mr-px text-green-700" v-else></i>
-              {{ calculatePerformance("percent", trade.cost) }} %
+      <TitleList :titles="titles_Records" />
+      <ContentList :list="tradeList">
+        <template #diff-percent="{ price }">
+          <span
+            class="inline-block font-medium"
+            :class="
+              basicInfo.close > price
+                ? 'text-red-600'
+                : basicInfo.close < price
+                ? 'text-green-700'
+                : 'text-slate-500'
+            "
+          >
+            <i
+              class="fas fa-arrow-up text-red-700"
+              v-if="basicInfo.close > price"
+            ></i>
+            <i
+              class="fas fa-arrow-down text-green-700"
+              v-else-if="basicInfo.close < price"
+            ></i>
+            <span v-else>--</span>
+            <span class="ml-1">
+              {{ calculatePerformance("percent", price) }} %
             </span>
-            <span
-              class="inline-block px-1.5 py-px rounded font-light"
-              :class="
-                trade.cost < basicInfo.close
-                  ? 'text-red-600'
-                  : trade.cost > basicInfo.close
-                  ? 'text-green-700'
-                  : 'text-slate-500'
-              "
-            >
-              {{ calculatePerformance("value", trade.cost) }}
-            </span>
-          </div>
-        </li>
-      </ul>
+          </span>
+        </template>
+        <template #diff-value="{ price }">
+          <span
+            class="inline-block font-light"
+            :class="
+              basicInfo.close > price
+                ? 'text-red-600'
+                : basicInfo.close < price
+                ? 'text-green-700'
+                : 'text-slate-500'
+            "
+          >
+            {{ calculatePerformance("value", price) }}
+          </span>
+        </template>
+      </ContentList>
     </section>
   </div>
 </template>
@@ -175,7 +112,14 @@
 <script>
 import { ref } from "vue";
 import http from "../api/index";
+import TitleList from "@/components/TradeDetails/TitleList.vue";
+import ContentList from "@/components/TradeDetails/ContentList.vue";
+
 export default {
+  components: {
+    TitleList,
+    ContentList,
+  },
   props: {
     holdings: Object,
   },
@@ -187,15 +131,36 @@ export default {
     http
       .get(`/api/tradeDetails/${props.holdings.latestInfo.ticker}`)
       .then((res) => {
-        console.log(props.holdings);
+        console.log("props.holdings", props.holdings);
         const { latestInfo, trade } = props.holdings;
         const { ticker, name, style, close } = latestInfo;
+
         basicInfo.value = { ticker, name, style, close };
-        totalStats.value = trade;
-
-        tradeList.value = res.data.result;
-
-        console.log(tradeList.value);
+        totalStats.value = [trade].map((item) => {
+          const {
+            close,
+            totalShares,
+            profitOrLossPercentage,
+            profitOrLossValue,
+          } = item;
+          return {
+            id: Date.now(),
+            price: close,
+            shares: totalShares,
+            date: new Date().toLocaleDateString("zh-TW").replace(/\//g, "-"),
+            profitOrLossPercentage,
+            profitOrLossValue,
+          };
+        });
+        tradeList.value = res.data.result.map((trade) => {
+          const { id, cost, shares, tradeDate } = trade;
+          return {
+            id,
+            shares,
+            price: cost,
+            date: tradeDate,
+          };
+        });
       });
 
     function calculatePerformance(type, cost) {
@@ -223,11 +188,59 @@ export default {
       }
     }
 
+    const titles_Total = ref([
+      {
+        name: "Today",
+        style: "w-1/5",
+      },
+      {
+        name: "Price",
+        style: "w-[15%] text-right",
+      },
+      {
+        name: "Total shares",
+        style: "w-[15%] text-right",
+      },
+      {
+        name: "P / L %",
+        style: "grow text-right",
+      },
+      {
+        name: "P / L",
+        style: "grow text-right",
+      },
+    ]);
+
+    const titles_Records = ref([
+      {
+        name: "Trade date",
+        style: "w-1/5",
+      },
+      {
+        name: "Cost",
+        style: "w-[15%] text-right",
+      },
+      {
+        name: "Shares",
+        style: "w-[15%] text-right",
+      },
+      {
+        name: "P / L %",
+        style: "grow text-right",
+      },
+      {
+        name: "P / L",
+        style: "grow text-right",
+      },
+    ]);
+
     return {
       tradeList,
       basicInfo,
       totalStats,
       calculatePerformance,
+      titles_Total,
+      titles_Records,
     };
   },
 };

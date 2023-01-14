@@ -9,7 +9,7 @@
         text-xs
         border-b
         font-semibold
-        text-slate-800
+        text-slate-500
       "
     >
       <div v-for="title in titles" :key="title.name" :class="title.style">

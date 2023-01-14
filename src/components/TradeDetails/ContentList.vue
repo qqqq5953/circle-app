@@ -1,7 +1,8 @@
 <template>
   <ul>
     <li
-      class="flex items-center gap-x-1.5 py-2 text-xs border-b text-slate-800"
+      class="flex items-center gap-x-1.5 py-2 text-xs border-b"
+      :class="fontWeight"
       v-for="item in list"
       :key="item.id"
     >
@@ -15,7 +16,7 @@
         <slot name="diff-value" :price="item.price"></slot>
       </div>
       <div class="grow text-right hidden sm:block">
-        <slot name="totlal-value"></slot>
+        <slot name="totlal-value" :value="item.value"></slot>
       </div>
     </li>
   </ul>
@@ -26,6 +27,10 @@ export default {
   props: {
     list: {
       type: Array,
+    },
+    fontWeight: {
+      type: String,
+      default: "font-normal",
     },
   },
 };

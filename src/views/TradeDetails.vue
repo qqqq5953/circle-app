@@ -9,10 +9,14 @@
       </h1>
 
       <TitleList :titles="titles_Total" />
-      <ContentList :list="totalStats" v-if="totalStats">
+      <ContentList
+        :list="totalStats"
+        fontWeight="font-medium"
+        v-if="totalStats"
+      >
         <template #diff-percent>
           <span
-            class="inline-block px-2 py-1 rounded font-medium"
+            class="inline-block px-2 py-1 rounded"
             :class="
               totalStats[0].profitOrLossPercentage > 0
                 ? 'text-red-600 bg-red-100/70'
@@ -41,7 +45,7 @@
         </template>
         <template #diff-value>
           <span
-            class="inline-block px-1.5 py-px rounded font-medium"
+            class="inline-block px-1.5 py-px rounded"
             :class="
               totalStats[0].profitOrLossValue > 0
                 ? 'text-red-600'
@@ -58,13 +62,16 @@
             }}</span
           >
         </template>
+        <template #totlal-value="{ value }">
+          <span>${{ value }}</span>
+        </template>
       </ContentList>
     </section>
 
     <section>
       <h2 class="text-lg font-medium pb-2">Trade Records</h2>
       <TitleList :titles="titles_Records" />
-      <ContentList :list="tradeList">
+      <ContentList :list="tradeList" fontWeight="font-light">
         <template #diff-percent="{ price }">
           <span
             class="inline-block font-medium"
@@ -92,7 +99,7 @@
         </template>
         <template #diff-value="{ price }">
           <span
-            class="inline-block font-light"
+            class="inline-block"
             :class="
               basicInfo.close > price
                 ? 'text-red-600'
@@ -103,6 +110,9 @@
           >
             {{ calculatePerformance("value", price) }}
           </span>
+        </template>
+        <template #totlal-value="{ value }">
+          <span>${{ value }}</span>
         </template>
       </ContentList>
     </section>
@@ -148,6 +158,7 @@ export default {
             price: close,
             shares: totalShares,
             date: new Date().toLocaleDateString("zh-TW").replace(/\//g, "-"),
+            value: close * totalShares,
             profitOrLossPercentage,
             profitOrLossValue,
           };
@@ -159,6 +170,7 @@ export default {
             shares,
             price: cost,
             date: tradeDate,
+            value: close * shares,
           };
         });
       });
@@ -209,6 +221,10 @@ export default {
         name: "P / L",
         style: "grow text-right",
       },
+      {
+        name: "Value",
+        style: "hidden sm:block grow text-right",
+      },
     ]);
 
     const titles_Records = ref([
@@ -231,6 +247,10 @@ export default {
       {
         name: "P / L",
         style: "grow text-right",
+      },
+      {
+        name: "Value",
+        style: "hidden sm:block grow text-right",
       },
     ]);
 

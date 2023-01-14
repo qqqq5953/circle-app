@@ -49,6 +49,16 @@ const routes = [
         }
       },
       {
+        path: 'tradeResult',
+        name: 'TradeResult',
+        component: () => import('../views/TradeResult.vue'),
+        props: (route) => {
+          return {
+            tradeResult: JSON.parse(route.params.tradeResult)
+          }
+        }
+      },
+      {
         path: 'stockInfo/:ticker',
         name: 'StockInfo',
         component: () => import('../views/StockInfo.vue'),

@@ -251,7 +251,7 @@ export default {
         } else {
           // snackbar
           activateNotification({ ...newData, result: null });
-          tradeResult.value = result;
+          tradeResult.value = { ...newData, result };
         }
       } catch (error) {
         console.log("updateHoldings error", error);

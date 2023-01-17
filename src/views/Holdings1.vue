@@ -91,7 +91,7 @@
           <template #title>Trade Panel</template>
           <template #inputs>
             <NewAdding
-              :stockToBeTraded="stockToBeTraded"
+              :tickerToBeTraded="tickerToBeTraded"
               :isBuyMore="isBuyMore"
               v-show="!loading"
             />
@@ -155,9 +155,6 @@ export default {
     InputSkeleton,
     Toast: defineAsyncComponent(() => import("@/components/Toast.vue")),
     Snackbar: defineAsyncComponent(() => import("@/components/Snackbar.vue")),
-    TradeModal: defineAsyncComponent(() =>
-      import("@/components/TradeModal.vue")
-    ),
     InputModal: defineAsyncComponent(() =>
       import("@/components/InputModal.vue")
     ),
@@ -253,27 +250,22 @@ export default {
       }
     };
 
-    const stockToBeTraded = ref(null);
+    const tickerToBeTraded = ref(null);
     const isBuyMore = ref(null);
 
     const openTradeModal = async (obj) => {
-      const { open, promiseObj, ...rest } = obj;
+      const { open, ...latestInfo } = obj;
       isModalOpen.value = open;
       isBuyMore.value = true;
+      tickerToBeTraded.value = latestInfo;
 
-      const res = await Promise.all([promiseObj]);
-      console.log("res", res);
-
-      stockToBeTraded.value = {
-        ...res[0].data.result,
-        ...rest,
-      };
+      console.log("tickerToBeTraded.value", tickerToBeTraded.value);
     };
 
     watch(isModalOpen, (newVal) => {
       if (!newVal) {
         isBuyMore.value = false;
-        stockToBeTraded.value = null;
+        tickerToBeTraded.value = null;
       }
     });
 
@@ -327,7 +319,7 @@ export default {
       getHistorical,
       openTradeModal,
       isModalOpen,
-      stockToBeTraded,
+      tickerToBeTraded,
 
       toggleModal,
       addStock,

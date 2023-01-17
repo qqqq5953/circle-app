@@ -421,14 +421,11 @@ export default {
   },
   setup(_, { emit }) {
     const openTradeModal = (latestInfo) => {
-      const { code, ticker, tempTicker, style } = latestInfo;
-      const promiseObj = http.get(`/api/quote/${ticker}`);
+      const { close: price, ...rest } = latestInfo;
       const obj = {
         open: true,
-        promiseObj,
-        code,
-        tempTicker,
-        style,
+        ...rest,
+        price,
       };
       emit("openTradeModal", obj);
     };

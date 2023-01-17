@@ -28,8 +28,8 @@
       </Transition>
     </div>
 
-    <div v-if="isBuyMore && !stockToBeTraded">
-      <ListSkeleton v-show="!stockToBeTraded" />
+    <div v-if="isBuyMore && !tickerToBeTraded">
+      <ListSkeleton v-show="!tickerToBeTraded" />
     </div>
     <div v-else-if="stock.ticker">
       <TickerInfo
@@ -83,7 +83,7 @@ export default {
     TickerInfo,
   },
   props: {
-    stockToBeTraded: {
+    tickerToBeTraded: {
       type: Object,
     },
     isBuyMore: {
@@ -123,7 +123,7 @@ export default {
     };
 
     watch(
-      () => props.stockToBeTraded,
+      () => props.tickerToBeTraded,
       (tickerInfo) => {
         stockLists.value.length = 0;
 

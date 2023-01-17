@@ -30,19 +30,21 @@ router.get('/quote/:ticker', async (req, res) => {
       longName: name,
       regularMarketPrice: price,
       symbol: ticker,
-      regularMarketPreviousClose: previousClose,
       regularMarketTime,
-      marketState
+      marketState,
+      regularMarketChange,
+      regularMarketChangePercent
     } = priceObj
 
-    const previousCloseChange =
-      parseFloat(price - previousClose) > 0
-        ? '+' + parseFloat(price - previousClose).toFixed(2)
-        : parseFloat(price - previousClose).toFixed(2)
+    const roundedChange = Math.round(regularMarketChange * 100) / 100
 
-    const previousCloseChangePercent = parseFloat(
-      ((price - previousClose) / previousClose) * 100
-    ).toFixed(2)
+    const previousCloseChange =
+      roundedChange > 0
+        ? '+' + roundedChange.toFixed(2)
+        : roundedChange.toFixed(2)
+
+    const previousCloseChangePercent =
+      Math.round(regularMarketChangePercent * 10000) / 100
 
     const obj = {
       price: parseFloat(price.toFixed(2)),
@@ -140,6 +142,8 @@ router.post('/addStock', async (req, res) => {
 
     const latestInfo = {
       close: price,
+      previousCloseChange,
+      previousCloseChangePercent,
       style,
       name,
       marketState,

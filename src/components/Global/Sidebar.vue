@@ -11,7 +11,6 @@
       lg:flex-nowrap
       lg:overflow-hidden
       shadow-xl
-      bg-green-100
       flex flex-wrap
       items-center
       justify-between
@@ -20,6 +19,8 @@
       z-10
       py-4
       px-6
+      bg-indigo-800
+      text-white
     "
   >
     <div
@@ -31,24 +32,11 @@
         justify-between
         w-full
         mx-auto
-        bg-blue-200
       "
     >
       <!-- Toggler -->
       <button
-        class="
-          cursor-pointer
-          text-black
-          opacity-50
-          lg:hidden
-          px-3
-          py-1
-          text-xl
-          leading-none
-          bg-transparent
-          rounded
-          border border-solid border-transparent
-        "
+        class="text-white lg:hidden px-3 py-1 text-xl"
         type="button"
         v-on:click="toggleCollapseShow('bg-white m-2 py-3 px-6')"
       >
@@ -64,15 +52,15 @@
           mr-0
           inline-block
           whitespace-nowrap
-          text-sm
           uppercase
           font-bold
           p-4
           px-0
+          text-2xl
         "
         href="javascript:void(0)"
       >
-        Circle
+        <span class="border-2 border-white rounded-lg p-2"> Circle App</span>
       </a>
       <!-- User -->
       <ul class="lg:hidden items-center flex flex-wrap list-none">
@@ -106,20 +94,11 @@
           items-center
           flex-1
           rounded
-          bg-yellow-100
         "
         v-bind:class="collapseShow"
       >
         <!-- Collapse header -->
-        <div
-          class="
-            lg:min-w-full lg:hidden
-            block
-            pb-4
-            mb-4
-            border-b border-solid border-blueGray-200
-          "
-        >
+        <div class="lg:min-w-full lg:hidden block pb-4 mb-4">
           <div class="flex flex-wrap">
             <div class="w-6/12">
               <a
@@ -198,9 +177,10 @@
             flex flex-col
             list-none
             outline-black
+            text-slate-700
           "
         >
-          <li class="items-center">
+          <li class="items-center border-b">
             <router-link
               :to="{ name: 'Portfolio' }"
               @click="toggleCollapseShow('hidden')"
@@ -210,7 +190,7 @@
               Portfolio</router-link
             >
           </li>
-          <li class="items-center">
+          <li class="items-center border-b">
             <router-link
               :to="{ name: 'Holdings' }"
               @click="toggleCollapseShow('hidden')"
@@ -228,7 +208,7 @@
               Holdings</router-link
             >
           </li>
-          <li class="items-center">
+          <li class="items-center border-b">
             <router-link
               :to="{ name: 'Holdings1' }"
               @click="toggleCollapseShow('hidden')"
@@ -246,7 +226,7 @@
               Holdings1</router-link
             >
           </li>
-          <li class="items-center">
+          <li class="items-center border-b">
             <router-link
               :to="{ name: 'History' }"
               @click="toggleCollapseShow('hidden')"
@@ -264,7 +244,7 @@
               History</router-link
             >
           </li>
-          <li class="items-center">
+          <li class="items-center border-b">
             <router-link
               :to="{ name: 'Watchlist' }"
               @click="toggleCollapseShow('hidden')"
@@ -283,8 +263,6 @@
             >
           </li>
         </ul>
-        <!-- Divider -->
-        <hr class="my-4 lg:min-w-full" />
       </div>
     </div>
   </nav>

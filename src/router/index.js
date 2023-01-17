@@ -74,7 +74,7 @@ const routes = [
 
 const router = createRouter({
   history: createWebHashHistory(),
-  linkActiveClass: 'text-pink-500',
+  linkActiveClass: 'text-amber-400',
   scrollBehavior(to, from, savedPosition) {
     return { top: 0, behavior: 'smooth' }
   },

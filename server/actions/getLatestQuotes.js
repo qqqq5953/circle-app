@@ -1,8 +1,4 @@
 const getLatestQuotes = async (holdingsArray, holdingRef, yahooFinance) => {
-  const updateMarketInfo = (tempTicker, marketInfo) => {
-    holdingRef.child(tempTicker).child('latestInfo').update(marketInfo)
-  }
-
   const { tempTickers, quotePromises } = holdingsArray.reduce(
     (obj, holding) => {
       const { ticker, tempTicker } = holding.latestInfo
@@ -17,19 +13,38 @@ const getLatestQuotes = async (holdingsArray, holdingRef, yahooFinance) => {
   )
 
   const quoteResult = await Promise.allSettled(quotePromises)
-
   const latestQuotes = quoteResult.map((item, i) => {
     const {
       regularMarketTime,
       marketState,
+      regularMarketChange,
+      regularMarketChangePercent,
       regularMarketPrice: close
     } = item.value.price
 
-    const tempTicker = tempTickers[i]
-    const marketInfo = { close, marketState, regularMarketTime }
-    updateMarketInfo(tempTicker, marketInfo)
+    const roundedChange = Math.round(regularMarketChange * 100) / 100
+    const previousCloseChange =
+      roundedChange > 0
+        ? '+' + roundedChange.toFixed(2)
+        : roundedChange.toFixed(2)
+    const previousCloseChangePercent =
+      Math.round(regularMarketChangePercent * 10000) / 100
 
-    return { regularMarketTime, marketState, close }
+    const tempTicker = tempTickers[i]
+    const latestInfo = {
+      close,
+      marketState,
+      regularMarketTime,
+      previousCloseChange,
+      previousCloseChangePercent
+    }
+    updateMarketInfo(tempTicker, latestInfo)
+
+    function updateMarketInfo(tempTicker, latestInfo) {
+      holdingRef.child(tempTicker).child('latestInfo').update(latestInfo)
+    }
+
+    return latestInfo
   })
 
   return latestQuotes

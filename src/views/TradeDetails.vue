@@ -26,7 +26,7 @@
             "
           >
             <i
-              class="fas fa-arrow-up text-red-700"
+              class="fas fa-arrow-up text-red-600"
               v-if="totalStats[0].profitOrLossPercentage > 0"
             ></i>
             <i
@@ -84,7 +84,7 @@
             "
           >
             <i
-              class="fas fa-arrow-up text-red-700"
+              class="fas fa-arrow-up text-red-600"
               v-if="basicInfo.close > price"
             ></i>
             <i

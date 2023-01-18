@@ -52,9 +52,14 @@
           {{ lastMarketOpenDate }}
         </span>
       </div>
-      <div class="lg:flex lg:justify-between gap-3">
+      <div class="lg:flex gap-3">
         <CardSkeleton v-if="loading" />
-        <div v-else v-for="item in topThreePerformance" :key="item.ticker">
+        <div
+          class="lg:w-1/3"
+          v-else
+          v-for="item in topThreePerformance"
+          :key="item.ticker"
+        >
           <Card :cardData="item"></Card>
         </div>
       </div>

@@ -78,7 +78,7 @@
             py-1
             text-xs
           "
-          @click="toggleModal(true)"
+          @click="toggleModal({ open: true, type: 'invest' })"
         >
           <span>+</span>
           <span class="mx-1">Invest</span>
@@ -96,6 +96,7 @@
           <template #title>Trade Panel</template>
           <template #inputs>
             <NewAdding
+              ref="newAddingRef"
               :tickerToBeTraded="tickerToBeTraded"
               :isBuyMore="isBuyMore"
               v-show="!loading"
@@ -108,7 +109,7 @@
       <TableSkeleton v-if="loading" />
       <NewTable1
         :holdingsTotalInfo="data.result"
-        @openTradeModal="openTradeModal"
+        @toggleModal="toggleModal"
         v-else
       >
         <template #holding-table-btn>
@@ -167,7 +168,6 @@ export default {
   setup() {
     const $searchStore = useSearchStore();
     const { searchList } = storeToRefs($searchStore);
-
     const $holdingStore = useHoldingStore();
     const {
       notificationMessage,
@@ -179,24 +179,22 @@ export default {
       stock,
       inputValidity,
     } = storeToRefs($holdingStore);
+    const { toggleSkeleton, activateNotification } = $holdingStore;
 
-    const { toggleModal, toggleSkeleton, activateNotification } = $holdingStore;
+    // 跨頁面時重置 searchList
+    onMounted(() => (searchList.value = null));
 
-    onMounted(() => {
-      console.log("holdings onMounted");
-      searchList.value = null;
-    });
-
+    // addStock
     const isAllValid = computed(() =>
       Object.values(inputValidity.value).every((item) => !!item)
     );
-
     const isWeb = ref(window.matchMedia("(min-width:768px)").matches);
+    const tradeResult = ref(null);
 
-    const addStock = async () => {
+    async function addStock() {
       if (!isAllValid.value) return;
 
-      toggleModal(false);
+      toggleModal({ open: false, type: "invest" });
       toggleSkeleton(true);
 
       try {
@@ -215,11 +213,9 @@ export default {
       } catch (error) {
         console.log("addStock error", error);
       }
-    };
+    }
 
-    const tradeResult = ref(null);
-
-    const updateHoldings = async (newData, errorMessage) => {
+    async function updateHoldings(newData, errorMessage) {
       console.log("updateHoldings newData", newData);
       if (!newData.success) return activateNotification(errorMessage);
 
@@ -253,20 +249,39 @@ export default {
       } catch (error) {
         console.log("updateHoldings error", error);
       }
-    };
+    }
 
+    // toggleModal
     const tickerToBeTraded = ref(null);
     const isBuyMore = ref(null);
+    const newAddingRef = ref(null);
 
-    const openTradeModal = async (obj) => {
-      const { open, ...latestInfo } = obj;
+    function toggleModal(parmas) {
+      const { open, type, ...latestInfo } = parmas;
+      const style = open ? "overflow:hidden" : null;
+      disableVerticalScrollbar(style);
+      if (!open) clearInvalidMessage();
       isModalOpen.value = open;
-      isBuyMore.value = true;
-      tickerToBeTraded.value = latestInfo;
 
-      console.log("tickerToBeTraded.value", tickerToBeTraded.value);
-    };
+      if (type === "buy") {
+        isBuyMore.value = true;
+        tickerToBeTraded.value = latestInfo;
+      }
+    }
 
+    function disableVerticalScrollbar(style) {
+      document.querySelector("body").style = style;
+    }
+
+    function clearInvalidMessage() {
+      const { inputCostRef, inputSharesRef } = newAddingRef.value.$refs;
+      inputCostRef.costRef.setCustomValidity("");
+      inputCostRef.inputError.length = 0;
+      inputSharesRef.sharesRef.setCustomValidity("");
+      inputSharesRef.inputError.length = 0;
+    }
+
+    // 清空 buy modal
     watch(isModalOpen, (newVal) => {
       if (!newVal) {
         isBuyMore.value = false;
@@ -274,26 +289,13 @@ export default {
       }
     });
 
-    const historicalQutoes = ref(null);
-    const getHistorical = async () => {
-      const period = "d"; // 月資料都是從第一天開始
-      const dateStart = 30;
-      const dateEnd = 29;
-      const response = await axios.get(
-        `/api/historicalHolding/${period}/${dateStart}/${dateEnd}`
-      );
-      console.log("getHistorical= ", response.data);
-      historicalQutoes.value = response.data;
-      return response.data;
-    };
-
     // Card
     const topThreePerformance = computed(() => {
       if (!data.value) return;
       return calculatePerformance(data.value.result);
     });
 
-    const calculatePerformance = (holdings) => {
+    function calculatePerformance(holdings) {
       if (!holdings) return;
 
       return Object.values(holdings)
@@ -310,7 +312,7 @@ export default {
           return b.profitOrLossPercentage - a.profitOrLossPercentage;
         })
         .slice(0, 3);
-    };
+    }
 
     return {
       topThreePerformance,
@@ -320,9 +322,7 @@ export default {
       lastMarketOpenDate,
       notificationMessage,
 
-      historicalQutoes,
-      getHistorical,
-      openTradeModal,
+      toggleModal,
       isModalOpen,
       tickerToBeTraded,
 
@@ -332,6 +332,7 @@ export default {
       isBuyMore,
       tradeResult,
       isWeb,
+      newAddingRef,
     };
   },
 };

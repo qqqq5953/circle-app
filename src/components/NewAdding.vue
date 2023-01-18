@@ -49,6 +49,7 @@
       :modelValue="stock.shares"
       @input="stock.shares = $event.target.value"
       @getInputValidity="getInputValidity"
+      ref="inputSharesRef"
     />
     <InputDate
       :modelValue="stock.tradeDate"
@@ -100,6 +101,7 @@ export default {
     const { stock, inputValidity } = storeToRefs($holdingStore);
 
     const inputCostRef = ref(null);
+    const inputSharesRef = ref(null);
     const stockLists = ref([]);
 
     const selectTicker = () => {
@@ -159,6 +161,7 @@ export default {
 
       selectTicker,
       inputCostRef,
+      inputSharesRef,
       stockLists,
     };
   },

@@ -46,16 +46,6 @@ const useHoldingStore = defineStore('holding', () => {
 
   const isModalOpen = ref(false)
 
-  const toggleModal = (isOpen) => {
-    isModalOpen.value = isOpen || false
-    const style = isOpen ? 'overflow:hidden' : null
-    disableVerticalScrollbar(style)
-  }
-
-  const disableVerticalScrollbar = (style) => {
-    document.querySelector('body').style = style
-  }
-
   return {
     notificationMessage,
     isModalOpen,
@@ -66,7 +56,6 @@ const useHoldingStore = defineStore('holding', () => {
     lastMarketOpenDate,
     inputValidity,
     today,
-    toggleModal,
     activateNotification,
     toggleSkeleton
   }

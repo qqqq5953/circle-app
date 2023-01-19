@@ -39,7 +39,7 @@
               text-white
               hover:bg-blue-500
             "
-            >View details</router-link
+            >View result</router-link
           >
         </template>
       </Snackbar>

@@ -9,12 +9,11 @@
       z-10
       shadow
       rounded
-      bg-white
-      border-slate-300 border
-      text-slate-600 text-sm
+      bg-indigo-700
+      text-white text-sm
       sm:mx-auto sm:w-1/2
       md:w-1/3
-      lg:w-1/5
+      lg:w-2/5
     "
     :class="{
       'animate-fade-in': isFadeIn,
@@ -38,20 +37,6 @@
       <a href="#" @click.prevent="closeToast(true)" class="ml-4">
         <i class="fa-solid fa-xmark fa-sm"></i>
       </a>
-    </div>
-
-    <div class="pt-4 pb-5 px-6 flex flex-wrap" v-if="message.result">
-      <ul class="w-full pb-3">
-        <li
-          class="flex py-0.5"
-          v-for="(item, index) in message.result"
-          :key="index"
-        >
-          <span class="tracking-wide">{{ index }} : </span>
-          <span class="ml-auto font-medium">{{ item }}</span>
-        </li>
-      </ul>
-      <p v-if="error">error: {{ error }}</p>
     </div>
   </div>
 </template>

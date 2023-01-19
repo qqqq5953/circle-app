@@ -1,27 +1,7 @@
 <template>
   <main class="px-4 md:p-10 mx-auto w-full relative">
     <Teleport to="body">
-      <Toast v-if="isWeb" :toastMessage="notificationMessage">
-        <template #btn>
-          <router-link
-            :to="{ name: 'History' }"
-            class="
-              inline-block
-              px-2
-              py-1.5
-              rounded
-              mt-3.5
-              text-xs
-              bg-blue-600
-              text-white
-              hover:bg-blue-500
-            "
-            >View records</router-link
-          >
-        </template>
-      </Toast>
-
-      <Snackbar v-if="!isWeb" :barMessage="notificationMessage">
+      <Snackbar :barMessage="notificationMessage">
         <template #btn>
           <router-link
             :to="{
@@ -35,9 +15,9 @@
               py-1.5
               rounded
               text-xs
-              bg-blue-600
-              text-white
-              hover:bg-blue-500
+              bg-gray-100
+              text-indigo-700
+              hover:bg-white
             "
             >View result</router-link
           >
@@ -237,7 +217,6 @@ export default {
     CardSkeleton,
     TableSkeleton,
     InputSkeleton,
-    Toast: defineAsyncComponent(() => import("@/components/Toast.vue")),
     Snackbar: defineAsyncComponent(() => import("@/components/Snackbar.vue")),
     InputModal: defineAsyncComponent(() =>
       import("@/components/InputModal.vue")
@@ -266,7 +245,7 @@ export default {
     const isAllValid = computed(() =>
       Object.values(inputValidity.value).every((item) => !!item)
     );
-    const isWeb = ref(window.matchMedia("(min-width:768px)").matches);
+
     const tradeResult = ref(null);
 
     async function addStock() {
@@ -316,14 +295,8 @@ export default {
 
         toggleSkeleton(false);
 
-        if (isWeb.value) {
-          // toast
-          activateNotification({ ...newData, result });
-        } else {
-          // snackbar
-          activateNotification({ ...newData, result: null });
-          tradeResult.value = { ...newData, result };
-        }
+        activateNotification({ ...newData, result: null });
+        tradeResult.value = { ...newData, result };
       } catch (error) {
         console.log("updateHoldings error", error);
       }
@@ -410,7 +383,6 @@ export default {
       isAllValid,
       isBuyMore,
       tradeResult,
-      isWeb,
       newAddingRef,
     };
   },

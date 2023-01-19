@@ -371,7 +371,7 @@
                     sm:order-1 sm:mx-auto
                   "
                   type="button"
-                  @click="openTradeModal(item.latestInfo)"
+                  @click="openBuyModal(item.latestInfo)"
                 >
                   Buy
                 </button>
@@ -412,7 +412,6 @@
 </template>
 
 <script>
-import http from "../api/index";
 export default {
   props: {
     holdingsTotalInfo: {
@@ -420,18 +419,19 @@ export default {
     },
   },
   setup(_, { emit }) {
-    const openTradeModal = (latestInfo) => {
+    const openBuyModal = (latestInfo) => {
       const { close: price, ...rest } = latestInfo;
-      const obj = {
-        open: true,
+      const parmas = {
         ...rest,
         price,
+        open: true,
+        type: "buy",
       };
-      emit("openTradeModal", obj);
+      emit("toggleModal", parmas);
     };
 
     return {
-      openTradeModal,
+      openBuyModal,
     };
   },
 };

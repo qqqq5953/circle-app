@@ -62,7 +62,10 @@ const useSearchStore = defineStore('search', () => {
   }
 
   const toggleSearchList = (focus) => {
-    isFocus.value = focus
+    // deplay toggling after event
+    setTimeout(() => {
+      isFocus.value = focus
+    }, 150)
   }
 
   return {

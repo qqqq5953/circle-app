@@ -52,15 +52,99 @@
           {{ lastMarketOpenDate }}
         </span>
       </div>
-      <div class="lg:flex gap-3">
+      <div class="sm:flex gap-3">
         <CardSkeleton v-if="loading" />
         <div
-          class="lg:w-1/3"
+          class="sm:w-1/3"
           v-else
           v-for="item in topThreePerformance"
           :key="item.ticker"
         >
-          <Card :cardData="item"></Card>
+          <Card>
+            <template #card-title>
+              <h3 class="flex gap-x-3 items-center mb-2">
+                <span class="ticker-badge" :class="item.style">
+                  {{ item.ticker }}
+                </span>
+                <span class="font-bold text-xs truncate w-[45%] sm:w-auto">{{
+                  item.name
+                }}</span>
+              </h3>
+            </template>
+            <template #card-sub-title>
+              <div class="flex items-center gap-x-3">
+                <p
+                  class="font-bold px-2 py-1 rounded text-xs"
+                  :class="
+                    item.profitOrLossPercentage > 0
+                      ? 'text-red-600 bg-red-100/70'
+                      : item.profitOrLossPercentage < 0
+                      ? 'text-green-700 bg-green-100'
+                      : 'text-slate-500 bg-slate-200'
+                  "
+                >
+                  <span v-if="item.profitOrLossPercentage !== 0">
+                    <i
+                      class="fas fa-arrow-up mr-px text-red-600"
+                      v-if="item.profitOrLossPercentage > 0"
+                    ></i>
+                    <i
+                      class="fas fa-arrow-down mr-px text-green-700"
+                      v-else-if="item.profitOrLossPercentage < 0"
+                    ></i>
+                  </span>
+                  <span v-else>--</span>
+                  {{
+                    item.profitOrLossPercentage < 0
+                      ? item.profitOrLossPercentage * -1
+                      : item.profitOrLossPercentage
+                  }}
+                  %
+                </p>
+                <p
+                  class="text-xs font-medium"
+                  :class="
+                    item.profitOrLossValue > 0
+                      ? 'text-red-600'
+                      : item.profitOrLossValue < 0
+                      ? 'text-green-700'
+                      : 'text-slate-500'
+                  "
+                >
+                  <span v-if="item.profitOrLossValue >= 0">
+                    <span class="mr-px">+$</span>
+                    <span>{{ item.profitOrLossValue }}</span>
+                  </span>
+                  <span v-else>
+                    <span class="mr-0.5">-$</span>
+                    <span>{{ item.profitOrLossValue * -1 }}</span>
+                  </span>
+                </p>
+              </div>
+            </template>
+            <template #card-icon
+              ><div
+                class="
+                  absolute
+                  right-4
+                  top-1/2
+                  -translate-y-1/2
+                  sm:hidden
+                  flex
+                  items-center
+                  justify-center
+                  w-12
+                  h-12
+                  shadow-lg
+                  rounded-full
+                  bg-slate-400
+                  text-white text-center
+                "
+              >
+                <i class="far fa-chart-bar"></i>
+              </div>
+            </template>
+          </Card>
         </div>
       </div>
     </section>
@@ -107,11 +191,7 @@
       </Teleport>
 
       <TableSkeleton v-if="loading" />
-      <NewTable1
-        :holdingsTotalInfo="data.result"
-        @toggleModal="toggleModal"
-        v-else
-      >
+      <NewTable1 :holdings="data.result" @toggleModal="toggleModal" v-else>
         <template #holding-table-btn>
           <button
             type="button"
@@ -301,6 +381,7 @@ export default {
           const { latestInfo, trade } = item;
           return {
             ticker: latestInfo.ticker,
+            name: latestInfo.name,
             style: latestInfo.style,
             profitOrLossPercentage: trade.profitOrLossPercentage,
             profitOrLossValue: trade.profitOrLossValue,

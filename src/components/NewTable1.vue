@@ -135,7 +135,7 @@
         <tbody>
           <tr
             class="flex flex-col rounded sm:table-row mx-2 mb-3 sm:m-0"
-            v-for="item in holdingsTotalInfo"
+            v-for="item in holdings"
             :key="item"
           >
             <!-- Stocks -->
@@ -414,7 +414,7 @@
 <script>
 export default {
   props: {
-    holdingsTotalInfo: {
+    holdings: {
       type: Object,
     },
   },

@@ -12,15 +12,21 @@
             :searchList="searchList"
             :hasOptionalTd="true"
           >
-            <template #action-btn>
+            <template #action-btn="{ ticker }">
               <div>
                 <a
                   href="#"
                   class="text-gray-300 inline-block py-1 hover:text-blue-600"
                   @click.stop.prevent="selectTicker"
+                  v-if="ticker !== stock.ticker"
                 >
                   <i class="fas fa-plus text-lg md:text-xl"></i>
                 </a>
+                <span v-else>
+                  <i
+                    class="fa-solid fa-check text-slate-600 text-lg md:text-xl"
+                  ></i>
+                </span>
               </div>
             </template>
           </SearchList>
@@ -104,7 +110,7 @@ export default {
     const inputSharesRef = ref(null);
     const stockLists = ref([]);
 
-    const selectTicker = () => {
+    function selectTicker() {
       const [tickerInfo] = searchList.value;
 
       if (stockLists.value.length) stockLists.value.pop();
@@ -117,12 +123,12 @@ export default {
       };
 
       getInputValidity({ name: "ticker", validity: true });
-    };
+    }
 
-    const getInputValidity = (validityObj) => {
+    function getInputValidity(validityObj) {
       const { name, validity } = validityObj;
       inputValidity.value[name] = validity;
-    };
+    }
 
     watch(
       () => props.tickerToBeTraded,

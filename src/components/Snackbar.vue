@@ -7,18 +7,18 @@
       left-6
       bottom-6
       z-10
-      sm:ml-auto sm:w-2/5
+      shadow
+      rounded
+      bg-white
+      border-slate-300 border
+      text-slate-600 text-sm
+      sm:mx-auto sm:w-1/2
       md:w-1/3
       lg:w-1/5
-      rounded
-      border-slate-300 border
-      shadow
-      bg-white
-      text-slate-600 text-sm
     "
     :class="{
-      'animate-toast-in': isToastIn,
-      'animate-toast-out': isToastOut,
+      'animate-fade-in': isFadeIn,
+      'animate-fade-out': isFadeOut,
     }"
   >
     <div
@@ -66,8 +66,8 @@ export default {
   },
   setup(props) {
     let toastOutTimer;
-    const isToastIn = ref(false);
-    const isToastOut = ref(false);
+    const isFadeIn = ref(false);
+    const isFadeOut = ref(false);
     const isActivate = ref(false);
     const error = ref(null);
 
@@ -114,7 +114,7 @@ export default {
 
     const deactivateToast = (milisecond) => {
       setTimeout(() => {
-        isToastOut.value = false;
+        isFadeOut.value = false;
         isActivate.value = false;
       }, milisecond);
     };
@@ -122,7 +122,7 @@ export default {
     const toastIn = (ms) => {
       return new Promise((resolve) => {
         setTimeout(() => {
-          isToastIn.value = true;
+          isFadeIn.value = true;
           resolve();
         }, ms);
       });
@@ -131,23 +131,23 @@ export default {
     const toastOut = (ms) => {
       return new Promise((resolve) => {
         toastOutTimer = setTimeout(() => {
-          isToastIn.value = false;
-          isToastOut.value = true;
+          isFadeIn.value = false;
+          isFadeOut.value = true;
           resolve();
         }, ms);
       });
     };
 
     const closeToast = (isClose) => {
-      isToastOut.value = false;
-      isToastIn.value = false;
+      isFadeOut.value = false;
+      isFadeIn.value = false;
       isActivate.value = !isClose;
     };
 
     return {
       message,
-      isToastIn,
-      isToastOut,
+      isFadeIn,
+      isFadeOut,
       isActivate,
       error,
       closeToast,

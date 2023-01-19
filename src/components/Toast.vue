@@ -17,8 +17,8 @@
       text-slate-600 text-sm
     "
     :class="{
-      'animate-toast-in': isToastIn,
-      'animate-toast-out': isToastOut,
+      'animate-fade-in': isFadeIn,
+      'animate-fade-out': isFadeOut,
     }"
   >
     <div class="flex items-center border-b border-slate-200 py-2 px-6">
@@ -67,8 +67,8 @@ export default {
   },
   setup(props) {
     let toastOutTimer;
-    const isToastIn = ref(false);
-    const isToastOut = ref(false);
+    const isFadeIn = ref(false);
+    const isFadeOut = ref(false);
     const isActivate = ref(false);
     const error = ref(null);
 
@@ -115,7 +115,7 @@ export default {
 
     const deactivateToast = (milisecond) => {
       setTimeout(() => {
-        isToastOut.value = false;
+        isFadeOut.value = false;
         isActivate.value = false;
       }, milisecond);
     };
@@ -123,7 +123,7 @@ export default {
     const toastIn = (ms) => {
       return new Promise((resolve) => {
         setTimeout(() => {
-          isToastIn.value = true;
+          isFadeIn.value = true;
           resolve();
         }, ms);
       });
@@ -132,23 +132,23 @@ export default {
     const toastOut = (ms) => {
       return new Promise((resolve) => {
         toastOutTimer = setTimeout(() => {
-          isToastIn.value = false;
-          isToastOut.value = true;
+          isFadeIn.value = false;
+          isFadeOut.value = true;
           resolve();
         }, ms);
       });
     };
 
     const closeToast = (isClose) => {
-      isToastOut.value = false;
-      isToastIn.value = false;
+      isFadeOut.value = false;
+      isFadeIn.value = false;
       isActivate.value = !isClose;
     };
 
     return {
       toastMessage,
-      isToastIn,
-      isToastOut,
+      isFadeIn,
+      isFadeOut,
       isActivate,
       error,
       closeToast,

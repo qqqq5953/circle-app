@@ -10,15 +10,15 @@ module.exports = {
         sans: ['"Inter var"', ...defaultTheme.fontFamily.sans]
       },
       animation: {
-        'toast-in': 'toastIn 0.5s linear forwards',
-        'toast-out': 'toastOut 0.5s linear forwards'
+        'fade-in': 'fadeIn 0.5s linear forwards',
+        'fade-out': 'fadeOut 0.5s linear forwards'
       },
       keyframes: {
-        toastIn: {
+        fadeIn: {
           '0%': { opacity: '0', transform: 'translateY(30%)' },
           '100%': { opacity: '1', transform: 'translateY(0)' }
         },
-        toastOut: {
+        fadeOut: {
           '0%': { opacity: '1', transform: 'translateY(0)' },
           '100%': { opacity: '0', transform: 'translateY(30%)' }
         },

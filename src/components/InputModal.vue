@@ -32,8 +32,6 @@
           <slot name="okButton"></slot>
         </button>
       </div>
-      {{ closeFunc === undefined }}
-      <br />
     </template>
   </BaseModal>
 </template>

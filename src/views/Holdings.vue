@@ -1,5 +1,6 @@
 <template>
-  <main class="px-4 md:p-10 mx-auto w-full relative">
+  <main class="px-4 md:p-10 mx-auto w-full">
+    <!-- snackbar -->
     <Teleport to="body">
       <Snackbar :barMessage="notificationMessage">
         <template #btn>
@@ -25,22 +26,43 @@
       </Snackbar>
     </Teleport>
 
+    <!-- trade modal -->
+    <Teleport to="body">
+      <InputModal
+        :isFullPage="true"
+        :isOpen="isModalOpen"
+        :closeFunc="toggleModal"
+        :confirmFunc="addStock"
+        :isDisabled="!isAllValid"
+      >
+        <template #title>Trade Panel</template>
+        <template #inputs>
+          <TradePanel
+            ref="newAddingRef"
+            :tickerToBeTraded="tickerToBeTraded"
+            :isBuyMore="isBuyMore"
+            v-show="!loading"
+          />
+        </template>
+        <template #okButton>Trade</template>
+      </InputModal>
+    </Teleport>
+
     <section class="px-4 md:px-0 lg:px-4">
-      <div class="flex items-center mb-4">
+      <div class="flex items-center mb-4" v-if="topThreePerformance.length">
         <h2 class="font-semibold text-lg">Top 3 Performance</h2>
         <span class="text-xs ml-auto">
           {{ lastMarketOpenDate }}
         </span>
       </div>
       <div class="sm:flex gap-3">
-        <CardSkeleton v-if="loading" />
         <div
           class="sm:w-1/3"
-          v-else
           v-for="item in topThreePerformance"
           :key="item.ticker"
         >
-          <Card>
+          <CardSkeleton v-if="loading" />
+          <Card v-else>
             <template #card-title>
               <h3 class="flex gap-x-3 items-center mb-2">
                 <span class="ticker-badge" :class="item.style">
@@ -143,35 +165,19 @@
             text-xs
           "
           @click="toggleModal({ open: true, type: 'invest' })"
+          v-if="holdings"
         >
           <span>+</span>
           <span class="mx-1">Invest</span>
         </button>
       </div>
 
-      <Teleport to="body">
-        <InputModal
-          :isFullPage="true"
-          :isOpen="isModalOpen"
-          :closeFunc="toggleModal"
-          :confirmFunc="addStock"
-          :isDisabled="!isAllValid"
-        >
-          <template #title>Trade Panel</template>
-          <template #inputs>
-            <TradePanel
-              ref="newAddingRef"
-              :tickerToBeTraded="tickerToBeTraded"
-              :isBuyMore="isBuyMore"
-              v-show="!loading"
-            />
-          </template>
-          <template #okButton>Trade</template>
-        </InputModal>
-      </Teleport>
-
       <TableSkeleton v-if="loading" />
-      <NewTable1 :holdings="data.result" @toggleModal="toggleModal" v-else>
+      <NewTable1
+        v-if="!loading && holdings"
+        :holdings="holdings"
+        @toggleModal="toggleModal"
+      >
         <template #holding-table-btn>
           <button
             type="button"
@@ -191,6 +197,24 @@
           </button>
         </template>
       </NewTable1>
+
+      <div class="pt-[40%] md:pt-[20%] text-center" v-if="!holdings">
+        <button
+          class="
+            bg-indigo-700
+            text-white
+            hover:bg-indigo-600
+            rounded-full
+            px-3
+            py-1.5
+            text-xs
+          "
+          @click="toggleModal({ open: true, type: 'invest' })"
+        >
+          <span>+</span>
+          <span class="mx-1">Make your first investment</span>
+        </button>
+      </div>
     </section>
   </main>
 </template>
@@ -240,6 +264,11 @@ export default {
 
     // 跨頁面時重置 searchList
     onMounted(() => (searchList.value = null));
+
+    const holdings = computed(() => {
+      if (!data.value) return;
+      return data.value?.result;
+    });
 
     // addStock
     const isAllValid = computed(() =>
@@ -342,12 +371,11 @@ export default {
 
     // Card
     const topThreePerformance = computed(() => {
-      if (!data.value) return;
-      return calculatePerformance(data.value.result);
+      return calculatePerformance(data.value?.result);
     });
 
     function calculatePerformance(holdings) {
-      if (!holdings) return;
+      if (!holdings) return [];
 
       return Object.values(holdings)
         .map((item) => {
@@ -384,6 +412,8 @@ export default {
       isBuyMore,
       tradeResult,
       newAddingRef,
+
+      holdings,
     };
   },
 };

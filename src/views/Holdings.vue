@@ -1,5 +1,5 @@
 <template>
-  <main class="px-4 md:p-10 mx-auto w-full">
+  <main class="px-4 md:p-10 mx-auto w-full xl:container">
     <!-- snackbar -->
     <Teleport to="body">
       <Snackbar :barMessage="notificationMessage">
@@ -177,26 +177,7 @@
         v-if="!loading && holdings"
         :holdings="holdings"
         @toggleModal="toggleModal"
-      >
-        <template #holding-table-btn>
-          <button
-            type="button"
-            class="
-              hidden
-              md:block
-              lg:hidden
-              text-xs
-              border border-blue-900
-              rounded
-              px-2
-              py-1
-              hover:bg-blue-900 hover:text-white
-            "
-          >
-            Trade
-          </button>
-        </template>
-      </NewTable1>
+      />
 
       <div class="pt-[40%] md:pt-[20%] text-center" v-if="!holdings">
         <button

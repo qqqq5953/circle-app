@@ -147,27 +147,27 @@
                     sm:hidden
                   "
                   :class="
-                    item.trade.profitOrLossPercentage > 0
+                    item.totalStats.profitOrLossPercentage > 0
                       ? 'text-red-600 bg-red-100/70'
-                      : item.trade.profitOrLossPercentage < 0
+                      : item.totalStats.profitOrLossPercentage < 0
                       ? 'text-green-700 bg-green-100'
                       : 'text-slate-500 bg-slate-200'
                   "
                 >
                   <i
                     class="fas fa-arrow-up text-red-600"
-                    v-if="item.trade.profitOrLossPercentage > 0"
+                    v-if="item.totalStats.profitOrLossPercentage > 0"
                   ></i>
                   <i
                     class="fas fa-arrow-down text-green-700"
-                    v-else-if="item.trade.profitOrLossPercentage < 0"
+                    v-else-if="item.totalStats.profitOrLossPercentage < 0"
                   ></i>
                   <span v-else>--</span>
                   <span class="ml-1">
                     <span>{{
-                      item.trade.profitOrLossPercentage < 0
-                        ? item.trade.profitOrLossPercentage * -1
-                        : item.trade.profitOrLossPercentage
+                      item.totalStats.profitOrLossPercentage < 0
+                        ? item.totalStats.profitOrLossPercentage * -1
+                        : item.totalStats.profitOrLossPercentage
                     }}</span>
                     %</span
                   >
@@ -199,27 +199,27 @@
                   sm:px-3 sm:py-2
                 "
                 :class="
-                  item.trade.profitOrLossPercentage > 0
+                  item.totalStats.profitOrLossPercentage > 0
                     ? 'text-red-600 bg-red-100/70'
-                    : item.trade.profitOrLossPercentage < 0
+                    : item.totalStats.profitOrLossPercentage < 0
                     ? 'text-green-700 bg-green-100'
                     : 'text-slate-500 bg-slate-200'
                 "
               >
                 <i
                   class="fas fa-arrow-up text-red-600"
-                  v-if="item.trade.profitOrLossPercentage > 0"
+                  v-if="item.totalStats.profitOrLossPercentage > 0"
                 ></i>
                 <i
                   class="fas fa-arrow-down text-green-700"
-                  v-else-if="item.trade.profitOrLossPercentage < 0"
+                  v-else-if="item.totalStats.profitOrLossPercentage < 0"
                 ></i>
                 <span v-else>--</span>
                 <span class="ml-1">
                   <span>{{
-                    item.trade.profitOrLossPercentage < 0
-                      ? item.trade.profitOrLossPercentage * -1
-                      : item.trade.profitOrLossPercentage
+                    item.totalStats.profitOrLossPercentage < 0
+                      ? item.totalStats.profitOrLossPercentage * -1
+                      : item.totalStats.profitOrLossPercentage
                   }}</span>
                   %</span
                 >
@@ -227,17 +227,19 @@
               <div
                 class="mt-1 font-medium"
                 :class="
-                  item.trade.profitOrLossValue > 0
+                  item.totalStats.profitOrLossValue > 0
                     ? 'text-red-600'
-                    : item.trade.profitOrLossValue < 0
+                    : item.totalStats.profitOrLossValue < 0
                     ? 'text-green-700'
                     : 'text-slate-500'
                 "
               >
-                <span v-if="item.trade.profitOrLossValue >= 0">
-                  +${{ item.trade.profitOrLossValue }}
+                <span v-if="item.totalStats.profitOrLossValue >= 0">
+                  +${{ item.totalStats.profitOrLossValue }}
                 </span>
-                <span v-else> -${{ item.trade.profitOrLossValue * -1 }} </span>
+                <span v-else>
+                  -${{ item.totalStats.profitOrLossValue * -1 }}
+                </span>
               </div>
             </div>
           </td>
@@ -262,7 +264,7 @@
                 sm:font-normal
               "
             >
-              {{ item.trade.close }}
+              {{ item.latestInfo.close }}
             </p>
           </td>
           <!-- Avg. Cost -->
@@ -285,7 +287,7 @@
                 sm:font-normal sm:text-center
               "
             >
-              {{ item.trade.averageCost }}
+              {{ item.totalStats.averageCost }}
             </p>
           </td>
           <!-- Shares -->
@@ -308,7 +310,7 @@
                 sm:text-center sm:font-normal
               "
             >
-              {{ item.trade.totalShares }}
+              {{ item.totalStats.totalShares }}
             </p>
           </td>
           <td class="holdingTable-table-cell text-xs block sm:table-cell">

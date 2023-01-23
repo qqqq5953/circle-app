@@ -4,13 +4,19 @@ const router = express.Router()
 const yahooFinance = require('yahoo-finance')
 const firebaseDb = require('../firebase/index.js')
 
-const holdingRef = firebaseDb.ref('/holding/')
+const holdingsTradeRef = firebaseDb.ref('/holdingsTrade/')
+const holdingsStatsRef = firebaseDb.ref('/holdingsStats/')
+const holdingsLatestInfoRef = firebaseDb.ref('/holdingsLatestInfo/')
 const watchlistRef = firebaseDb.ref('/watchlist/')
 const tabsRef = firebaseDb.ref('/tabs/')
 
-const getHoldingsTradeInfo = require('../actions/getHoldingsTradeInfo')
-const getLatestQuotes = require('../actions/getLatestQuotes')
+const fetchNewQuotes = require('../functions/holdings/fetchNewQuotes')
+const checkUpdate = require('../functions/holdings/checkUpdate')
+const calculateStats = require('../functions/holdings/calculateStats')
+const updateDb = require('../functions/holdings/updateDb')
+
 const getFormattedDate = require('../tools/getFormattedDate')
+const parseFloatByDecimal = require('../tools/parseFloatByDecimal')
 
 /* GET home page. */
 router.get('/', function (req, res, next) {
@@ -76,11 +82,11 @@ router.get('/quote/:ticker', async (req, res) => {
   }
 })
 
-router.get('/getHoldings', async (req, res) => {
+router.get('/holdings', async (req, res) => {
   try {
-    const holdingSnapshot = await holdingRef.once('value')
-    const holdingsObj = holdingSnapshot.val()
-    if (!holdingsObj) {
+    let latestInfoSnapshot = await holdingsLatestInfoRef.once('value')
+    let latestInfoObj = latestInfoSnapshot.val()
+    if (!latestInfoObj) {
       return res.send({
         success: true,
         content: '無標的',
@@ -89,21 +95,51 @@ router.get('/getHoldings', async (req, res) => {
       })
     }
 
-    const holdingsArray = Object.values(holdingsObj)
+    // fetch new quotes
+    const { tempTickers, quotePromises } = await fetchNewQuotes(latestInfoObj)
 
-    const latestQuotes = await getLatestQuotes(
-      holdingsArray,
-      holdingRef,
-      yahooFinance
+    const quoteResult = await Promise.allSettled(quotePromises)
+
+    // checkUpdate
+    let holdingsStatsSnapshot = await holdingsStatsRef.once('value')
+    let holdingsStats = holdingsStatsSnapshot.val()
+
+    const hasUpdate = await checkUpdate(
+      tempTickers,
+      quoteResult,
+      latestInfoObj,
+      holdingsStats
     )
 
-    const holdingsTradeInfo = getHoldingsTradeInfo(holdingsArray, latestQuotes)
+    // get updated info and stats
+    if (hasUpdate) {
+      const result = await Promise.allSettled([
+        holdingsLatestInfoRef.once('value'),
+        holdingsStatsRef.once('value')
+      ])
+
+      latestInfoObj = result[0].value.val()
+      holdingsStats = result[1].value.val()
+      console.log('hasUpdate:', hasUpdate)
+    }
+
+    // organize
+    const holdings = {}
+    for (const tempTicker in latestInfoObj) {
+      const info = latestInfoObj[tempTicker]
+      const stats = holdingsStats[tempTicker]
+
+      holdings[tempTicker] = {
+        latestInfo: info,
+        totalStats: stats
+      }
+    }
 
     const msg = {
       success: true,
       content: '成功獲得所有標的',
       errorMessage: null,
-      result: holdingsTradeInfo || null
+      result: holdings
     }
 
     res.send(msg)
@@ -120,9 +156,12 @@ router.get('/getHoldings', async (req, res) => {
 })
 
 router.post('/addStock', async (req, res) => {
-  console.log('req.body', req.body)
-  const { previousCloseChange, previousCloseChangePercent, price, ...rest } =
-    req.body
+  const {
+    previousCloseChange,
+    previousCloseChangePercent,
+    price: close,
+    ...rest
+  } = req.body
 
   const {
     style,
@@ -136,31 +175,76 @@ router.post('/addStock', async (req, res) => {
   } = rest
 
   try {
-    const stockInfo = holdingRef.child(tempTicker).child('trade').push()
+    // set trade
+    const stockInfo = holdingsTradeRef.child(tempTicker).push()
     const id = stockInfo.key
     const tradeUnix = Math.floor(Date.parse(tradeInfo.tradeDate) / 1000)
+    stockInfo.set({ ...tradeInfo, id, tradeUnix, status: 'buy' })
 
-    const latestInfo = {
-      close: price,
-      previousCloseChange,
-      previousCloseChangePercent,
-      style,
-      name,
-      marketState,
-      code,
-      regularMarketTime,
-      tempTicker,
-      ticker
+    // set latestInfo
+    const latestInfoSnapshot = await holdingsLatestInfoRef
+      .child(tempTicker)
+      .once('value')
+
+    if (!latestInfoSnapshot.val()) {
+      updateDb(holdingsLatestInfoRef, tempTicker, {
+        close,
+        previousCloseChange,
+        previousCloseChangePercent,
+        style,
+        name,
+        marketState,
+        code,
+        regularMarketTime,
+        tempTicker,
+        ticker
+      })
+    } else {
+      updateDb(holdingsLatestInfoRef, tempTicker, {
+        close,
+        previousCloseChange,
+        previousCloseChangePercent,
+        marketState,
+        regularMarketTime
+      })
     }
 
-    stockInfo.set({ ...tradeInfo, id, tradeUnix })
-    holdingRef.child(tempTicker).child('latestInfo').set(latestInfo)
+    // 計算 stats
+    const holdingsSnapshot = await holdingsTradeRef
+      .child(tempTicker)
+      .once('value')
+    const holdingsObj = holdingsSnapshot.val()
+
+    let totalCost = 0
+    let totalShares = 0
+
+    for (const id in holdingsObj) {
+      const trade = holdingsObj[id]
+      const { cost, shares } = trade
+      totalCost += parseFloat(cost) * parseFloat(shares)
+      totalShares += parseFloat(shares)
+    }
+
+    const averageCost = parseFloatByDecimal(totalCost / totalShares, 2)
+    const { profitOrLossPercentage, profitOrLossValue } = calculateStats(
+      close,
+      averageCost,
+      totalShares
+    )
+
+    updateDb(holdingsStatsRef, tempTicker, {
+      totalCost,
+      totalShares,
+      averageCost,
+      profitOrLossPercentage,
+      profitOrLossValue
+    })
 
     const message = {
       success: true,
       content: '標的新增成功',
       errorMessage: null,
-      result: { latestInfo, tradeInfo }
+      result: { ticker, ...tradeInfo }
     }
     res.send(message)
   } catch (error) {
@@ -174,10 +258,10 @@ router.post('/addStock', async (req, res) => {
   }
 })
 
-router.get('/tradeDetails/:ticker', async (req, res) => {
+router.get('/tradeDetails/:tempTicker', async (req, res) => {
   try {
-    const ticker = req.params.ticker
-    const tickerRef = await holdingRef.child(ticker).once('value')
+    const tempTicker = req.params.tempTicker
+    const tickerRef = await holdingsTradeRef.child(tempTicker).once('value')
     const tradeDetails = tickerRef.val()
     console.log('tradeDetails', tradeDetails)
 
@@ -190,8 +274,7 @@ router.get('/tradeDetails/:ticker', async (req, res) => {
       })
     }
 
-    const tradeObj = tradeDetails.trade
-    const tradeArray = [...Object.values(tradeObj)].sort((a, b) => {
+    const tradeArray = [...Object.values(tradeDetails)].sort((a, b) => {
       return b.tradeUnix - a.tradeUnix
     })
 
@@ -205,7 +288,7 @@ router.get('/tradeDetails/:ticker', async (req, res) => {
 })
 
 router.get('/historicalHolding/:period/:from/:to', async (req, res) => {
-  const tickerRef = await holdingRef.once('value')
+  const tickerRef = await holdingsTradeRef.once('value')
   const currentHoldings = tickerRef.val()
   if (!currentHoldings) return res.send('invalid ticker name')
 
@@ -240,18 +323,6 @@ router.get('/historicalHolding/:period/:from/:to', async (req, res) => {
     res.send(historicalQuote)
   } catch (err) {
     console.log('err', err.message)
-  }
-})
-
-router.get('/getHolding/:ticker', async (req, res) => {
-  const ticker = req.params.ticker
-  const tickerRef = await holdingRef.child(ticker).once('value')
-  const tickerInfo = tickerRef.val()
-  // console.log('tickerInfo', tickerInfo)
-  if (!tickerInfo) {
-    res.send('invalid ticker name')
-  } else {
-    res.send(tickerInfo)
   }
 })
 

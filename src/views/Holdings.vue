@@ -287,14 +287,12 @@ export default {
       if (!newData.success) return activateNotification(errorMessage);
 
       try {
-        const res = await http.get(`/api/getHoldings`);
+        const res = await http.get(`/api/holdings`);
         data.value = res.data;
         console.log("res", res);
 
-        const { latestInfo, tradeInfo } = newData.result;
-        const { ticker } = latestInfo;
-        const { cost, shares, tradeDate } = tradeInfo;
-        const addDate = new Date(tradeInfo.recordUnix);
+        const { ticker, cost, shares, tradeDate, recordUnix } = newData.result;
+        const addDate = new Date(recordUnix);
         const result = {
           Ticker: ticker,
           Cost: cost,
@@ -356,17 +354,18 @@ export default {
     });
 
     function calculatePerformance(holdings) {
+      // return;
       if (!holdings) return [];
 
       return Object.values(holdings)
         .map((item) => {
-          const { latestInfo, trade } = item;
+          const { latestInfo, totalStats } = item;
           return {
             ticker: latestInfo.ticker,
             name: latestInfo.name,
             style: latestInfo.style,
-            profitOrLossPercentage: trade.profitOrLossPercentage,
-            profitOrLossValue: trade.profitOrLossValue,
+            profitOrLossPercentage: totalStats.profitOrLossPercentage,
+            profitOrLossValue: totalStats.profitOrLossValue,
           };
         })
         .sort((a, b) => {

@@ -1,5 +1,5 @@
 <template>
-  <main class="flex flex-col gap-3 px-4 md:p-10 mx-auto w-full">
+  <main class="flex flex-col gap-3 px-4 md:p-10 mx-auto w-full max-w-[1000px]">
     <div class="relative w-full pb-14">
       <!-- keep-alive: switch tab 時 ticker 不會消失 -->
       <keep-alive>

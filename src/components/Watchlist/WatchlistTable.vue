@@ -267,14 +267,15 @@
               </th>
               <td
                 class="
-                  px-6
-                  py-3
-                  text-gray-700 text-center text-xs
+                  p-3
+                  lg:px-0
+                  text-gray-700 text-right text-xs
                   uppercase
                   border-x-0
                   whitespace-nowrap
                   font-semibold
-                  w-[12.5%]
+                  w-[16%]
+                  md:w-[10%]
                   lg:w-auto
                 "
               >
@@ -282,30 +283,31 @@
               </td>
               <td
                 class="
-                  px-6
+                  pl-3
                   py-3
-                  text-gray-700 text-center text-xs
+                  text-gray-700 text-right text-xs
                   uppercase
                   border-x-0
                   whitespace-nowrap
                   font-semibold
-                  w-3/12
-                  xl:w-auto
+                  w-[30%]
+                  md:w-1/6
+                  xl:pr-0
                 "
               >
                 Change %
               </td>
               <td
                 class="
-                  px-6
-                  py-3
-                  text-gray-700 text-center text-xs
+                  px-3
+                  text-gray-700 text-right text-xs
                   uppercase
                   border-x-0
                   whitespace-nowrap
                   font-semibold
                   hidden
-                  lg:table-cell lg:w-auto
+                  md:w-[12%]
+                  lg:table-cell
                 "
               >
                 Change

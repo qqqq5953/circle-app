@@ -37,14 +37,23 @@
         :name="item.name"
       />
     </th>
-    <td class="watchlistTable-table-cell lg:px-3 text-right w-[16%] lg:w-auto">
+    <td class="watchlistTable-table-cell text-right py-3 md:w-[10%] lg:w-auto">
       <span class="mr-px">$</span>
       <span>{{ new Intl.NumberFormat("en").format(item.price) }}</span>
     </td>
-    <td class="watchlistTable-table-cell lg:px-6 font-medium w-3/12 xl:w-auto">
+    <td
+      class="
+        watchlistTable-table-cell
+        font-medium
+        w-[30%]
+        md:w-1/6
+        lg:w-1/5
+        xl:w-1/6
+      "
+    >
       <div class="flex m-auto">
         <div
-          class="flex items-center gap-2 m-auto px-3 py-2 rounded"
+          class="flex items-center gap-2 mx-auto md:mr-0 px-3 py-2 rounded"
           :class="
             item.previousCloseChange > 0
               ? 'text-red-600 bg-red-100/70'
@@ -73,10 +82,11 @@
     <td
       class="
         watchlistTable-table-cell
-        text-center
-        hidden
-        lg:table-cell lg:w-auto
+        px-3
+        text-right
         font-medium
+        hidden
+        md:table-cell md:w-[12%]
       "
     >
       <span
@@ -87,7 +97,7 @@
             ? 'text-green-700'
             : 'text-slate-500'
         "
-        >{{ item.previousCloseChange }}</span
+        >{{ item.previousCloseChange }}1</span
       >
     </td>
     <slot name="optional-td" :ticker="`${item.ticker}`"></slot>
@@ -125,7 +135,7 @@ const TickerAndName = (props) => {
   const Ticker = h(
     "p",
     {
-      class: `md:w-2/5 ticker-badge ${props.style}`,
+      class: `ticker-badge ${props.style}`,
       style: props.ticker.length >= 9 ? "font-size:10px" : null,
     },
     props.ticker

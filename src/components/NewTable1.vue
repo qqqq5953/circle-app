@@ -131,8 +131,8 @@
               <p class="ticker-badge lg:mx-0" :class="item.latestInfo.style">
                 {{ item.latestInfo.ticker }}
               </p>
-              <p class="flex items-center">
-                <span class="text-left truncate px-1.5 sm:hidden md:block">{{
+              <p class="flex items-center px-1.5 gap-x-1.5">
+                <span class="text-left truncate sm:hidden md:block">{{
                   item.latestInfo.name
                 }}</span>
                 <span

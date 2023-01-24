@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col gap-4 py-2 px-4">
+  <div class="flex flex-col gap-4 py-2 px-3 max-w-[1000px] w-full mx-auto">
     <section>
       <h1 class="flex items-center gap-x-3 pb-2" v-if="basicInfo">
         <span class="ticker-badge" :class="basicInfo.style">
@@ -45,7 +45,7 @@
         </template>
         <template #diff-value>
           <span
-            class="inline-block px-1.5 py-px rounded"
+            class="inline-block"
             :class="
               totalStats[0].profitOrLossValue > 0
                 ? 'text-red-600'
@@ -141,7 +141,6 @@ export default {
     http
       .get(`/api/tradeDetails/${props.holdings.latestInfo.tempTicker}`)
       .then((res) => {
-        console.log("props.holdings", props.holdings);
         const { latestInfo, totalStats: stats } = props.holdings;
         const { ticker, name, style, close } = latestInfo;
 
@@ -160,10 +159,11 @@ export default {
           };
         });
         tradeList.value = res.data.result.map((trade) => {
-          const { id, cost, shares, tradeDate } = trade;
+          const { id, cost, shares, status, tradeDate } = trade;
           return {
             id,
             shares,
+            status,
             price: cost,
             date: tradeDate,
             value: close * shares,
@@ -203,23 +203,23 @@ export default {
       },
       {
         name: "Price",
-        style: "w-[15%] text-right",
+        style: "w-[12%] text-right",
       },
       {
         name: "Total shares",
-        style: "w-[15%] text-right",
+        style: "w-[22%] text-right",
       },
       {
         name: "P / L %",
-        style: "grow text-right",
+        style: "w-1/5 grow text-right",
       },
       {
         name: "P / L",
-        style: "grow text-right",
+        style: "w-[15%] grow text-right",
       },
       {
         name: "Value",
-        style: "hidden sm:block grow text-right",
+        style: "w-[15%] hidden sm:block grow text-right",
       },
     ]);
 
@@ -230,23 +230,23 @@ export default {
       },
       {
         name: "Cost",
-        style: "w-[15%] text-right",
+        style: "w-[12%] text-right",
       },
       {
         name: "Shares",
-        style: "w-[15%] text-right",
+        style: "w-[22%] text-right",
       },
       {
         name: "P / L %",
-        style: "grow text-right",
+        style: "w-1/5 grow text-right",
       },
       {
         name: "P / L",
-        style: "grow text-right",
+        style: "w-[15%] grow text-right",
       },
       {
         name: "Value",
-        style: "hidden sm:block grow text-right",
+        style: "w-[15%] hidden sm:block grow text-right",
       },
     ]);
 

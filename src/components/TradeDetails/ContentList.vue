@@ -7,15 +7,26 @@
       :key="item.id"
     >
       <div class="w-1/5">{{ item.date }}</div>
-      <div class="w-[15%] text-right">{{ item.price }}</div>
-      <div class="w-[15%] text-right">{{ item.shares }}</div>
-      <div class="grow text-right">
+      <div class="w-[12%] text-right">{{ item.price }}</div>
+      <div class="w-[22%] flex items-center justify-end sm:gap-x-1">
+        <span
+          class="rounded-full w-5 h-5 text-center pt-0.5 mx-auto sm:mx-0"
+          :class="{ 'bg-indigo-100': item.status }"
+          >{{
+            item.status === "buy" ? "B" : item.status === "sell" ? "S" : null
+          }}</span
+        >
+        <span class="break-words w-1/2 md:w-[40%] xl:w-1/4 text-right">{{
+          item.shares
+        }}</span>
+      </div>
+      <div class="w-1/5 grow text-right">
         <slot name="diff-percent" :price="item.price"></slot>
       </div>
-      <div class="grow text-right">
+      <div class="w-[15%] grow text-right">
         <slot name="diff-value" :price="item.price"></slot>
       </div>
-      <div class="grow text-right hidden sm:block">
+      <div class="w-[15%] grow text-right hidden sm:block">
         <slot name="totlal-value" :value="item.value"></slot>
       </div>
     </li>

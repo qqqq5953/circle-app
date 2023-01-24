@@ -12,7 +12,7 @@
       border border-gray-100
       animate-pulse
     "
-    v-for="i in 3"
+    v-for="i in 1"
     :key="i"
   >
     <div class="card-header flex flex-wrap mb-3">

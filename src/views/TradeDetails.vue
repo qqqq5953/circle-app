@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col gap-4 py-2 px-4">
+  <div class="flex flex-col gap-4 py-2 px-3 max-w-[1000px] w-full mx-auto">
     <section>
       <h1 class="flex items-center gap-x-3 pb-2" v-if="basicInfo">
         <span class="ticker-badge" :class="basicInfo.style">
@@ -45,7 +45,7 @@
         </template>
         <template #diff-value>
           <span
-            class="inline-block px-1.5 py-px rounded"
+            class="inline-block"
             :class="
               totalStats[0].profitOrLossValue > 0
                 ? 'text-red-600'
@@ -76,20 +76,20 @@
           <span
             class="inline-block font-medium"
             :class="
-              basicInfo.close > price
+              basicInfo.price > price
                 ? 'text-red-600'
-                : basicInfo.close < price
+                : basicInfo.price < price
                 ? 'text-green-700'
                 : 'text-slate-500'
             "
           >
             <i
               class="fas fa-arrow-up text-red-600"
-              v-if="basicInfo.close > price"
+              v-if="basicInfo.price > price"
             ></i>
             <i
               class="fas fa-arrow-down text-green-700"
-              v-else-if="basicInfo.close < price"
+              v-else-if="basicInfo.price < price"
             ></i>
             <span v-else>--</span>
             <span class="ml-1">
@@ -101,9 +101,9 @@
           <span
             class="inline-block"
             :class="
-              basicInfo.close > price
+              basicInfo.price > price
                 ? 'text-red-600'
-                : basicInfo.close < price
+                : basicInfo.price < price
                 ? 'text-green-700'
                 : 'text-slate-500'
             "
@@ -134,25 +134,20 @@ export default {
     holdings: Object,
   },
   setup(props) {
-    const tradeList = ref(null);
     const basicInfo = ref(null);
     const totalStats = ref(null);
+    const tradeList = ref(null);
 
     http
-      .get(`/api/tradeDetails/${props.holdings.latestInfo.ticker}`)
+      .get(`/api/tradeDetails/${props.holdings.latestInfo.tempTicker}`)
       .then((res) => {
-        console.log("props.holdings", props.holdings);
-        const { latestInfo, trade } = props.holdings;
+        const { latestInfo, totalStats: stats } = props.holdings;
         const { ticker, name, style, close } = latestInfo;
 
-        basicInfo.value = { ticker, name, style, close };
-        totalStats.value = [trade].map((item) => {
-          const {
-            close,
-            totalShares,
-            profitOrLossPercentage,
-            profitOrLossValue,
-          } = item;
+        basicInfo.value = { ticker, name, style, price: close };
+        totalStats.value = [stats].map((item) => {
+          const { totalShares, profitOrLossPercentage, profitOrLossValue } =
+            item;
           return {
             id: Date.now(),
             price: close,
@@ -164,10 +159,11 @@ export default {
           };
         });
         tradeList.value = res.data.result.map((trade) => {
-          const { id, cost, shares, tradeDate } = trade;
+          const { id, cost, shares, status, tradeDate } = trade;
           return {
             id,
             shares,
+            status,
             price: cost,
             date: tradeDate,
             value: close * shares,
@@ -179,7 +175,7 @@ export default {
       switch (type) {
         case "percent": {
           const percent = parseFloat(
-            (((basicInfo.value.close - cost) * 100) / cost).toFixed(2)
+            (((basicInfo.value.price - cost) * 100) / cost).toFixed(2)
           );
           if (percent >= 0) {
             return `${percent}`;
@@ -188,7 +184,7 @@ export default {
           }
         }
         case "value": {
-          const value = parseFloat((basicInfo.value.close - cost).toFixed(2));
+          const value = parseFloat((basicInfo.value.price - cost).toFixed(2));
           if (value > 0) {
             return `+$${value}`;
           } else if (value < 0) {
@@ -207,23 +203,23 @@ export default {
       },
       {
         name: "Price",
-        style: "w-[15%] text-right",
+        style: "w-[12%] text-right",
       },
       {
         name: "Total shares",
-        style: "w-[15%] text-right",
+        style: "w-[22%] text-right",
       },
       {
         name: "P / L %",
-        style: "grow text-right",
+        style: "w-1/5 grow text-right",
       },
       {
         name: "P / L",
-        style: "grow text-right",
+        style: "w-[15%] grow text-right",
       },
       {
         name: "Value",
-        style: "hidden sm:block grow text-right",
+        style: "w-[15%] hidden sm:block grow text-right",
       },
     ]);
 
@@ -234,23 +230,23 @@ export default {
       },
       {
         name: "Cost",
-        style: "w-[15%] text-right",
+        style: "w-[12%] text-right",
       },
       {
         name: "Shares",
-        style: "w-[15%] text-right",
+        style: "w-[22%] text-right",
       },
       {
         name: "P / L %",
-        style: "grow text-right",
+        style: "w-1/5 grow text-right",
       },
       {
         name: "P / L",
-        style: "grow text-right",
+        style: "w-[15%] grow text-right",
       },
       {
         name: "Value",
-        style: "hidden sm:block grow text-right",
+        style: "w-[15%] hidden sm:block grow text-right",
       },
     ]);
 

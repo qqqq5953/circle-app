@@ -1,381 +1,402 @@
 <template>
-  <main class="px-4 md:p-10 mx-auto w-full relative">
+  <main class="px-4 md:p-10 mx-auto w-full xl:container">
+    <!-- snackbar -->
+    <Teleport to="body">
+      <Snackbar :barMessage="notificationMessage">
+        <template #btn>
+          <router-link
+            :to="{
+              name: 'TradeResult',
+              params: {
+                tradeResult: JSON.stringify(tradeResult),
+              },
+            }"
+            class="
+              px-2
+              py-1.5
+              rounded
+              text-xs
+              bg-gray-100
+              text-indigo-700
+              hover:bg-white
+            "
+            >View result</router-link
+          >
+        </template>
+      </Snackbar>
+    </Teleport>
+
+    <!-- trade modal -->
+    <Teleport to="body">
+      <InputModal
+        :isFullPage="true"
+        :isOpen="isModalOpen"
+        :closeFunc="toggleModal"
+        :confirmFunc="addStock"
+        :isDisabled="!isAllValid"
+      >
+        <template #title>Trade Panel</template>
+        <template #inputs>
+          <TradePanel
+            ref="newAddingRef"
+            :tickerToBeTraded="tickerToBeTraded"
+            :isBuyMore="isBuyMore"
+            v-show="!loading"
+          />
+        </template>
+        <template #okButton>Trade</template>
+      </InputModal>
+    </Teleport>
+
     <section class="px-4 md:px-0 lg:px-4">
-      <div class="flex items-center mb-4">
+      <div class="flex items-center mb-4" v-if="topThreePerformance.length">
         <h2 class="font-semibold text-lg">Top 3 Performance</h2>
         <span class="text-xs ml-auto">
           {{ lastMarketOpenDate }}
         </span>
       </div>
-      <div class="lg:flex lg:justify-between gap-3">
-        <CardSkeleton v-if="holdingsTotalInfo == null" />
-        <Card :holdingsTotalInfo="holdingsTotalInfo" v-else></Card>
+      <div class="sm:flex gap-3">
+        <div
+          class="sm:w-1/3"
+          v-for="item in topThreePerformance"
+          :key="item.ticker"
+        >
+          <CardSkeleton v-if="loading" />
+          <Card v-else>
+            <template #card-title>
+              <h3 class="flex gap-x-3 items-center mb-2">
+                <span class="ticker-badge" :class="item.style">
+                  {{ item.ticker }}
+                </span>
+                <span class="font-bold text-xs truncate w-[45%] sm:w-auto">{{
+                  item.name
+                }}</span>
+              </h3>
+            </template>
+            <template #card-sub-title>
+              <div class="flex items-center gap-x-3">
+                <p
+                  class="font-bold px-2 py-1 rounded text-xs"
+                  :class="
+                    item.profitOrLossPercentage > 0
+                      ? 'text-red-600 bg-red-100/70'
+                      : item.profitOrLossPercentage < 0
+                      ? 'text-green-700 bg-green-100'
+                      : 'text-slate-500 bg-slate-200'
+                  "
+                >
+                  <span v-if="item.profitOrLossPercentage !== 0">
+                    <i
+                      class="fas fa-arrow-up mr-px text-red-600"
+                      v-if="item.profitOrLossPercentage > 0"
+                    ></i>
+                    <i
+                      class="fas fa-arrow-down mr-px text-green-700"
+                      v-else-if="item.profitOrLossPercentage < 0"
+                    ></i>
+                  </span>
+                  <span v-else>--</span>
+                  {{
+                    item.profitOrLossPercentage < 0
+                      ? item.profitOrLossPercentage * -1
+                      : item.profitOrLossPercentage
+                  }}
+                  %
+                </p>
+                <p
+                  class="text-xs font-medium"
+                  :class="
+                    item.profitOrLossValue > 0
+                      ? 'text-red-600'
+                      : item.profitOrLossValue < 0
+                      ? 'text-green-700'
+                      : 'text-slate-500'
+                  "
+                >
+                  <span v-if="item.profitOrLossValue >= 0">
+                    <span class="mr-px">+$</span>
+                    <span>{{ item.profitOrLossValue }}</span>
+                  </span>
+                  <span v-else>
+                    <span class="mr-0.5">-$</span>
+                    <span>{{ item.profitOrLossValue * -1 }}</span>
+                  </span>
+                </p>
+              </div>
+            </template>
+            <template #card-icon
+              ><div
+                class="
+                  absolute
+                  right-4
+                  top-1/2
+                  -translate-y-1/2
+                  sm:hidden
+                  flex
+                  items-center
+                  justify-center
+                  w-12
+                  h-12
+                  shadow-lg
+                  rounded-full
+                  bg-slate-400
+                  text-white text-center
+                "
+              >
+                <i class="far fa-chart-bar"></i>
+              </div>
+            </template>
+          </Card>
+        </div>
       </div>
     </section>
+
     <section class="mt-5 px-4 md:px-0 lg:px-4">
-      <h2 class="font-semibold text-lg mb-4">Holdings</h2>
-      <!-- <HoldingTable>
-        <template #holding-table-btn>
-          <button
-            type="button"
-            class="
-              text-xs
-              border border-blue-900
-              rounded
-              px-2
-              py-1
-              hover:bg-blue-900 hover:text-white
-              hidden
-              md:block
-              lg:hidden
-            "
-          >
-            Trade
-          </button>
-        </template>
-        <template #thead-price>
-          <th
-            class="
-              px-4
-              py-3
-              text-blueGray-500
-              align-middle
-              text-xs
-              uppercase
-              font-semibold
-              text-center
-              sm:text-right
-            "
-          >
-            Price
-          </th>
-        </template>
-        <template #tbody-price>
-          <td
-            class="
-              px-4
-              pt-5
-              pb-0
-              border-b border-gray-100
-              sm:border-0
-              text-xs
-              whitespace-nowrap
-              flex
-              items-center
-              sm:table-cell
-            "
-          >
-            <span class="sm:hidden font-semibold mr-2">Price:</span>
-            <p class="ml-auto text-right">{{ regularMarketPrice }}</p>
-          </td>
-        </template>
-        <template #thead-trade>
-          <th class="px-4 py-3 md:hidden lg:block"></th>
-        </template>
-        <template #tbody-trade>
-          <td
-            class="
-              px-4
-              pt-5
-              pb-0
-              md:hidden
-              lg:block
-              text-xs
-              block
-              sm:table-cell
-            "
-          >
-            <button
-              type="button"
-              class="
-                border border-blue-900
-                rounded
-                px-2
-                py-1
-                hover:bg-blue-900 hover:text-white
-                ml-auto
-                block
-              "
-            >
-              Trade
-            </button>
-          </td>
-        </template>
-      </HoldingTable> -->
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-semibold text-lg">Holdings</h2>
+        <button
+          class="
+            bg-blue-600
+            text-white
+            hover:bg-blue-500
+            rounded-full
+            px-2
+            py-1
+            text-xs
+          "
+          @click="toggleModal({ open: true, type: 'invest' })"
+          v-if="holdings"
+        >
+          <span>+</span>
+          <span class="mx-1">Invest</span>
+        </button>
+      </div>
 
-      <TableSkeleton v-if="holdingsTotalInfo == null" />
-      <NewTable
-        :holdingsTotalInfo="holdingsTotalInfo"
-        @openTradeModal="openTradeModal"
-        v-else
-      >
-        <template #holding-table-btn>
-          <button
-            type="button"
-            class="
-              text-xs
-              border border-blue-900
-              rounded
-              px-2
-              py-1
-              hover:bg-blue-900 hover:text-white
-            "
-          >
-            Trade
-          </button>
-        </template>
-      </NewTable>
-    </section>
-
-    <Transition name="modal">
-      <TradeModal
-        v-if="isModalOpen"
-        :stockToBeTraded="stockToBeTraded"
-        @closeTradeModal="closeTradeModal"
+      <TableSkeleton v-if="loading" />
+      <NewTable1
+        v-if="!loading && holdings"
+        :holdings="holdings"
+        @toggleModal="toggleModal"
       />
-    </Transition>
 
-    <div class="px-4 md:px-0 lg:px-4">
-      <button type="button" class="border px-2 py-1" @click="getQuote">
-        getQuote
-      </button>
-      <button type="button" class="border px-2 py-1" @click="getHistorical">
-        getHistorical
-      </button>
-      <button type="button" class="border px-2 py-1" @click="getHolding">
-        getHolding
-      </button>
-      <button type="button" class="border px-2 py-1" @click="execute">
-        getHoldings
-      </button>
-      <br />
-
-      <form @submit.prevent="addStock">
-        <input
-          type="text"
-          class="form-input px-4 py-3 rounded-full"
-          placeholder="ticker"
-          pattern="^\w{1,5}$"
-          ref="tickerRef"
-          v-model.trim="stock.ticker"
-        />
-        <small :class="message?.success ? 'text-green-500' : 'text-red-500'">{{
-          message?.content
-        }}</small>
-        <input
-          type="number"
-          class="form-input px-4 py-3 rounded-full"
-          placeholder="cost"
-          min="0"
-          v-model.trim="stock.cost"
-        />
-        <input
-          type="number"
-          class="form-input px-4 py-3 rounded-full"
-          placeholder="shares"
-          min="0"
-          v-model.trim="stock.shares"
-        />
-        <input
-          type="submit"
-          class="form-input px-4 py-3 rounded-full"
-          value="add"
-        />
-      </form>
-    </div>
+      <div class="pt-[40%] md:pt-[20%] text-center" v-if="!holdings">
+        <button
+          class="
+            bg-indigo-700
+            text-white
+            hover:bg-indigo-600
+            rounded-full
+            px-3
+            py-1.5
+            text-xs
+          "
+          @click="toggleModal({ open: true, type: 'invest' })"
+        >
+          <span>+</span>
+          <span class="mx-1">Make your first investment</span>
+        </button>
+      </div>
+    </section>
   </main>
 </template>
 
 <script>
-import HoldingTable from "@/components/HoldingTable.vue";
-import NewTable from "@/components/NewTable.vue";
-import Card from "@/components/Card2.vue";
+import NewTable1 from "@/components/NewTable1.vue";
+import Card from "@/components/Card.vue";
 import CardSkeleton from "@/components/skeleton/CardSkeleton.vue";
 import TableSkeleton from "@/components/skeleton/TableSkeleton.vue";
-import { ref, defineAsyncComponent } from "vue";
-import axios from "axios";
-import useAxios from "@/composables/useAxios.js";
+import InputSkeleton from "@/components/skeleton/InputSkeleton.vue";
+import TradePanel from "@/components/TradePanel.vue";
+
+import { ref, defineAsyncComponent, computed, onMounted, watch } from "vue";
+import useHoldingStore from "@/stores/holdingStore.js";
+import useSearchStore from "@/stores/searchStore.js";
+import { storeToRefs } from "pinia";
+import http from "../api/index";
 
 export default {
   components: {
-    HoldingTable,
-    NewTable,
+    TradePanel,
+    NewTable1,
     Card,
     CardSkeleton,
     TableSkeleton,
-    TradeModal: defineAsyncComponent(() =>
-      import("@/components/TradeModal.vue")
+    InputSkeleton,
+    Snackbar: defineAsyncComponent(() => import("@/components/Snackbar.vue")),
+    InputModal: defineAsyncComponent(() =>
+      import("@/components/InputModal.vue")
     ),
   },
   setup() {
-    const message = ref(null);
-    const tickerRef = ref(null);
-    const isModalOpen = ref(false);
-    const stockToBeTraded = ref("");
-
-    const openTradeModal = (obj) => {
-      const { open, ticker } = obj;
-      isModalOpen.value = open;
-      stockToBeTraded.value = ticker;
-      // tickerRef.value.focus();
-    };
-
-    const closeTradeModal = async (obj) => {
-      const { open, success } = obj;
-      isModalOpen.value = open;
-      // if (success) await getHoldings();
-      await updateData(success);
-    };
-
-    const holdingsTotalInfo = ref(null);
-    const getHoldings = async () => {
-      const response = await axios.get(`/api/getHoldings`);
-      holdingsTotalInfo.value = response.data;
-      console.log("getHoldings= ", response.data);
-      return response.data;
-    };
-
-    const getHoldings1 = () => {
-      const { data, error, loading } = useAxios("/api/getHoldings", "get", {});
-      holdingsTotalInfo.value = data;
-    };
-
-    const lastMarketOpenDate = ref("");
-    const getLastMarketOpenDate = () => {
-      const tickers = [];
-      for (let ticker in holdingsTotalInfo.value) {
-        tickers.push(ticker);
-      }
-      lastMarketOpenDate.value = holdingsTotalInfo.value[tickers[0]].date.slice(
-        0,
-        10
-      );
-    };
-
-    const stock = ref({
-      ticker: null,
-      cost: 300,
-      shares: 20,
-      date: Date.now(),
-    });
-    const updateData = async (isSuccess) => {
-      if (isSuccess) await getHoldings();
-    };
-    const addStock = async () => {
-      const stockObj = {
-        ...stock.value,
-        ticker: stock.value.ticker.toUpperCase(),
-      };
-      const response = await axios.post("/api/addStock", stockObj);
-      message.value = response.data;
-      console.log("addStock= ", response.data);
-
-      // if (response.data.success) await getHoldings();
-      await updateData(message.value.success);
-    };
-
-    const historicalQutoes = ref(null);
-    const getHistorical = async () => {
-      const period = "d"; // 月資料都是從第一天開始
-      const dateStart = 30;
-      const dateEnd = 29;
-      const response = await axios.get(
-        `/api/historicalHolding/${period}/${dateStart}/${dateEnd}`
-      );
-      console.log("getHistorical= ", response.data);
-      historicalQutoes.value = response.data;
-      return response.data;
-    };
-
-    const execute = async () => {
-      // Promise.all([getHoldings(), getHistorical()]).then((res) => {
-      //   console.log("res", res);
-      //   holdingsTotalInfo.value = res[0];
-      //   historicalQutoes.value = res[1];
-      // });
-      await getHoldings();
-      getLastMarketOpenDate();
-    };
-    execute();
-
-    return {
-      holdingsTotalInfo,
-      historicalQutoes,
+    const $searchStore = useSearchStore();
+    const { searchList } = storeToRefs($searchStore);
+    const $holdingStore = useHoldingStore();
+    const {
+      notificationMessage,
+      isModalOpen,
+      data,
+      error,
+      loading,
       lastMarketOpenDate,
       stock,
-      message,
-      getHoldings,
-      getHistorical,
-      addStock,
-      tickerRef,
-      openTradeModal,
-      closeTradeModal,
+      inputValidity,
+    } = storeToRefs($holdingStore);
+    const { toggleSkeleton, activateNotification } = $holdingStore;
+
+    // 跨頁面時重置 searchList
+    onMounted(() => (searchList.value = null));
+
+    const holdings = computed(() => {
+      if (!data.value) return;
+      return data.value?.result;
+    });
+
+    // addStock
+    const isAllValid = computed(() =>
+      Object.values(inputValidity.value).every((item) => !!item)
+    );
+
+    const tradeResult = ref(null);
+
+    async function addStock() {
+      if (!isAllValid.value) return;
+
+      toggleModal({ open: false, type: "invest" });
+      toggleSkeleton(true);
+
+      try {
+        const stockObj = {
+          ...stock.value,
+          ticker: stock.value.ticker,
+          tempTicker: stock.value.tempTicker.toUpperCase(),
+          recordUnix: Date.now(),
+        };
+
+        console.log("stockObj", stockObj);
+
+        const res = await http.post(`/api/addStock`, stockObj);
+
+        await updateHoldings(res.data, res.data.errorMessage);
+      } catch (error) {
+        console.log("addStock error", error);
+      }
+    }
+
+    async function updateHoldings(newData, errorMessage) {
+      console.log("updateHoldings newData", newData);
+      if (!newData.success) return activateNotification(errorMessage);
+
+      try {
+        const res = await http.get(`/api/holdings`);
+        data.value = res.data;
+        console.log("res", res);
+
+        const { ticker, cost, shares, tradeDate, recordUnix } = newData.result;
+        const addDate = new Date(recordUnix);
+        const result = {
+          Ticker: ticker,
+          Cost: cost,
+          Shares: shares,
+          "Trade date": tradeDate,
+          "Record time": addDate.toLocaleString("zh-TW").replace(/\//g, "-"),
+        };
+
+        toggleSkeleton(false);
+
+        activateNotification({ ...newData, result: null });
+        tradeResult.value = { ...newData, result };
+      } catch (error) {
+        console.log("updateHoldings error", error);
+      }
+    }
+
+    // toggleModal
+    const tickerToBeTraded = ref(null);
+    const isBuyMore = ref(null);
+    const newAddingRef = ref(null);
+
+    function toggleModal(parmas) {
+      const { open, type, ...latestInfo } = parmas;
+      const style = open ? "overflow:hidden" : null;
+      disableVerticalScrollbar(style);
+      if (!open) clearInvalidMessage();
+      isModalOpen.value = open;
+
+      if (type === "buy") {
+        isBuyMore.value = true;
+        tickerToBeTraded.value = latestInfo;
+      }
+    }
+
+    function disableVerticalScrollbar(style) {
+      document.querySelector("body").style = style;
+    }
+
+    function clearInvalidMessage() {
+      const { inputCostRef, inputSharesRef } = newAddingRef.value.$refs;
+      inputCostRef.costRef.setCustomValidity("");
+      inputCostRef.inputError.length = 0;
+      inputSharesRef.sharesRef.setCustomValidity("");
+      inputSharesRef.inputError.length = 0;
+    }
+
+    // 清空 buy modal
+    watch(isModalOpen, (newVal) => {
+      if (!newVal) {
+        isBuyMore.value = false;
+        tickerToBeTraded.value = null;
+      }
+    });
+
+    // Card
+    const topThreePerformance = computed(() => {
+      return calculatePerformance(data.value?.result);
+    });
+
+    function calculatePerformance(holdings) {
+      // return;
+      if (!holdings) return [];
+
+      return Object.values(holdings)
+        .map((item) => {
+          const { latestInfo, totalStats } = item;
+          return {
+            ticker: latestInfo.ticker,
+            name: latestInfo.name,
+            style: latestInfo.style,
+            profitOrLossPercentage: totalStats.profitOrLossPercentage,
+            profitOrLossValue: totalStats.profitOrLossValue,
+          };
+        })
+        .sort((a, b) => {
+          return b.profitOrLossPercentage - a.profitOrLossPercentage;
+        })
+        .slice(0, 3);
+    }
+
+    return {
+      topThreePerformance,
+      data,
+      loading,
+      error,
+      lastMarketOpenDate,
+      notificationMessage,
+
+      toggleModal,
       isModalOpen,
-      stockToBeTraded,
-      execute,
+      tickerToBeTraded,
+
+      toggleModal,
+      addStock,
+      isAllValid,
+      isBuyMore,
+      tradeResult,
+      newAddingRef,
+
+      holdings,
     };
   },
 };
-// export default {
-//   components: {
-//     HoldingTable,
-//     NewTable,
-//     Card,
-//   },
-//   data() {
-//     return {
-//       holdingsTotalInfo: null,
-//       regularMarketPrice: null,
-//       stock: {
-//         ticker: "AAPL",
-//         cost: "130",
-//         shares: "10",
-//         date: Date.now(),
-//       },
-//       test: null,
-//     };
-//   },
-//   methods: {
-//     getQuote() {
-//       this.axios.get("/api/quote").then((res) => {
-//         console.log("getQuote= ", res.data);
-//       });
-//     },
-//     getHistorical() {
-//       this.axios.get("/api/historical").then((res) => {
-//         console.log("getHistorical= ", res.data);
-//         // this.quote = res.data;
-
-//         // this.quote = res.data;
-//       });
-//     },
-//     getHolding() {
-//       this.axios.get(`/api/getHolding/${this.ticker}`).then((res) => {
-//         console.log("getHolding= ", res.data);
-//       });
-//     },
-//     async getHoldings() {
-//       const response = await this.axios.get(`/api/getHoldings`);
-//       console.log("getHoldings= ", response.data);
-//       this.holdingsTotalInfo = response.data;
-//     },
-//     addStock() {
-//       this.axios.post("/api/addStock", this.stock).then((res) => {
-//         console.log("addStock= ", res);
-//         // this.msg = res;
-//       });
-//     },
-//     addTest() {
-//       this.test = "testttttt";
-//     },
-//     addTest1() {
-//       this.test = "another testttttt";
-//     },
-//   },
-//   created() {
-//     // this.getHoldings();
-//   },
-// };
 </script>
 
 <style scoped>

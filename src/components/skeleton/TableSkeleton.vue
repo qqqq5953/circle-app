@@ -121,7 +121,7 @@
         <tbody>
           <tr
             class="flex flex-col sm:table-row mx-2 mb-3 rounded"
-            v-for="i in 5"
+            v-for="i in 3"
             :key="i"
           >
             <!-- Stocks -->

@@ -22,7 +22,7 @@ const useHoldingStore = defineStore('holding', () => {
     shares: null
   })
 
-  const { data, error, loading } = useAxios('/api/getHoldings', 'get')
+  const { data, error, loading } = useAxios('/api/holdings', 'get')
 
   const toggleSkeleton = (isLoading) => {
     console.log('isLoading', isLoading)

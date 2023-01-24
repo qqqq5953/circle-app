@@ -36,7 +36,18 @@ export default function useSort() {
   const selectedDirection = ref('descending')
 
   const isSortMenuOpen = ref(false)
-  const toggleSortMenu = (isOpen) => (isSortMenuOpen.value = isOpen)
+  const toggleSortMenu = ($event, isOpen) => {
+    // deplay toggling after event
+    if ($event.type === 'click') {
+      isSortMenuOpen.value = !isSortMenuOpen.value
+    }
+
+    if ($event.type === 'blur') {
+      setTimeout(() => {
+        isSortMenuOpen.value = isOpen
+      }, 150)
+    }
+  }
 
   const onClickSort = ({
     key = selectedDisplayName.value,

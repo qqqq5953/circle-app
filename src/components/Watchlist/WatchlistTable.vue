@@ -114,8 +114,8 @@
               text-xs text-blue-500
             "
             :class="{ 'focus:bg-blue-50': isSortMenuOpen }"
-            @click="toggleSortMenu(true)"
-            @blur="toggleSortMenu(false)"
+            @click="toggleSortMenu($event)"
+            @blur="toggleSortMenu($event, false)"
           >
             <span>
               <i

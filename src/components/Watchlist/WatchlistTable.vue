@@ -32,12 +32,18 @@
               text-slate-600 text-xs
               flex
               items-center
+              cursor-pointer
             "
           >
             <span v-if="deleteArrLength === listLength">Undo</span>
             <span v-else>Select all</span>
           </label>
-          <input class="hidden" type="checkbox" v-model="selectAll" />
+          <input
+            class="hidden"
+            type="checkbox"
+            id="selectAll"
+            v-model="selectAll"
+          />
           <button
             class="
               rounded

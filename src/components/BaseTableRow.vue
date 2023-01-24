@@ -37,10 +37,9 @@
         :name="item.name"
       />
     </th>
-    <td
-      class="watchlistTable-table-cell lg:px-3 text-center w-[12.5%] lg:w-auto"
-    >
-      <span>{{ item.price }}</span>
+    <td class="watchlistTable-table-cell lg:px-3 text-right w-[16%] lg:w-auto">
+      <span class="mr-px">$</span>
+      <span>{{ new Intl.NumberFormat("en").format(item.price) }}</span>
     </td>
     <td class="watchlistTable-table-cell lg:px-6 font-medium w-3/12 xl:w-auto">
       <div class="flex m-auto">

@@ -4,6 +4,8 @@ const router = express.Router()
 const yahooFinance = require('yahoo-finance')
 const firebaseDb = require('../firebase/index.js')
 
+const historyRef = firebaseDb.ref('/history/')
+const holdingsTickersRef = firebaseDb.ref('/holdingsTickers/')
 const holdingsTradeRef = firebaseDb.ref('/holdingsTrade/')
 const holdingsStatsRef = firebaseDb.ref('/holdingsStats/')
 const holdingsLatestInfoRef = firebaseDb.ref('/holdingsLatestInfo/')
@@ -18,7 +20,7 @@ const updateDb = require('../functions/holdings/updateDb')
 const getFormattedDate = require('../tools/getFormattedDate')
 const parseFloatByDecimal = require('../tools/parseFloatByDecimal')
 
-/* GET home page. */
+// HOLDINNGS PAGE
 router.get('/', function (req, res, next) {
   res.render('index', { title: 'Express' })
 })
@@ -175,11 +177,9 @@ router.post('/addStock', async (req, res) => {
   } = rest
 
   try {
-    // set trade
-    const stockInfo = holdingsTradeRef.child(tempTicker).push()
-    const id = stockInfo.key
-    const tradeUnix = Math.floor(Date.parse(tradeInfo.tradeDate) / 1000)
-    stockInfo.set({ ...tradeInfo, id, tradeUnix, status: 'buy' })
+    // set tickers
+    const readTickers = await holdingsTickersRef.child(tempTicker).once('value')
+    if (!readTickers.val()) holdingsTickersRef.child(tempTicker).set(ticker)
 
     // set latestInfo
     const latestInfoSnapshot = await holdingsLatestInfoRef
@@ -208,6 +208,16 @@ router.post('/addStock', async (req, res) => {
         regularMarketTime
       })
     }
+
+    // set trade
+    const stockInfo = holdingsTradeRef.child(tempTicker).push()
+    const id = stockInfo.key
+    const tradeUnix = Math.floor(Date.parse(tradeInfo.tradeDate) / 1000)
+    const trade = { ...tradeInfo, id, tradeUnix, ticker, status: 'buy' }
+    stockInfo.set(trade)
+
+    // set history
+    historyRef.child(tradeInfo.tradeDate).child(id).set(trade)
 
     // 計算 stats
     const holdingsSnapshot = await holdingsTradeRef
@@ -285,6 +295,151 @@ router.get('/tradeDetails/:tempTicker', async (req, res) => {
       result: tradeArray
     })
   } catch (error) {}
+})
+
+// HISTORY PAGE
+router.get('/history', async (req, res) => {
+  try {
+    const hasFetch = {}
+    const historySnapshot = await historyRef.once('value')
+    const stats = await holdingsTickersRef.once('value')
+
+    const dates = Object.keys(historySnapshot.val())
+    const tickers = Object.values(stats.val())
+
+    const startDate = dates[0]
+    const endDate = dates[dates.length - 1]
+    // console.log('startDate', startDate)
+    // console.log('endDate', endDate)
+
+    // historicalData 順序為按日期由新到舊
+    const historicalData = await yahooFinance.historical({
+      symbols: tickers,
+      from: startDate,
+      to: convertDate1(endDate),
+      period: 'd'
+    })
+    // console.log('historicalData', historicalData)
+
+    // 計算每日 asset
+    const history_NonAcc = []
+    let currentIdx = 0
+
+    historySnapshot.forEach((childSnapshot) => {
+      // trades 順序為按日期由舊到新
+      const trades = childSnapshot.val()
+      const tradesArr = Object.values(trades)
+
+      const totalCostAndValue = tradesArr.reduce(
+        (obj, trade) => {
+          const { cost, shares, ticker, tradeDate } = trade
+          // console.log('=====ticker====', ticker, tradeDate, cost)
+
+          if (!obj.date) obj.date = tradeDate
+
+          // 同日同標的只會抓一次市場資料
+          if (!hasFetch[`${ticker}_${tradeDate}`]) {
+            // 用對比 tradeDate 來找交易當天的市場資料
+            const foundIdx = historicalData[ticker].findIndex(
+              (item) => convertDate2(item.date) === tradeDate
+            )
+
+            /*
+            紀錄當前 index，如果 foundIdx 存在（不為 -1）才紀錄，
+            如果 foundIdx 為 -1，則不紀錄，currentIdx 為前一次迴圈的 idx，
+            使得沒有開盤的日子的資料會沿用前一個開盤日的資料
+            */
+            if (foundIdx !== -1) currentIdx = foundIdx
+
+            // console.log(
+            //   'historicalData[ticker][currentIdx]',
+            //   historicalData[ticker][currentIdx]
+            // )
+
+            // 紀錄交易日要採用哪天的市場資料
+            hasFetch[`${ticker}_${tradeDate}`] = {
+              hasInfoDate: convertDate2(
+                historicalData[ticker][currentIdx].date
+              ),
+              close: historicalData[ticker][currentIdx].close
+            }
+          }
+
+          // console.log('hasFetch', hasFetch)
+          const { hasInfoDate, close } = hasFetch[`${ticker}_${tradeDate}`]
+          obj.totalMarketValue += close * parseFloat(shares)
+          obj.totalCost += parseFloat((cost * shares).toFixed(2))
+          obj.trades.push({
+            ...trade,
+            close: parseFloat(close.toFixed(2)),
+            closeDate: hasInfoDate
+          })
+
+          return obj
+        },
+        { date: '', totalCost: 0, totalMarketValue: 0, trades: [] }
+      )
+
+      history_NonAcc.push(totalCostAndValue)
+    })
+
+    // 計算累積 asset
+    const accObj = { date: '', totalCost: 0, totalMarketValue: 0 }
+    const history_Acc = history_NonAcc.reduce((arr, data) => {
+      const { date, totalCost, totalMarketValue } = data
+      accObj.date = date
+      accObj.totalCost += totalCost
+      accObj.totalMarketValue += totalMarketValue
+      arr.push({ ...accObj })
+
+      return arr
+    }, [])
+
+    const msg = {
+      success: true,
+      content: '成功獲得所有標的',
+      errorMessage: null,
+      result: { nonAccData: history_NonAcc, accData: history_Acc }
+    }
+
+    res.send(msg)
+  } catch (error) {
+    console.log('error', error)
+    const msg = {
+      success: false,
+      content: '獲得標的失敗',
+      errorMessage: error.message,
+      result: null
+    }
+
+    res.send(msg)
+  }
+
+  function convertDate2(dateObj) {
+    const dd = String(dateObj.getDate()).padStart(2, '0')
+    const mm = String(dateObj.getMonth() + 1).padStart(2, '0')
+    const yyyy = dateObj.getFullYear()
+
+    return yyyy + '-' + mm + '-' + dd
+  }
+  function convertDate1(yyyymmdd) {
+    const unix = Date.parse(yyyymmdd)
+    const dateObj = new Date(unix + 84600000)
+    const dd = String(dateObj.getDate()).padStart(2, '0')
+    const mm = String(dateObj.getMonth() + 1).padStart(2, '0')
+    const yyyy = dateObj.getFullYear()
+    console.log('convertDate1', yyyy + '-' + mm + '-' + dd)
+
+    return yyyy + '-' + mm + '-' + dd
+  }
+  function convertDate(date) {
+    const dd = String(date.getDate()).padStart(2, '0')
+    const mm = String(date.getMonth() + 1).padStart(2, '0')
+    const yyyy = date.getFullYear()
+    console.log('test', yyyy + '-' + mm + '-' + dd)
+
+    return yyyy + '-' + mm + '-' + dd
+  }
 })
 
 router.get('/historicalHolding/:period/:from/:to', async (req, res) => {

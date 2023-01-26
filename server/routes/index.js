@@ -99,7 +99,6 @@ router.get('/holdings', async (req, res) => {
 
     // fetch new quotes
     const { tempTickers, quotePromises } = await fetchNewQuotes(latestInfoObj)
-
     const quoteResult = await Promise.allSettled(quotePromises)
 
     // checkUpdate
@@ -124,6 +123,22 @@ router.get('/holdings', async (req, res) => {
       holdingsStats = result[1].value.val()
       console.log('hasUpdate:', hasUpdate)
     }
+
+    // 計算個別股票總市值
+    holdingsStats = Object.entries(holdingsStats).reduce(
+      (obj, entries, index) => {
+        const [tempTicker, stat] = entries
+        const { totalShares } = stat
+        const { regularMarketPrice } = quoteResult[index].value.price
+
+        obj[tempTicker] = {
+          ...stat,
+          totalValue: parseFloatByDecimal(regularMarketPrice * totalShares, 2)
+        }
+        return obj
+      },
+      {}
+    )
 
     // organize
     const holdings = {}

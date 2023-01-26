@@ -172,6 +172,50 @@
         </button>
       </div>
 
+      <!-- totalStats -->
+      <div class="mb-2 md:mb-4" v-if="totalStats">
+        <ul class="flex flex-wrap -m-1 md:-m-2">
+          <li
+            class="w-1/2 p-1 md:w-1/4 md:p-2"
+            :class="{
+              'md:order-1': key === 'P / L',
+              'md:order-2': key === 'P / L %',
+              'md:order-3': key === 'Total cost',
+              'md:order-4': key === 'Total value',
+            }"
+            v-for="(value, key) in totalStats"
+            :key="key"
+          >
+            <div
+              class="
+                flex flex-col
+                items-center
+                bg-slate-100
+                text-slate-700
+                rounded
+                shadow
+                p-2
+                lg:p-1.5
+              "
+            >
+              <span
+                class="font-medium text-sm md:text-base"
+                :class="
+                  value > 0 && (key === 'P / L' || key === 'P / L %')
+                    ? 'text-red-600'
+                    : value < 0 && (key === 'P / L' || key === 'P / L %')
+                    ? 'text-green-700'
+                    : null
+                "
+                >{{ key !== "P / L %" ? "$" : null }} {{ value }}
+                {{ key === "P / L %" ? "%" : null }}</span
+              >
+              <span class="font-light text-xs">{{ key }}</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+
       <TableSkeleton v-if="loading" />
       <NewTable1
         v-if="!loading && holdings"
@@ -245,6 +289,32 @@ export default {
 
     // 跨頁面時重置 searchList
     onMounted(() => (searchList.value = null));
+
+    const totalStats = computed(() => {
+      if (!data.value) return;
+
+      // 計算總成本、總市值
+      const stats = Object.values(data.value.result).reduce(
+        (obj, item) => {
+          obj["Total value"] += item.totalStats.totalValue;
+          obj["Total cost"] += item.totalStats.totalCost;
+          return obj;
+        },
+        { "Total cost": 0, "Total value": 0 }
+      );
+
+      // 計算總損益、總報酬率
+      stats["Total value"] = parseFloat(stats["Total value"].toFixed(2));
+      stats["Total cost"] = parseFloat(stats["Total cost"].toFixed(2));
+      stats["P / L"] = parseFloat(
+        (stats["Total value"] - stats["Total cost"]).toFixed(2)
+      );
+      stats["P / L %"] = parseFloat(
+        ((stats["P / L"] * 100) / stats["Total cost"]).toFixed(2)
+      );
+
+      return stats;
+    });
 
     const holdings = computed(() => {
       if (!data.value) return;
@@ -394,6 +464,7 @@ export default {
       newAddingRef,
 
       holdings,
+      totalStats,
     };
   },
 };

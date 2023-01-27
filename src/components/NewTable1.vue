@@ -4,11 +4,10 @@
     <table class="w-full border-collapse table-fixed">
       <thead
         class="
-          bg-gray-100
+          bg-slate-100
+          text-slate-700
           border-b border-t
           sm:border-t-0
-          md:border-t
-          lg:border-t-0
           hidden
           sm:table-header-group
         "
@@ -22,7 +21,6 @@
               py-3
               sm:pr-0 sm:pl-4
               align-middle
-              uppercase
               font-semibold
               text-xs text-left
               sm:w-1/5
@@ -40,7 +38,6 @@
               sm:px-0 sm:py-3.5
               align-middle
               text-xs
-              uppercase
               font-semibold
               text-center
               sm:w-1/4
@@ -57,7 +54,6 @@
               text-blueGray-500
               align-middle
               text-xs
-              uppercase
               font-semibold
               text-center
               sm:w-[13%]
@@ -73,7 +69,6 @@
               text-blueGray-500
               align-middle
               text-xs
-              uppercase
               font-semibold
               text-center
               sm:w-[15%]
@@ -89,7 +84,6 @@
               text-blueGray-500
               align-middle
               text-xs
-              uppercase
               font-semibold
               text-center
               sm:w-[13%]
@@ -196,7 +190,7 @@
                   py-1
                   rounded
                   font-medium
-                  sm:px-3 sm:py-2
+                  lg:px-3 lg:py-2
                 "
                 :class="
                   item.totalStats.profitOrLossPercentage > 0
@@ -326,9 +320,9 @@
             >
               <button
                 class="
-                  bg-blue-600
+                  bg-indigo-600
                   text-white
-                  hover:bg-blue-500
+                  hover:bg-indigo-500
                   rounded
                   px-2
                   py-1
@@ -343,8 +337,8 @@
               </button>
               <router-link
                 class="
-                  hover:text-blue-500
-                  text-blue-600
+                  hover:text-indigo-500
+                  text-indigo-600
                   ml-auto
                   rounded
                   block
@@ -354,7 +348,7 @@
                   sm:hover:bg-transparent
                   sm:ml-0
                   sm:text-black
-                  sm:hover:text-blue-600
+                  sm:hover:text-indigo-600
                 "
                 :to="{
                   name: 'TradeDetails',

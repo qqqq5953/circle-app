@@ -1,5 +1,5 @@
 <template>
-  <main class="px-4 md:p-10 mx-auto w-full xl:container">
+  <main class="px-4 md:p-10 mx-auto w-full max-w-[1200px]">
     <!-- snackbar -->
     <Teleport to="body">
       <Snackbar :barMessage="notificationMessage">
@@ -49,101 +49,97 @@
     </Teleport>
 
     <section class="px-4 md:px-0 lg:px-4">
-      <div class="flex items-center mb-4" v-if="topThreePerformance.length">
-        <h2 class="font-semibold text-lg">Top 3 Performance</h2>
-        <span class="text-xs ml-auto">
-          {{ lastMarketOpenDate }}
-        </span>
+      <div class="flex items-center mb-4">
+        <div class="w-40 h-6 bg-gray-300 rounded" v-if="loading"></div>
+        <h2
+          class="font-semibold text-lg"
+          v-if="!loading && topThreePerformance.length"
+        >
+          Top 3 Performance
+        </h2>
       </div>
       <div class="sm:flex gap-3">
+        <CardSkeleton v-if="loading" />
         <div
           class="sm:w-1/3"
           v-for="item in topThreePerformance"
-          :key="item.ticker"
+          :key="item.latestInfo.ticker"
+          v-else
         >
-          <CardSkeleton v-if="loading" />
-          <Card v-else>
+          <Card>
             <template #card-title>
               <h3 class="flex gap-x-3 items-center mb-2">
-                <span class="ticker-badge" :class="item.style">
-                  {{ item.ticker }}
+                <span class="ticker-badge" :class="item.latestInfo.style">
+                  {{ item.latestInfo.ticker }}
                 </span>
-                <span class="font-bold text-xs truncate w-[45%] sm:w-auto">{{
-                  item.name
+                <span class="font-bold text-xs truncate w-3/5 sm:w-auto">{{
+                  item.latestInfo.name
                 }}</span>
               </h3>
             </template>
             <template #card-sub-title>
               <div class="flex items-center gap-x-3">
                 <p
-                  class="font-bold px-2 py-1 rounded text-xs"
+                  class="font-medium px-2 py-1 lg:px-3 lg:py-2 rounded text-xs"
                   :class="
-                    item.profitOrLossPercentage > 0
+                    item.totalStats.profitOrLossPercentage > 0
                       ? 'text-red-600 bg-red-100/70'
-                      : item.profitOrLossPercentage < 0
+                      : item.totalStats.profitOrLossPercentage < 0
                       ? 'text-green-700 bg-green-100'
                       : 'text-slate-500 bg-slate-200'
                   "
                 >
-                  <span v-if="item.profitOrLossPercentage !== 0">
+                  <span v-if="item.totalStats.profitOrLossPercentage !== 0">
                     <i
                       class="fas fa-arrow-up mr-px text-red-600"
-                      v-if="item.profitOrLossPercentage > 0"
+                      v-if="item.totalStats.profitOrLossPercentage > 0"
                     ></i>
                     <i
                       class="fas fa-arrow-down mr-px text-green-700"
-                      v-else-if="item.profitOrLossPercentage < 0"
+                      v-else-if="item.totalStats.profitOrLossPercentage < 0"
                     ></i>
                   </span>
                   <span v-else>--</span>
                   {{
-                    item.profitOrLossPercentage < 0
-                      ? item.profitOrLossPercentage * -1
-                      : item.profitOrLossPercentage
+                    item.totalStats.profitOrLossPercentage < 0
+                      ? item.totalStats.profitOrLossPercentage * -1
+                      : item.totalStats.profitOrLossPercentage
                   }}
                   %
                 </p>
                 <p
                   class="text-xs font-medium"
                   :class="
-                    item.profitOrLossValue > 0
+                    item.totalStats.profitOrLossValue > 0
                       ? 'text-red-600'
-                      : item.profitOrLossValue < 0
+                      : item.totalStats.profitOrLossValue < 0
                       ? 'text-green-700'
                       : 'text-slate-500'
                   "
                 >
-                  <span v-if="item.profitOrLossValue >= 0">
+                  <span v-if="item.totalStats.profitOrLossValue >= 0">
                     <span class="mr-px">+$</span>
-                    <span>{{ item.profitOrLossValue }}</span>
+                    <span>{{ item.totalStats.profitOrLossValue }}</span>
                   </span>
                   <span v-else>
                     <span class="mr-0.5">-$</span>
-                    <span>{{ item.profitOrLossValue * -1 }}</span>
+                    <span>{{ item.totalStats.profitOrLossValue * -1 }}</span>
                   </span>
                 </p>
-              </div>
-            </template>
-            <template #card-icon
-              ><div
-                class="
-                  absolute
-                  right-4
-                  top-1/2
-                  -translate-y-1/2
-                  sm:hidden
-                  flex
-                  items-center
-                  justify-center
-                  w-12
-                  h-12
-                  shadow-lg
-                  rounded-full
-                  bg-slate-400
-                  text-white text-center
-                "
-              >
-                <i class="far fa-chart-bar"></i>
+                <router-link
+                  class="hover:text-indigo-500 text-indigo-600 ml-auto block"
+                  :to="{
+                    name: 'TradeDetails',
+                    params: {
+                      holdings: JSON.stringify(item),
+                    },
+                  }"
+                >
+                  <span class="text-xs flex items-center gap-x-1">
+                    <span class="sm:hidden">details</span>
+                    <i class="fa-solid fa-chevron-right"></i
+                  ></span>
+                </router-link>
               </div>
             </template>
           </Card>
@@ -151,14 +147,17 @@
       </div>
     </section>
 
-    <section class="mt-5 px-4 md:px-0 lg:px-4">
+    <section class="mt-8 px-4 md:px-0 lg:px-4">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="font-semibold text-lg">Holdings</h2>
+        <div class="w-40 h-6 bg-gray-300 rounded" v-if="loading"></div>
+        <h2 class="font-semibold text-lg" v-if="!loading && holdings">
+          Holdings
+        </h2>
         <button
           class="
-            bg-blue-600
+            bg-indigo-600
             text-white
-            hover:bg-blue-500
+            hover:bg-indigo-500
             rounded-full
             px-2
             py-1
@@ -176,12 +175,12 @@
       <div class="mb-2 md:mb-4" v-if="totalStats">
         <ul class="flex flex-wrap -m-1 md:-m-2">
           <li
-            class="w-1/2 p-1 md:w-1/4 md:p-2"
+            class="w-1/2 p-1 sm:w-1/4 md:p-2"
             :class="{
-              'md:order-1': key === 'P / L',
-              'md:order-2': key === 'P / L %',
-              'md:order-3': key === 'Total cost',
-              'md:order-4': key === 'Total value',
+              'sm:order-1': key === 'P / L',
+              'sm:order-2': key === 'P / L %',
+              'sm:order-3': key === 'Total cost',
+              'sm:order-4': key === 'Total value',
             }"
             v-for="(value, key) in totalStats"
             :key="key"
@@ -281,17 +280,18 @@ export default {
       data,
       error,
       loading,
-      lastMarketOpenDate,
       stock,
       inputValidity,
     } = storeToRefs($holdingStore);
     const { toggleSkeleton, activateNotification } = $holdingStore;
 
+    function goto(ref) {}
+
     // 跨頁面時重置 searchList
     onMounted(() => (searchList.value = null));
 
     const totalStats = computed(() => {
-      if (!data.value) return;
+      if (!data.value?.result) return;
 
       // 計算總成本、總市值
       const stats = Object.values(data.value.result).reduce(
@@ -427,21 +427,27 @@ export default {
       // return;
       if (!holdings) return [];
 
-      return Object.values(holdings)
-        .map((item) => {
-          const { latestInfo, totalStats } = item;
-          return {
-            ticker: latestInfo.ticker,
-            name: latestInfo.name,
-            style: latestInfo.style,
-            profitOrLossPercentage: totalStats.profitOrLossPercentage,
-            profitOrLossValue: totalStats.profitOrLossValue,
-          };
-        })
-        .sort((a, b) => {
-          return b.profitOrLossPercentage - a.profitOrLossPercentage;
-        })
-        .slice(0, 3);
+      return (
+        Object.values(holdings)
+          // .map((item) => {
+          //   const { latestInfo, totalStats } = item;
+          //   return {
+          //     ticker: latestInfo.ticker,
+          //     tempTicker: latestInfo.tempTicker,
+          //     name: latestInfo.name,
+          //     style: latestInfo.style,
+          //     profitOrLossPercentage: totalStats.profitOrLossPercentage,
+          //     profitOrLossValue: totalStats.profitOrLossValue,
+          //   };
+          // })
+          .sort((a, b) => {
+            return (
+              b.totalStats.profitOrLossPercentage -
+              a.totalStats.profitOrLossPercentage
+            );
+          })
+          .slice(0, 3)
+      );
     }
 
     return {
@@ -449,7 +455,6 @@ export default {
       data,
       loading,
       error,
-      lastMarketOpenDate,
       notificationMessage,
 
       toggleModal,
@@ -465,6 +470,7 @@ export default {
 
       holdings,
       totalStats,
+      goto,
     };
   },
 };

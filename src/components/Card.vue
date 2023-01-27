@@ -8,7 +8,7 @@
       rounded
       shadow-lg
       bg-white
-      mb-6
+      mb-2.5
       xl:mb-0
       relative
     "

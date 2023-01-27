@@ -2,25 +2,25 @@
   <div
     class="
       flex flex-col flex-auto
-      break-words
-      bg-white
-      rounded
       p-4
-      mb-6
-      xl:mb-0
+      border
+      rounded
       shadow-lg
-      border border-gray-100
+      bg-white
+      mb-2.5
+      xl:mb-0
       animate-pulse
+      relative
     "
-    v-for="i in 1"
+    v-for="i in 3"
     :key="i"
   >
-    <div class="card-header flex flex-wrap mb-3">
+    <div class="card-header flex flex-wrap mb-2">
       <div class="flex-1">
         <p class="rounded bg-gray-300 w-full h-4 mb-3"></p>
         <p class="rounded bg-gray-300 w-full h-4"></p>
       </div>
-      <div
+      <!-- <div
         class="
           text-white text-center
           inline-flex
@@ -31,13 +31,13 @@
           ml-3
           shadow-lg
           rounded-full
-          bg-red-500
+          bg-slate-200
         "
-      ></div>
+      ></div> -->
     </div>
-    <div class="card-body">
+    <!-- <div class="card-body">
       <p class="rounded bg-gray-300 w-full h-3 mb-3"></p>
       <p class="rounded bg-gray-300 w-full h-3 mb-3"></p>
-    </div>
+    </div> -->
   </div>
 </template>

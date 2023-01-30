@@ -48,6 +48,7 @@
       </InputModal>
     </Teleport>
 
+    <!-- Top 3 Performance -->
     <section class="px-4 md:px-0 lg:px-4">
       <div class="flex items-center mb-4">
         <div class="w-40 h-6 bg-gray-300 rounded" v-if="loading"></div>
@@ -147,21 +148,108 @@
       </div>
     </section>
 
-    <section class="mt-8 px-4 md:px-0 lg:px-4">
-      <div class="flex items-center justify-between mb-4">
-        <div class="w-40 h-6 bg-gray-300 rounded" v-if="loading"></div>
-        <h2 class="font-semibold text-lg" v-if="!loading && holdings">
-          Holdings
-        </h2>
+    <!-- totalStats -->
+    <section class="mt-8 px-4 md:px-0 lg:px-4 text-xs" v-if="holdings">
+      <!-- skeleton -->
+      <div class="flex items-center" v-if="loading">
+        <div class="w-40 h-6 bg-gray-300 rounded"></div>
+        <div class="w-[83px] h-6 bg-gray-300 rounded-full ml-auto"></div>
+      </div>
+
+      <!-- title -->
+      <div class="flex items-center" v-if="!loading && totalStats">
+        <h2 class="font-semibold text-lg inline">Total stats</h2>
+        <p class="ml-1 pt-1">(Calculated in TWD)</p>
         <button
           class="
-            bg-indigo-600
-            text-white
-            hover:bg-indigo-500
             rounded-full
-            px-2
+            font-semibold
+            py-1
+            ml-auto
+            w-[83px]
+            border border-indigo-600
+            active:bg-indigo-600 active:text-white
+            disabled:bg-indigo-300
+            disabled:border-indigo-300
+            disabled:text-white
+          "
+          :disabled="!totalStats || !fxRates"
+          :class="isHover ? 'bg-indigo-600 text-white' : 'text-indigo-600'"
+          @mouseenter="isHover = true"
+          @mouseleave="isHover = false"
+          @click="
+            getExchangeRate($event);
+            isHover = false;
+          "
+          v-if="currenciesInHoldings.length !== 0"
+        >
+          <i
+            class="fa-solid fa-rotate-right"
+            :class="{ 'animate-spin': !totalStats || !fxRates }"
+          ></i>
+          <span class="mx-1">Refresh</span>
+        </button>
+      </div>
+
+      <!-- skeleton -->
+      <div class="animate-pulse" v-if="!totalStats || !fxRates">
+        <div class="text-right pt-1.5" v-if="fxRatesUsedTwoDecimals">
+          <span class="w-28 h-3 bg-gray-300 rounded-full inline-block"></span>
+        </div>
+        <ul class="flex flex-wrap -m-1 md:-m-2 pt-1.5">
+          <li class="w-1/2 p-1 sm:w-1/4 md:p-2" v-for="i in 4" :key="i">
+            <div
+              class="
+                flex flex-col
+                items-center
+                justify-center
+                gap-y-2
+                bg-slate-100
+                h-12
+                w-full
+                rounded
+                shadow
+              "
+            >
+              <div class="bg-gray-300 rounded-full w-2/3 h-3"></div>
+              <div class="bg-gray-300 rounded-full w-2/3 h-3"></div>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- stats -->
+      <div v-if="totalStats && !loading">
+        <TotalStats
+          :fxRatesUsedTwoDecimals="fxRatesUsedTwoDecimals"
+          :totalStats="totalStats"
+        />
+      </div>
+    </section>
+
+    <!-- Holdings -->
+    <section class="mt-8 px-4 md:px-0 lg:px-4">
+      <!-- skeleton -->
+      <div class="flex items-center" v-if="loading">
+        <div class="w-40 h-6 bg-gray-300 rounded"></div>
+        <div class="w-[83px] h-6 bg-gray-300 rounded-full ml-auto"></div>
+      </div>
+
+      <div
+        class="flex items-center justify-between mb-2"
+        v-if="!loading && holdings"
+      >
+        <h2 class="font-semibold text-lg">Holdings</h2>
+        <button
+          class="
+            border border-indigo-600
+            text-indigo-600
+            hover:bg-indigo-600 hover:text-white
+            rounded-full
+            font-semibold
             py-1
             text-xs
+            w-[83px]
           "
           @click="toggleModal({ open: true, type: 'invest' })"
           v-if="holdings"
@@ -169,50 +257,6 @@
           <span>+</span>
           <span class="mx-1">Invest</span>
         </button>
-      </div>
-
-      <!-- totalStats -->
-      <div class="mb-2 md:mb-4" v-if="totalStats">
-        <ul class="flex flex-wrap -m-1 md:-m-2">
-          <li
-            class="w-1/2 p-1 sm:w-1/4 md:p-2"
-            :class="{
-              'sm:order-1': key === 'P / L',
-              'sm:order-2': key === 'P / L %',
-              'sm:order-3': key === 'Total cost',
-              'sm:order-4': key === 'Total value',
-            }"
-            v-for="(value, key) in totalStats"
-            :key="key"
-          >
-            <div
-              class="
-                flex flex-col
-                items-center
-                bg-slate-100
-                text-slate-700
-                rounded
-                shadow
-                p-2
-                lg:p-1.5
-              "
-            >
-              <span
-                class="font-medium text-sm md:text-base"
-                :class="
-                  value > 0 && (key === 'P / L' || key === 'P / L %')
-                    ? 'text-red-600'
-                    : value < 0 && (key === 'P / L' || key === 'P / L %')
-                    ? 'text-green-700'
-                    : null
-                "
-                >{{ key !== "P / L %" ? "$" : null }} {{ value }}
-                {{ key === "P / L %" ? "%" : null }}</span
-              >
-              <span class="font-light text-xs">{{ key }}</span>
-            </div>
-          </li>
-        </ul>
       </div>
 
       <TableSkeleton v-if="loading" />
@@ -250,6 +294,7 @@ import CardSkeleton from "@/components/skeleton/CardSkeleton.vue";
 import TableSkeleton from "@/components/skeleton/TableSkeleton.vue";
 import InputSkeleton from "@/components/skeleton/InputSkeleton.vue";
 import TradePanel from "@/components/TradePanel.vue";
+import TotalStats from "@/components/Holdings/TotalStats.vue";
 
 import { ref, defineAsyncComponent, computed, onMounted, watch } from "vue";
 import useHoldingStore from "@/stores/holdingStore.js";
@@ -259,6 +304,7 @@ import http from "../api/index";
 
 export default {
   components: {
+    TotalStats,
     TradePanel,
     NewTable1,
     Card,
@@ -285,19 +331,59 @@ export default {
     } = storeToRefs($holdingStore);
     const { toggleSkeleton, activateNotification } = $holdingStore;
 
-    function goto(ref) {}
+    const isHover = ref(false);
 
     // 跨頁面時重置 searchList
     onMounted(() => (searchList.value = null));
 
+    // totalStats
+    const codeToCurrencyMap = ref({
+      tw: "TWD",
+      us: "USDTWD",
+      mf: "USDTWD",
+      uk: "GBPTWD",
+      hk: "HKDTWD",
+      ks: "KRWTWD",
+    });
+    const fxRateApi = "https://api.coinbase.com/v2/exchange-rates";
+    const fxRates = ref(null);
+    const currenciesInHoldings = ref([]);
+    const fxRatesUsedTwoDecimals = computed(() => {
+      if (!fxRates.value) return {};
+
+      const { TWD, ...restFx } = fxRates.value;
+      const obj = {};
+
+      for (let i = 0; i < currenciesInHoldings.value.length; i++) {
+        const currency = currenciesInHoldings.value[i];
+
+        let rate = restFx[currency];
+        rate = +(+rate).toFixed(2);
+        obj[currency] = rate;
+      }
+
+      return obj;
+    });
     const totalStats = computed(() => {
-      if (!data.value?.result) return;
+      if (!data.value?.result || !fxRates.value) return {};
+      currenciesInHoldings.value.length = 0;
 
       // 計算總成本、總市值
       const stats = Object.values(data.value.result).reduce(
         (obj, item) => {
-          obj["Total value"] += item.totalStats.totalValue;
-          obj["Total cost"] += item.totalStats.totalCost;
+          const { latestInfo, totalStats } = item;
+          const { totalValue, totalCost } = totalStats;
+          const { code } = latestInfo;
+          const currency = codeToCurrencyMap.value[code];
+          const exchangeRate = fxRates.value[currency];
+
+          if (currency !== "TWD") {
+            currenciesInHoldings.value.push(currency);
+          }
+
+          obj["Total value"] += totalValue * parseFloat(exchangeRate);
+          obj["Total cost"] += totalCost * parseFloat(exchangeRate);
+
           return obj;
         },
         { "Total cost": 0, "Total value": 0 }
@@ -316,6 +402,41 @@ export default {
       return stats;
     });
 
+    async function getExchangeRate(e) {
+      // 阻止連續點擊
+      if (e && !fxRates.value) return;
+
+      const currencies = ["TWD", "USD", "GBP", "HKD", "KRW"];
+      const currencyPromise = currencies.map((currency) => {
+        return http.get(`${fxRateApi}?currency=${currency}`);
+      });
+
+      const res = await Promise.allSettled(currencyPromise);
+      const rateMap = res.reduce((obj, item) => {
+        const { currency, rates } = item.value.data.data;
+        if (currency !== "TWD") {
+          obj[`${currency}TWD`] = rates.TWD;
+        } else {
+          obj[`TWD`] = rates.TWD;
+        }
+
+        return obj;
+      }, {});
+
+      // refresh 時延遲一秒顯示 loading effect
+      if (e?.type === "click") {
+        fxRates.value = null;
+        setTimeout(() => {
+          fxRates.value = rateMap;
+        }, 300);
+      } else {
+        fxRates.value = rateMap;
+      }
+    }
+
+    getExchangeRate();
+
+    // holdings
     const holdings = computed(() => {
       if (!data.value) return;
       return data.value?.result;
@@ -470,7 +591,11 @@ export default {
 
       holdings,
       totalStats,
-      goto,
+      fxRates,
+      fxRatesUsedTwoDecimals,
+      currenciesInHoldings,
+      getExchangeRate,
+      isHover,
     };
   },
 };

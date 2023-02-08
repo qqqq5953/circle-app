@@ -1,10 +1,12 @@
 const express = require('express')
 const numberWithCommas = require('../tools/getNumberWithComma')
 const router = express.Router()
+const fetch = require('node-fetch')
 const yahooFinance = require('yahoo-finance')
 const firebaseDb = require('../firebase/index.js')
 
 const historyRef = firebaseDb.ref('/history/')
+const closeCacheRef = firebaseDb.ref('/closeCache/')
 const holdingsTickersRef = firebaseDb.ref('/holdingsTickers/')
 const holdingsTradeRef = firebaseDb.ref('/holdingsTrade/')
 const holdingsStatsRef = firebaseDb.ref('/holdingsStats/')
@@ -228,7 +230,15 @@ router.post('/addStock', async (req, res) => {
     const stockInfo = holdingsTradeRef.child(tempTicker).push()
     const id = stockInfo.key
     const tradeUnix = Math.floor(Date.parse(tradeInfo.tradeDate) / 1000)
-    const trade = { ...tradeInfo, id, tradeUnix, ticker, status: 'buy' }
+    const trade = {
+      ...tradeInfo,
+      id,
+      tradeUnix,
+      ticker,
+      tempTicker,
+      code,
+      status: 'buy'
+    }
     stockInfo.set(trade)
 
     // set history
@@ -315,106 +325,264 @@ router.get('/tradeDetails/:tempTicker', async (req, res) => {
 // HISTORY PAGE
 router.get('/history', async (req, res) => {
   try {
+    const errorMsg = []
     const hasFetch = {}
-    const historySnapshot = await historyRef.once('value')
-    const stats = await holdingsTickersRef.once('value')
+    const resPromise = await Promise.allSettled([
+      historyRef.once('value'),
+      holdingsTickersRef.once('value'),
+      closeCacheRef.once('value')
+    ])
+    const [historySnapshot, tickersSnapshot, closeCacheSnapshot] = resPromise
 
-    const dates = Object.keys(historySnapshot.val())
-    const tickers = Object.values(stats.val())
+    if (!historySnapshot.value.val()) {
+      return res.send({
+        success: true,
+        content: '尚未有紀錄',
+        errorMessage: null,
+        result: null
+      })
+    }
 
+    const dates = Object.keys(historySnapshot.value.val())
     const startDate = dates[0]
     const endDate = dates[dates.length - 1]
     // console.log('startDate', startDate)
     // console.log('endDate', endDate)
 
-    // historicalData 順序為按日期由新到舊
-    const historicalData = await yahooFinance.historical({
-      symbols: tickers,
-      from: startDate,
-      to: convertDate1(endDate),
-      period: 'd'
-    })
+    const tickers = []
+    const tempTickers = []
+    const tempTickerToTickerMap = tickersSnapshot.value.val()
+    const tickerEntries = Object.entries(tempTickerToTickerMap).map(
+      ([tempTicker, ticker]) => {
+        tickers.push(ticker)
+        tempTickers.push(tempTicker)
+        return [ticker, tempTicker]
+      }
+    )
+    const tickerToTempTickerMap = Object.fromEntries(tickerEntries)
+
+    let historicalData
+    let quotes
+
+    // // 不存資料庫直接打 yahoo api
+    // const cacheSnapshot = await updateCache({
+    //   tickers,
+    //   tempTickers,
+    //   tickerToTempTickerMap,
+    //   startDate,
+    //   endDate
+    // })
+    // historicalData = cacheSnapshot.historicalData
+    // quotes = cacheSnapshot.quotes
+
+    const isInitUpdate = checkUpdateTime()
+    const weekDay = new Date().getDay()
+    const isWeekend = weekDay === '6' || weekDay === '0'
+    if (isInitUpdate && !isWeekend) {
+      cacheSnapshot = await updateCache({
+        tickers,
+        tempTickers,
+        tickerToTempTickerMap,
+        startDate,
+        endDate
+      })
+      historicalData = cacheSnapshot.historicalData
+      quotes = cacheSnapshot.quotes
+    }
+
+    if (!closeCacheSnapshot.value.val()) {
+      console.log('準備第一次新增')
+
+      cacheSnapshot = await updateCache({
+        tickers,
+        tempTickers,
+        tickerToTempTickerMap,
+        startDate,
+        endDate
+      })
+      historicalData = cacheSnapshot.historicalData
+      quotes = cacheSnapshot.quotes
+    }
+
+    if (closeCacheSnapshot.value.val()) {
+      let cacheSnapshot = closeCacheSnapshot.value.val()
+      historicalData = cacheSnapshot.historicalData
+      quotes = cacheSnapshot.quotes
+
+      const newTemptickers = tempTickers.filter((tempTicker) => {
+        const dataset = closeCacheSnapshot.value
+          .child('quotes')
+          .child(tempTicker)
+          .val()
+        return !dataset
+      })
+
+      // 新加入標的後要取得'該標的'資料
+      if (newTemptickers.length) {
+        console.log('有新增資料')
+        const newTickers = newTemptickers.map(
+          (tempTicker) => tempTickerToTickerMap[tempTicker]
+        )
+
+        cacheSnapshot = await updateCache({
+          tickers: newTickers,
+          tempTickers: newTemptickers,
+          tickerToTempTickerMap,
+          startDate,
+          endDate
+        })
+      }
+
+      console.log('用資料庫資料')
+      historicalData = cacheSnapshot.historicalData
+      quotes = cacheSnapshot.quotes
+    }
     // console.log('historicalData', historicalData)
+    console.log('quotes', quotes)
+
+    // 匯率
+    const codeToCurrencyMap = {
+      tw: 'TWD',
+      us: 'USDTWD',
+      mf: 'USDTWD',
+      uk: 'GBPTWD',
+      hk: 'HKDTWD',
+      ks: 'KRWTWD'
+    }
+    const currencies = ['TWD', 'USD', 'GBP', 'HKD', 'KRW']
+    const fxRates = await fecthFxRates(currencies)
+    console.log('fxRates', fxRates)
+
+    // console.log('historySnapshot', historySnapshot.value.val())
 
     // 計算每日 asset
     const history_NonAcc = []
     let currentIdx = 0
 
-    historySnapshot.forEach((childSnapshot) => {
-      // trades 順序為按日期由舊到新
+    const newHistorySnapshot = await historyRef.once('value')
+    newHistorySnapshot.forEach((childSnapshot) => {
+      // trades 按日期由舊到新
       const trades = childSnapshot.val()
       const tradesArr = Object.values(trades)
+      // console.log('trades', trades)
 
-      const totalCostAndValue = tradesArr.reduce(
-        (obj, trade) => {
-          const { cost, shares, ticker, tradeDate } = trade
-          // console.log('=====ticker====', ticker, tradeDate, cost)
+      const totalStats = {
+        date: '',
+        totalCost: 0,
+        totalMarketValue: 0,
+        totalShares: 0,
+        trades: []
+      }
 
-          if (!obj.date) obj.date = tradeDate
+      for (let i = 0; i < tradesArr.length; i++) {
+        const trade = tradesArr[i]
+        const { cost, shares, ticker, tempTicker, tradeDate, code } = trade
+        const fetchKey = `${ticker}_${tradeDate}`
+        // const tempTicker = ticker.includes('.')?
 
-          // 同日同標的只會抓一次市場資料
-          if (!hasFetch[`${ticker}_${tradeDate}`]) {
-            // 用對比 tradeDate 來找交易當天的市場資料
-            const foundIdx = historicalData[ticker].findIndex(
-              (item) => convertDate2(item.date) === tradeDate
-            )
+        console.log('=====ticker====', ticker, tradeDate, cost, shares)
 
-            /*
+        if (!totalStats.date) totalStats.date = tradeDate
+
+        // 同日同標的只會抓一次市場資料
+        if (!hasFetch[fetchKey]) {
+          // 用對比 tradeDate 來找交易當天的市場資料
+          const foundIdx = historicalData[tempTicker].findIndex(
+            (item) => item.date === tradeDate
+          )
+
+          /*
             紀錄當前 index，如果 foundIdx 存在（不為 -1）才紀錄，
             如果 foundIdx 為 -1，則不紀錄，currentIdx 為前一次迴圈的 idx，
             使得沒有開盤的日子的資料會沿用前一個開盤日的資料
             */
-            if (foundIdx !== -1) currentIdx = foundIdx
+          if (foundIdx !== -1) currentIdx = foundIdx
 
-            // console.log(
-            //   'historicalData[ticker][currentIdx]',
-            //   historicalData[ticker][currentIdx]
-            // )
+          // console.log('foundIdx', foundIdx)
+          // console.log('currentIdx', currentIdx)
+          // console.log(
+          //   'historicalData[ticker][currentIdx]',
+          //   historicalData[ticker][currentIdx]
+          // )
 
+          const data = historicalData[tempTicker][currentIdx]
+          if (data) {
             // 紀錄交易日要採用哪天的市場資料
-            hasFetch[`${ticker}_${tradeDate}`] = {
-              hasInfoDate: convertDate2(
-                historicalData[ticker][currentIdx].date
-              ),
-              close: historicalData[ticker][currentIdx].close
+            hasFetch[fetchKey] = {
+              hasInfoDate: data.date,
+              close: data.close
             }
+          } else {
+            console.log('日期超出歷史資料範圍')
+            errorMsg.push('日期超出歷史資料範圍')
+            continue
           }
+        }
 
-          // console.log('hasFetch', hasFetch)
-          const { hasInfoDate, close } = hasFetch[`${ticker}_${tradeDate}`]
-          obj.totalMarketValue += close * parseFloat(shares)
-          obj.totalCost += parseFloat((cost * shares).toFixed(2))
-          obj.trades.push({
-            ...trade,
-            close: parseFloat(close.toFixed(2)),
-            closeDate: hasInfoDate
-          })
+        // historical 模組找不到 close，用 quote 模組代替
+        if (!hasFetch[fetchKey].close) {
+          hasFetch[fetchKey].close = quotes[tempTicker].previousClose
+        }
 
-          return obj
-        },
-        { date: '', totalCost: 0, totalMarketValue: 0, trades: [] }
-      )
+        // console.log('hasFetch', hasFetch)
+        const { hasInfoDate, close } = hasFetch[fetchKey]
+        const currency = codeToCurrencyMap[code]
+        const exchangeRate = fxRates[currency]
+        // console.log('currency:', currency)
+        // console.log('exchangeRate:', exchangeRate)
 
-      history_NonAcc.push(totalCostAndValue)
+        totalStats.totalMarketValue += parseFloatByDecimal(
+          exchangeRate * close * shares,
+          2
+        )
+        totalStats.totalCost += parseFloatByDecimal(
+          exchangeRate * cost * shares,
+          2
+        )
+        totalStats.totalShares += parseFloat(shares)
+        totalStats.trades.push({
+          ...trade,
+          closeDate: hasInfoDate,
+          close: parseFloatByDecimal(close, 2),
+          value: parseFloatByDecimal(exchangeRate * close * shares, 2),
+          profitOrLossChange: parseFloatByDecimal(close - cost, 2),
+          profitOrLossPercentage: parseFloatByDecimal(
+            ((close - cost) * 100) / cost,
+            2
+          )
+        })
+
+        // console.log('totalStats.totalMarketValue', totalStats.totalMarketValue)
+      }
+
+      history_NonAcc.push(totalStats)
     })
-
-    // 計算累積 asset
-    const accObj = { date: '', totalCost: 0, totalMarketValue: 0 }
-    const history_Acc = history_NonAcc.reduce((arr, data) => {
-      const { date, totalCost, totalMarketValue } = data
-      accObj.date = date
-      accObj.totalCost += totalCost
-      accObj.totalMarketValue += totalMarketValue
-      arr.push({ ...accObj })
-
-      return arr
-    }, [])
 
     const msg = {
       success: true,
       content: '成功獲得所有標的',
       errorMessage: null,
-      result: { nonAccData: history_NonAcc, accData: history_Acc }
+      result: null
+    }
+
+    if (errorMsg.length === 0) {
+      // 計算累積 asset
+      const accObj = { date: '', totalCost: 0, totalMarketValue: 0 }
+      const history_Acc = history_NonAcc.reduce((arr, data) => {
+        const { date, totalCost, totalMarketValue } = data
+        accObj.date = date
+        accObj.totalCost += totalCost
+        accObj.totalMarketValue += totalMarketValue
+        arr.push({ ...accObj })
+
+        return arr
+      }, [])
+
+      msg.result = { nonAccData: history_NonAcc, accData: history_Acc }
+    } else {
+      msg.success = false
+      msg.content = '獲得標的失敗'
+      msg.errorMessage = errorMsg
     }
 
     res.send(msg)
@@ -430,28 +598,156 @@ router.get('/history', async (req, res) => {
     res.send(msg)
   }
 
+  async function checkUpdateTime() {
+    const now = new Date()
+    const snapshot = await closeCacheRef.child('nextUpdate').once('value')
+    const nextUpdate = snapshot.val()
+    const fourAM = nextUpdate?.unix
+      ? new Date(nextUpdate.unix)
+      : new Date(now.getFullYear(), now.getMonth(), now.getDate(), 4, 0, 0, 0)
+
+    const isInitUpdate = now.getTime() > fourAM.getTime()
+
+    console.log('nextUpdate', nextUpdate)
+    console.log('before fourAM', fourAM.toLocaleDateString())
+
+    if (isInitUpdate) {
+      // 重設下一日的早上四點
+      fourAM.setDate(fourAM.getDate() + 1)
+
+      closeCacheRef.child('nextUpdate').set({
+        unix: fourAM.getTime()
+      })
+
+      console.log('isInitUpdate')
+      console.log('after fourAM', fourAM.toLocaleDateString())
+    }
+
+    return isInitUpdate
+  }
+
+  async function fecthFxRates(currencies) {
+    const fxRateApi = 'https://api.coinbase.com/v2/exchange-rates'
+    const fetchPromise = currencies.map((currency) => {
+      return fetch(`${fxRateApi}?currency=${currency}`)
+    })
+    const fetchRes = await Promise.allSettled(fetchPromise)
+    const jsonPromise = fetchRes.map((item) => item.value.json())
+    const currencyRes = await Promise.allSettled(jsonPromise)
+    const fxRates = currencyRes.reduce((obj, item) => {
+      const { currency, rates } = item.value.data
+      if (currency !== 'TWD') {
+        obj[`${currency}TWD`] = rates.TWD
+      } else {
+        obj[`TWD`] = rates.TWD
+      }
+
+      return obj
+    }, {})
+
+    return fxRates
+  }
+
+  async function updateCache({
+    tickers,
+    tempTickers,
+    tickerToTempTickerMap,
+    startDate,
+    endDate
+  }) {
+    // historicalData 順序為按日期由新到舊
+    // 如剛好前一日有紀錄，今日盤中會抓不到前一日交易資料，因此要用 quote 模組
+    const newRequest = await Promise.allSettled([
+      getQuotes(tickers, tickerToTempTickerMap),
+      getHistoricalData({
+        tickers,
+        tickerToTempTickerMap,
+        startDate,
+        endDate
+      })
+    ])
+    const [quotes, historicalData] = newRequest.map((item) => item.value)
+    // // 不存資料庫直接打 yahoo api
+    // return { quotes, historicalData }
+
+    tempTickers.forEach((tempTicker) => {
+      const quoteset = quotes[tempTicker]
+      const dataset = historicalData[tempTicker]
+      closeCacheRef.child('quotes').child(tempTicker).set(quoteset)
+      closeCacheRef.child('historicalData').child(tempTicker).set(dataset)
+    })
+    // console.log('extraQuotes', quotes)
+    // console.log('extraData', historicalData)
+
+    const newCloseCacheSnapshot = await closeCacheRef.once('value')
+    return newCloseCacheSnapshot.val()
+  }
+
+  async function getHistoricalData({
+    tickers,
+    tickerToTempTickerMap,
+    startDate,
+    endDate
+  }) {
+    const rawData = await yahooFinance.historical({
+      symbols: tickers,
+      from: startDate,
+      to: convertDate1(endDate),
+      period: 'd'
+    })
+
+    // rename keys to tempTicker and replace date obj with yyyy-mm-dd
+    const dataEntries = Object.entries(rawData).map(([ticker, dataset]) => {
+      const tempTicker = tickerToTempTickerMap[ticker]
+      const newDataset = dataset.map((item) => {
+        const dateString = convertDate2(item.date)
+        return { ...item, date: dateString }
+      })
+      return [tempTicker, newDataset]
+    })
+
+    return Object.fromEntries(dataEntries)
+  }
+
+  async function getQuotes(tickers, tickerToTempTickerMap) {
+    const quotePromise = tickers.map((ticker) => {
+      return yahooFinance.quote({
+        symbol: ticker,
+        modules: ['price']
+      })
+    })
+    const quoteRes = await Promise.allSettled(quotePromise)
+    const quotes = quoteRes.reduce((obj, quote) => {
+      const { symbol, regularMarketTime, regularMarketPreviousClose } =
+        quote.value.price
+      const tempTicker = tickerToTempTickerMap[symbol]
+      obj[tempTicker] = {
+        regularMarketTime,
+        previousClose: regularMarketPreviousClose
+      }
+      return obj
+    }, {})
+
+    return quotes
+  }
+
   function convertDate2(dateObj) {
     const dd = String(dateObj.getDate()).padStart(2, '0')
     const mm = String(dateObj.getMonth() + 1).padStart(2, '0')
     const yyyy = dateObj.getFullYear()
 
+    console.log('convertDate2', yyyy + '-' + mm + '-' + dd)
+
     return yyyy + '-' + mm + '-' + dd
   }
   function convertDate1(yyyymmdd) {
     const unix = Date.parse(yyyymmdd)
+    // 加一天（84600000）才能要得到當天資料，例如結束日期為 1/27，實際上 fetch 的資料範圍結束日為 1/26
     const dateObj = new Date(unix + 84600000)
     const dd = String(dateObj.getDate()).padStart(2, '0')
     const mm = String(dateObj.getMonth() + 1).padStart(2, '0')
     const yyyy = dateObj.getFullYear()
     console.log('convertDate1', yyyy + '-' + mm + '-' + dd)
-
-    return yyyy + '-' + mm + '-' + dd
-  }
-  function convertDate(date) {
-    const dd = String(date.getDate()).padStart(2, '0')
-    const mm = String(date.getMonth() + 1).padStart(2, '0')
-    const yyyy = date.getFullYear()
-    console.log('test', yyyy + '-' + mm + '-' + dd)
 
     return yyyy + '-' + mm + '-' + dd
   }

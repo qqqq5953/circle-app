@@ -7,6 +7,9 @@
       <div class="rounded bg-gray-300 h-60"></div>
     </div>
     <div v-else>
+      <button class="border border-black p-2" @click="deleteAll">
+        delete all
+      </button>
       <section v-if="source">
         <h2 class="font-semibold text-lg">History</h2>
         <MultiLineChart :source="source" />
@@ -14,27 +17,34 @@
 
       <section v-if="details.length !== 0">
         <h2 class="font-semibold text-lg mt-10">Details</h2>
-        <TitleList :list="totalTitle" />
+        <TitleList class="border-b px-1 py-1" :list="childTitle" />
 
         <ul>
-          <li v-for="item in details" :key="item.date">
+          <li v-for="(trades, date) in details" :key="date">
             <div
               class="
+                flex
+                justify-between
+                p-1
                 text-xs
                 font-medium
-                px-2
-                py-1
                 bg-indigo-100
                 border-b border-indigo-300
                 cursor-pointer
               "
-              @click="toggleDropdown(item.date)"
+              @click="toggleDropdown(date)"
             >
-              <TotalList :list="item" :selectedDate="selectedDate" />
+              <span>{{ date }}</span>
+              <span>
+                <i
+                  class="fa-solid fa-chevron-up"
+                  v-if="selectedDate.includes(date)"
+                ></i>
+                <i class="fa-solid fa-chevron-down" v-else></i>
+              </span>
             </div>
-            <ul class="text-xs" v-if="selectedDate.includes(item.date)">
-              <TitleList class="border-b px-2 py-1" :list="childTitle" />
-              <DetailList class="p-2" :list="item.trades" />
+            <ul class="text-xs" v-if="selectedDate.includes(date)">
+              <DetailList class="px-1 py-2" :list="trades" />
             </ul>
           </li>
         </ul>
@@ -49,7 +59,6 @@
 import http from "../api/index";
 import MultiLineChart from "@/components/MultiLineChart.vue";
 import TitleList from "@/components/History/TitleList.vue";
-import TotalList from "@/components/History/TotalList.vue";
 import DetailList from "@/components/History/DetailList.vue";
 
 import { ref } from "vue";
@@ -57,7 +66,6 @@ export default {
   components: {
     MultiLineChart,
     TitleList,
-    TotalList,
     DetailList,
   },
   setup() {
@@ -78,31 +86,12 @@ export default {
           return;
         }
 
-        const { nonAccData, accData } = res.data.result;
-        details.value = [...nonAccData]
-          .map((data) => {
-            return {
-              ...data,
-              date: data.date.replace(/\-/g, "/"),
-            };
-          })
-          .reverse();
-
-        console.log("details.value", details.value);
-
-        source.value = accData.reduce(
-          (obj, data) => {
-            obj.date.push(data.date.replace(/\-/g, "/"));
-            obj.assetCost.push(data.totalCost);
-            obj.assetValue.push(parseFloat(data.totalMarketValue.toFixed(2)));
-
-            return obj;
-          },
-          { date: [], assetCost: [], assetValue: [] }
-        );
+        const { totalValue, historyDetails } = res.data.result;
+        source.value = totalValue;
+        details.value = historyDetails;
 
         // 顯示最近一筆
-        selectedDate.value.push(source.value.date.at(-1));
+        // selectedDate.value.push(source.value.date.at(-1));
       } catch (error) {
         console.log("error", error);
       }
@@ -136,7 +125,7 @@ export default {
         style: "w-[15%] text-right bg-blue-300",
       },
       {
-        name: "Value",
+        name: "Value (TWD)",
         style: "w-[24%] text-right bg-red-300",
       },
       {
@@ -167,6 +156,12 @@ export default {
       },
     ]);
 
+    function deleteAll() {
+      http.post("/api/deleteAll").then((res) => {
+        console.log("delete res", res);
+      });
+    }
+
     return {
       source,
       details,
@@ -176,6 +171,8 @@ export default {
 
       childTitle,
       totalTitle,
+
+      deleteAll,
     };
   },
 };

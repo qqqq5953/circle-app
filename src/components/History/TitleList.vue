@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex items-end gap-x-1 text-slate-500 px-2 py-1 text-xs font-medium"
+    class="flex items-end gap-x-1 text-slate-500 text-xs font-medium"
     v-bind="attrs"
   >
     <span v-for="item in list" :key="item.name" :class="item.style">{{

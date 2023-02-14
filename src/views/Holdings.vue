@@ -432,6 +432,8 @@ export default {
       } else {
         fxRates.value = rateMap;
       }
+
+      console.log("fxRates.value", fxRates.value.USDTWD);
     }
 
     getExchangeRate();

@@ -1,11 +1,13 @@
 const express = require('express')
 const numberWithCommas = require('../tools/getNumberWithComma')
 const router = express.Router()
-const fetch = require('node-fetch')
+const axios = require('axios')
 const yahooFinance = require('yahoo-finance')
 const firebaseDb = require('../firebase/index.js')
 
 const historyRef = firebaseDb.ref('/history/')
+const testRef = firebaseDb.ref('/test/')
+const fxToTWDRef = firebaseDb.ref('/fxToTWD/')
 const closeCacheRef = firebaseDb.ref('/closeCache/')
 const holdingsTickersRef = firebaseDb.ref('/holdingsTickers/')
 const holdingsTradeRef = firebaseDb.ref('/holdingsTrade/')
@@ -174,11 +176,31 @@ router.get('/holdings', async (req, res) => {
   }
 })
 
+router.post('/deleteAll', async (req, res) => {
+  Promise.all([
+    closeCacheRef.remove(),
+    historyRef.remove(),
+    holdingsTickersRef.remove(),
+    holdingsTradeRef.remove(),
+    holdingsStatsRef.remove(),
+    holdingsLatestInfoRef.remove()
+  ])
+    .then((resp) => {
+      console.log('delete success', resp)
+      res.send('delete success')
+    })
+    .catch((err) => {
+      console.log('delete failed', err)
+      res.send('delete failed')
+    })
+})
+
 router.post('/addStock', async (req, res) => {
   const {
     previousCloseChange,
     previousCloseChangePercent,
     price: close,
+    // 以上為了 buy 直接帶入不用再打 api
     ...rest
   } = req.body
 
@@ -242,7 +264,21 @@ router.post('/addStock', async (req, res) => {
     stockInfo.set(trade)
 
     // set history
-    historyRef.child(tradeInfo.tradeDate).child(id).set(trade)
+    historyRef.child(tradeInfo.tradeDate).child(id).set({
+      code,
+      ticker,
+      tempTicker,
+      shares: tradeInfo.shares,
+      cost: tradeInfo.cost
+    })
+    testRef.child(`${tradeInfo.tradeDate}_${id}_${tempTicker}`).set({
+      id,
+      code,
+      ticker,
+      tempTicker,
+      shares: tradeInfo.shares,
+      cost: tradeInfo.cost
+    })
 
     // 計算 stats
     const holdingsSnapshot = await holdingsTradeRef
@@ -325,14 +361,20 @@ router.get('/tradeDetails/:tempTicker', async (req, res) => {
 // HISTORY PAGE
 router.get('/history', async (req, res) => {
   try {
-    const errorMsg = []
-    const hasFetch = {}
     const resPromise = await Promise.allSettled([
+      testRef.once('value'),
       historyRef.once('value'),
       holdingsTickersRef.once('value'),
+      fxToTWDRef.once('value'),
       closeCacheRef.once('value')
     ])
-    const [historySnapshot, tickersSnapshot, closeCacheSnapshot] = resPromise
+    const [
+      testSnapshot,
+      historySnapshot,
+      tempTickerSnapshot,
+      fxToTWDSnapshot,
+      closeCacheSnapshot
+    ] = resPromise
 
     if (!historySnapshot.value.val()) {
       return res.send({
@@ -343,246 +385,50 @@ router.get('/history', async (req, res) => {
       })
     }
 
-    const dates = Object.keys(historySnapshot.value.val())
-    const startDate = dates[0]
-    const endDate = dates[dates.length - 1]
-    // console.log('startDate', startDate)
-    // console.log('endDate', endDate)
+    const pricesAndFxRates = await Promise.allSettled([
+      fetchStockPrices(tempTickerSnapshot),
+      getFxRates(fxToTWDSnapshot)
+    ])
 
-    const tickers = []
-    const tempTickers = []
-    const tempTickerToTickerMap = tickersSnapshot.value.val()
-    const tickerEntries = Object.entries(tempTickerToTickerMap).map(
-      ([tempTicker, ticker]) => {
-        tickers.push(ticker)
-        tempTickers.push(tempTicker)
-        return [ticker, tempTicker]
-      }
+    const [closePriceMap, fxRates] = pricesAndFxRates.map((item) => item.value)
+
+    // console.log('closePriceMap', closePriceMap)
+    // console.log('fxRates', fxRates)
+
+    const { totalValueMap, historyMap } = calculateTotalValue(
+      historySnapshot,
+      closePriceMap,
+      fxRates
     )
-    const tickerToTempTickerMap = Object.fromEntries(tickerEntries)
+    console.log('totalValueMap', totalValueMap)
+    console.log('historyMap', historyMap)
 
-    let historicalData
-    let quotes
+    // const { totalValueMap1, historyMap1 } = calculateTotalValue1(
+    //   testSnapshot,
+    //   closePriceMap,
+    //   fxRates
+    // )
+    // console.log('totalValueMap1', totalValueMap1)
+    // console.log('historyMap1', historyMap1)
 
-    // // 不存資料庫直接打 yahoo api
-    // const cacheSnapshot = await updateCache({
-    //   tickers,
-    //   tempTickers,
-    //   tickerToTempTickerMap,
-    //   startDate,
-    //   endDate
-    // })
-    // historicalData = cacheSnapshot.historicalData
-    // quotes = cacheSnapshot.quotes
-
-    const isInitUpdate = checkUpdateTime()
-    const weekDay = new Date().getDay()
-    const isWeekend = weekDay === '6' || weekDay === '0'
-    if (isInitUpdate && !isWeekend) {
-      cacheSnapshot = await updateCache({
-        tickers,
-        tempTickers,
-        tickerToTempTickerMap,
-        startDate,
-        endDate
-      })
-      historicalData = cacheSnapshot.historicalData
-      quotes = cacheSnapshot.quotes
-    }
-
-    if (!closeCacheSnapshot.value.val()) {
-      console.log('準備第一次新增')
-
-      cacheSnapshot = await updateCache({
-        tickers,
-        tempTickers,
-        tickerToTempTickerMap,
-        startDate,
-        endDate
-      })
-      historicalData = cacheSnapshot.historicalData
-      quotes = cacheSnapshot.quotes
-    }
-
-    if (closeCacheSnapshot.value.val()) {
-      let cacheSnapshot = closeCacheSnapshot.value.val()
-      historicalData = cacheSnapshot.historicalData
-      quotes = cacheSnapshot.quotes
-
-      const newTemptickers = tempTickers.filter((tempTicker) => {
-        const dataset = closeCacheSnapshot.value
-          .child('quotes')
-          .child(tempTicker)
-          .val()
-        return !dataset
-      })
-
-      // 新加入標的後要取得'該標的'資料
-      if (newTemptickers.length) {
-        console.log('有新增資料')
-        const newTickers = newTemptickers.map(
-          (tempTicker) => tempTickerToTickerMap[tempTicker]
-        )
-
-        cacheSnapshot = await updateCache({
-          tickers: newTickers,
-          tempTickers: newTemptickers,
-          tickerToTempTickerMap,
-          startDate,
-          endDate
-        })
-      }
-
-      console.log('用資料庫資料')
-      historicalData = cacheSnapshot.historicalData
-      quotes = cacheSnapshot.quotes
-    }
-    // console.log('historicalData', historicalData)
-    console.log('quotes', quotes)
-
-    // 匯率
-    const codeToCurrencyMap = {
-      tw: 'TWD',
-      us: 'USDTWD',
-      mf: 'USDTWD',
-      uk: 'GBPTWD',
-      hk: 'HKDTWD',
-      ks: 'KRWTWD'
-    }
-    const currencies = ['TWD', 'USD', 'GBP', 'HKD', 'KRW']
-    const fxRates = await fecthFxRates(currencies)
-    console.log('fxRates', fxRates)
-
-    // console.log('historySnapshot', historySnapshot.value.val())
-
-    // 計算每日 asset
-    const history_NonAcc = []
-    let currentIdx = 0
-
-    const newHistorySnapshot = await historyRef.once('value')
-    newHistorySnapshot.forEach((childSnapshot) => {
-      // trades 按日期由舊到新
-      const trades = childSnapshot.val()
-      const tradesArr = Object.values(trades)
-      // console.log('trades', trades)
-
-      const totalStats = {
-        date: '',
-        totalCost: 0,
-        totalMarketValue: 0,
-        totalShares: 0,
-        trades: []
-      }
-
-      for (let i = 0; i < tradesArr.length; i++) {
-        const trade = tradesArr[i]
-        const { cost, shares, ticker, tempTicker, tradeDate, code } = trade
-        const fetchKey = `${ticker}_${tradeDate}`
-        // const tempTicker = ticker.includes('.')?
-
-        console.log('=====ticker====', ticker, tradeDate, cost, shares)
-
-        if (!totalStats.date) totalStats.date = tradeDate
-
-        // 同日同標的只會抓一次市場資料
-        if (!hasFetch[fetchKey]) {
-          // 用對比 tradeDate 來找交易當天的市場資料
-          const foundIdx = historicalData[tempTicker].findIndex(
-            (item) => item.date === tradeDate
-          )
-
-          /*
-            紀錄當前 index，如果 foundIdx 存在（不為 -1）才紀錄，
-            如果 foundIdx 為 -1，則不紀錄，currentIdx 為前一次迴圈的 idx，
-            使得沒有開盤的日子的資料會沿用前一個開盤日的資料
-            */
-          if (foundIdx !== -1) currentIdx = foundIdx
-
-          // console.log('foundIdx', foundIdx)
-          // console.log('currentIdx', currentIdx)
-          // console.log(
-          //   'historicalData[ticker][currentIdx]',
-          //   historicalData[ticker][currentIdx]
-          // )
-
-          const data = historicalData[tempTicker][currentIdx]
-          if (data) {
-            // 紀錄交易日要採用哪天的市場資料
-            hasFetch[fetchKey] = {
-              hasInfoDate: data.date,
-              close: data.close
-            }
-          } else {
-            console.log('日期超出歷史資料範圍')
-            errorMsg.push('日期超出歷史資料範圍')
-            continue
-          }
-        }
-
-        // historical 模組找不到 close，用 quote 模組代替
-        if (!hasFetch[fetchKey].close) {
-          hasFetch[fetchKey].close = quotes[tempTicker].previousClose
-        }
-
-        // console.log('hasFetch', hasFetch)
-        const { hasInfoDate, close } = hasFetch[fetchKey]
-        const currency = codeToCurrencyMap[code]
-        const exchangeRate = fxRates[currency]
-        // console.log('currency:', currency)
-        // console.log('exchangeRate:', exchangeRate)
-
-        totalStats.totalMarketValue += parseFloatByDecimal(
-          exchangeRate * close * shares,
-          2
-        )
-        totalStats.totalCost += parseFloatByDecimal(
-          exchangeRate * cost * shares,
-          2
-        )
-        totalStats.totalShares += parseFloat(shares)
-        totalStats.trades.push({
-          ...trade,
-          closeDate: hasInfoDate,
-          close: parseFloatByDecimal(close, 2),
-          value: parseFloatByDecimal(exchangeRate * close * shares, 2),
-          profitOrLossChange: parseFloatByDecimal(close - cost, 2),
-          profitOrLossPercentage: parseFloatByDecimal(
-            ((close - cost) * 100) / cost,
-            2
-          )
-        })
-
-        // console.log('totalStats.totalMarketValue', totalStats.totalMarketValue)
-      }
-
-      history_NonAcc.push(totalStats)
-    })
+    const totalValue = Array.from(totalValueMap).reduce(
+      (obj, [date, values]) => {
+        const { non_acc, acc } = values
+        obj.date.push(date)
+        obj.assetValue.push(acc)
+        return obj
+      },
+      { date: [], assetValue: [] }
+    )
+    const historyDetails = Object.fromEntries(historyMap)
+    // console.log('totalValue', totalValue)
+    // console.log('historyDetails', historyDetails)
 
     const msg = {
       success: true,
       content: '成功獲得所有標的',
       errorMessage: null,
-      result: null
-    }
-
-    if (errorMsg.length === 0) {
-      // 計算累積 asset
-      const accObj = { date: '', totalCost: 0, totalMarketValue: 0 }
-      const history_Acc = history_NonAcc.reduce((arr, data) => {
-        const { date, totalCost, totalMarketValue } = data
-        accObj.date = date
-        accObj.totalCost += totalCost
-        accObj.totalMarketValue += totalMarketValue
-        arr.push({ ...accObj })
-
-        return arr
-      }, [])
-
-      msg.result = { nonAccData: history_NonAcc, accData: history_Acc }
-    } else {
-      msg.success = false
-      msg.content = '獲得標的失敗'
-      msg.errorMessage = errorMsg
+      result: { totalValue, historyDetails }
     }
 
     res.send(msg)
@@ -596,6 +442,207 @@ router.get('/history', async (req, res) => {
     }
 
     res.send(msg)
+  }
+
+  async function fetchStockPrices(tempTickerSnapshot) {
+    const dateRes = await Promise.allSettled([
+      historyRef.orderByKey().limitToFirst(1).once('child_added'),
+      historyRef.orderByKey().limitToLast(1).once('child_added')
+    ])
+
+    const [startDate, endDate] = dateRes.map((item) => {
+      return item.value.key
+    })
+    // console.log('startDate', startDate)
+    // console.log('endDate', endDate)
+
+    // 取得每日每標的收盤價
+    const tickers = Object.values(tempTickerSnapshot.value.val())
+    const adjustedEndDate = adjustDate(endDate, 'plus')
+    const quoteOptions = {
+      symbols: tickers,
+      from: startDate,
+      to: adjustedEndDate,
+      period: 'd'
+    }
+    const isEndDateYesterday =
+      adjustedEndDate === new Date().toJSON().split('T')[0]
+    const isOnlyYesterdayTrade = startDate === endDate && isEndDateYesterday
+    console.log('isOnlyYesterdayTrade', isOnlyYesterdayTrade)
+
+    // 如果只有前一日有交易，抓資料就多抓兩天(避開假日)，避免回傳空陣列
+    if (isOnlyYesterdayTrade) {
+      quoteOptions.from = adjustDate(endDate, 'minus', 2)
+      console.log('adjustedStartDate', quoteOptions.from)
+    }
+
+    const missingData = []
+    const closePriceMap = new Map()
+    const rawData = await yahooFinance.historical(quoteOptions)
+    // console.log('rawData', rawData)
+
+    for (let i = 0; i < tickers.length; i++) {
+      const ticker = tickers[i]
+      const dataset = rawData[ticker]
+
+      for (let j = 0; j < dataset.length; j++) {
+        const { date, close } = dataset[j]
+        const dateString = date.toJSON().split('T')[0]
+        console.log('dateString', dateString, ticker)
+
+        if (!close) {
+          missingData.push({ dateString, ticker })
+          continue
+        }
+
+        const startUnix = Date.parse(startDate)
+        const endUnix = Date.parse(endDate)
+        const datasetDateUnix = Date.parse(dateString)
+        const isActualTradeDate =
+          startUnix <= datasetDateUnix && datasetDateUnix <= endUnix
+
+        console.log('isActualTradeDate', isActualTradeDate)
+
+        // 如果資料有多抓兩天，只有實際交易日需要寫入 closePriceMap
+        if (isActualTradeDate) {
+          closePriceMap.set(`${dateString}_${ticker}`, close)
+        }
+      }
+    }
+
+    if (missingData.length === 0) return closePriceMap
+
+    // 如果前一日剛好新增標的，historical 模組會找不到 close，用 quote 模組代替
+    const quotePromises = missingData.map((data) => {
+      return yahooFinance.quote({
+        symbol: data.ticker,
+        modules: ['price']
+      })
+    })
+
+    const rawQuotes = await Promise.allSettled(quotePromises)
+
+    for (let i = 0; i < rawQuotes.length; i++) {
+      const {
+        regularMarketTime,
+        regularMarketPrice,
+        regularMarketPreviousClose
+      } = rawQuotes[i].value.price
+
+      const { dateString, ticker } = missingData[i]
+      console.log('rawQuotes dateString', dateString)
+      console.log('rawQuotes ticker', ticker)
+
+      const nowDate = new Date().toJSON().split('T')[0]
+      const marketOpenDate = regularMarketTime.toJSON().split('T')[0]
+      const hasMarketOpened = nowDate === marketOpenDate
+      console.log('hasMarketOpened', hasMarketOpened)
+
+      const closePrice = hasMarketOpened
+        ? regularMarketPreviousClose // 今日已開盤
+        : regularMarketPrice // 今日尚未開盤
+
+      closePriceMap.set(`${dateString}_${ticker}`, closePrice)
+    }
+
+    return closePriceMap
+  }
+
+  function calculateTotalValue1(testSnapshot, closePriceMap, fxRates) {
+    const totalValueMap = new Map()
+    const history = testSnapshot.value.val()
+    const historyObj = {}
+    const historyMap = new Map()
+    let accumulatedPrice = 0
+
+    for (let key in history) {
+      const trade = history[key]
+      const { shares, code, ticker, cost, id } = trade
+      const date = key.split('_')[0]
+      const close = closePriceMap.get(`${date}_${ticker}`)
+      const exchangeRate = fxRates[code]
+      const marketValueTWD = close * shares * exchangeRate
+      const profitOrLossValue = parseFloatByDecimal(close - cost, 2)
+      const profitOrLossPercentage = parseFloatByDecimal(
+        ((close - cost) * 100) / cost,
+        2
+      )
+
+      if (!totalValueMap.has(date)) {
+        totalValueMap.set(date, { non_acc: 0, acc: 0 })
+      }
+      totalValueMap.get(date).non_acc += parseFloatByDecimal(marketValueTWD, 2)
+      accumulatedPrice += parseFloatByDecimal(marketValueTWD, 2)
+      totalValueMap.get(date).acc = accumulatedPrice
+
+      historyMap.set(key, {
+        ...history[key],
+        profitOrLossValue,
+        profitOrLossPercentage
+      })
+    }
+
+    // console.log('historyMap', historyMap)
+
+    return { totalValueMap1: totalValueMap, historyMap1: historyMap }
+  }
+
+  function calculateTotalValue(historySnapshot, closePriceMap, fxRates) {
+    const totalValueMap = new Map()
+    const historyMap = new Map()
+    const history = historySnapshot.value.val()
+
+    let totalValuePortfolio = 0
+
+    for (const date in history) {
+      const trades = history[date]
+      const innerObj = {}
+      let totalValuePerDate = 0
+
+      // 計算單日 total value
+      for (const id in trades) {
+        const trade = trades[id]
+        const { shares, ticker, code, cost } = trades[id]
+        const close = closePriceMap.get(`${date}_${ticker}`)
+        const exchangeRate = fxRates[code]
+        const marketValueTWD = shares * close * exchangeRate
+        const profitOrLossValue = parseFloatByDecimal(close - cost, 2)
+        const profitOrLossPercentage = parseFloatByDecimal(
+          ((close - cost) * 100) / cost,
+          2
+        )
+
+        totalValuePerDate += marketValueTWD
+
+        innerObj[id] = {
+          ...trade,
+          profitOrLossValue,
+          profitOrLossPercentage,
+          marketValueTWD: parseFloatByDecimal(marketValueTWD, 2)
+        }
+
+        historyRef
+          .child(date)
+          .child(id)
+          .update({
+            ...trade,
+            close,
+            profitOrLossValue,
+            profitOrLossPercentage
+          })
+      }
+
+      totalValuePortfolio += totalValuePerDate
+      // console.log('=====totalValuePortfolio=====', date, totalValuePortfolio)
+      totalValueMap.set(date, {
+        non_acc: parseFloatByDecimal(totalValuePerDate, 2),
+        acc: parseFloatByDecimal(totalValuePortfolio, 2)
+      })
+
+      historyMap.set(date, innerObj)
+    }
+
+    return { totalValueMap, historyMap }
   }
 
   async function checkUpdateTime() {
@@ -626,26 +673,102 @@ router.get('/history', async (req, res) => {
     return isInitUpdate
   }
 
-  async function fecthFxRates(currencies) {
-    const fxRateApi = 'https://api.coinbase.com/v2/exchange-rates'
-    const fetchPromise = currencies.map((currency) => {
-      return fetch(`${fxRateApi}?currency=${currency}`)
-    })
-    const fetchRes = await Promise.allSettled(fetchPromise)
-    const jsonPromise = fetchRes.map((item) => item.value.json())
-    const currencyRes = await Promise.allSettled(jsonPromise)
-    const fxRates = currencyRes.reduce((obj, item) => {
-      const { currency, rates } = item.value.data
-      if (currency !== 'TWD') {
-        obj[`${currency}TWD`] = rates.TWD
-      } else {
-        obj[`TWD`] = rates.TWD
-      }
+  async function getFxRates(fxToTWDSnapshot) {
+    if (fxToTWDSnapshot.value.val()) {
+      const { fxRates, nextUpdateTime } = fxToTWDSnapshot.value.val()
+      return await checkFxUpdate(fxRates, nextUpdateTime)
+    } else {
+      return await checkFxUpdate()
+    }
+  }
 
-      return obj
-    }, {})
+  async function checkFxUpdate(ratesFromDB, nextUpdateTime) {
+    const hasPassedNextUpdateTime =
+      !nextUpdateTime || Date.now() >= nextUpdateTime
+
+    if (!hasPassedNextUpdateTime) {
+      console.log(
+        '等待下一個更新',
+        new Date(nextUpdateTime).toLocaleString(),
+        '現在用資料庫資料'
+      )
+      return ratesFromDB
+    }
+
+    if (!nextUpdateTime) {
+      console.log('第一次載入，準備更新')
+    } else {
+      console.log('尚未更新，準備更新')
+    }
+
+    const fxRates = await fecthFxRates()
+    const newNextUpdateTime = scheduleNextUpdate()
+    updateFxToDB(fxRates, newNextUpdateTime)
+    console.log('更新完成')
 
     return fxRates
+  }
+
+  async function fecthFxRates() {
+    const currencyToCodeMap = {
+      USD: 'us',
+      GBP: 'uk',
+      HKD: 'hk',
+      KRW: 'ks'
+    }
+    const currencies = ['USD', 'GBP', 'HKD', 'KRW']
+    const fxRateApi = 'https://api.coinbase.com/v2/exchange-rates'
+    const fetchPromise = currencies.map((currency) => {
+      return axios.get(`${fxRateApi}?currency=${currency}`)
+    })
+
+    const currencyRes = await Promise.allSettled(fetchPromise)
+    const fxRates = currencyRes.reduce(
+      (obj, item) => {
+        const { currency, rates } = item.value.data.data
+        const code = currencyToCodeMap[currency]
+        if (currency !== 'USD') {
+          obj[code] = rates.TWD
+        } else {
+          obj['us'] = rates.TWD
+          obj['mf'] = rates.TWD
+        }
+
+        return obj
+      },
+      { tw: '1' }
+    )
+
+    return fxRates
+  }
+
+  function scheduleNextUpdate() {
+    const now = new Date()
+    const nextUpdate = new Date(now)
+    nextUpdate.setMinutes(0)
+    nextUpdate.setSeconds(0)
+    nextUpdate.setMilliseconds(0)
+    nextUpdate.setHours(nextUpdate.getHours() + 1)
+
+    // Check if it's a weekend day
+    // let requireUpdate = updateOnWeekend
+    const dayOfWeek = nextUpdate.getDay()
+
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      console.log('現在是假日')
+      nextUpdate.setDate(nextUpdate.getDate() + ((7 - dayOfWeek + 1) % 7))
+      nextUpdate.setHours(4)
+    } else {
+      console.log('現在是平日')
+    }
+
+    const nextUpdateTime = nextUpdate.getTime()
+    console.log('nextUpdateTime', new Date(nextUpdateTime).toLocaleString())
+    return nextUpdateTime
+  }
+
+  function updateFxToDB(fxRates, nextUpdateTime) {
+    fxToTWDRef.set({ fxRates, nextUpdateTime })
   }
 
   async function updateCache({
@@ -668,14 +791,14 @@ router.get('/history', async (req, res) => {
     ])
     const [quotes, historicalData] = newRequest.map((item) => item.value)
     // // 不存資料庫直接打 yahoo api
-    // return { quotes, historicalData }
+    return { quotes, historicalData }
 
-    tempTickers.forEach((tempTicker) => {
-      const quoteset = quotes[tempTicker]
-      const dataset = historicalData[tempTicker]
-      closeCacheRef.child('quotes').child(tempTicker).set(quoteset)
-      closeCacheRef.child('historicalData').child(tempTicker).set(dataset)
-    })
+    // tempTickers.forEach((tempTicker) => {
+    //   const quoteset = quotes[tempTicker]
+    //   const dataset = historicalData[tempTicker]
+    //   closeCacheRef.child('quotes').child(tempTicker).set(quoteset)
+    //   closeCacheRef.child('historicalData').child(tempTicker).set(dataset)
+    // })
     // console.log('extraQuotes', quotes)
     // console.log('extraData', historicalData)
 
@@ -692,7 +815,7 @@ router.get('/history', async (req, res) => {
     const rawData = await yahooFinance.historical({
       symbols: tickers,
       from: startDate,
-      to: convertDate1(endDate),
+      to: adjustDate(endDate, 'plus'),
       period: 'd'
     })
 
@@ -740,14 +863,21 @@ router.get('/history', async (req, res) => {
 
     return yyyy + '-' + mm + '-' + dd
   }
-  function convertDate1(yyyymmdd) {
+  function adjustDate(yyyymmdd, sign, multiplier = 1) {
     const unix = Date.parse(yyyymmdd)
     // 加一天（84600000）才能要得到當天資料，例如結束日期為 1/27，實際上 fetch 的資料範圍結束日為 1/26
-    const dateObj = new Date(unix + 84600000)
+    let dateObj
+
+    if (sign === 'plus') {
+      dateObj = new Date(unix + 84600000 * multiplier)
+    } else if (sign === 'minus') {
+      dateObj = new Date(unix - 84600000 * multiplier)
+    }
+
     const dd = String(dateObj.getDate()).padStart(2, '0')
     const mm = String(dateObj.getMonth() + 1).padStart(2, '0')
     const yyyy = dateObj.getFullYear()
-    console.log('convertDate1', yyyy + '-' + mm + '-' + dd)
+    console.log('adjustDate', yyyy + '-' + mm + '-' + dd)
 
     return yyyy + '-' + mm + '-' + dd
   }

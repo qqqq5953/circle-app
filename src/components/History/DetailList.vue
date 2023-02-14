@@ -8,7 +8,7 @@
     <span class="w-[22%]">{{ item.ticker }}</span>
     <span class="w-[24%] text-right">${{ item.cost }}</span>
     <span class="w-[15%] text-right">{{ item.shares }}</span>
-    <span class="w-[24%] text-right">${{ item.value }}</span>
+    <span class="w-[24%] text-right">${{ item.marketValueTWD }}</span>
     <span class="w-[15%] text-right">{{ item.profitOrLossPercentage }} %</span>
     <span class="w-[8%] text-right hidden"></span>
   </li>
@@ -19,7 +19,7 @@ import { computed } from "vue";
 export default {
   props: {
     list: {
-      type: Array,
+      type: Object,
     },
   },
   inheritAttrs: false,

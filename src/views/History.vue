@@ -89,6 +89,8 @@ export default {
         const { totalValue, historyDetails } = res.data.result;
         source.value = totalValue;
         details.value = historyDetails;
+        console.log("totalValue", totalValue);
+        console.log("historyDetails", historyDetails);
 
         // 顯示最近一筆
         // selectedDate.value.push(source.value.date.at(-1));

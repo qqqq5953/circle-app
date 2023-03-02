@@ -5,11 +5,13 @@ const axios = require('axios')
 const yahooFinance = require('yahoo-finance')
 const firebaseDb = require('../firebase/index.js')
 
+const holidaysRef = firebaseDb.ref('/holidays/')
 const historyRef = firebaseDb.ref('/history/')
 const testRef = firebaseDb.ref('/test/')
 const fxToTWDRef = firebaseDb.ref('/fxToTWD/')
 const closeCacheRef = firebaseDb.ref('/closeCache/')
-const holdingsTickersRef = firebaseDb.ref('/holdingsTickers/')
+const newAddingTempRef = firebaseDb.ref('/newAddingTemp/')
+const holdingsTemptickersRef = firebaseDb.ref('/holdingsTickers/')
 const holdingsTradeRef = firebaseDb.ref('/holdingsTrade/')
 const holdingsStatsRef = firebaseDb.ref('/holdingsStats/')
 const holdingsLatestInfoRef = firebaseDb.ref('/holdingsLatestInfo/')
@@ -180,7 +182,7 @@ router.post('/deleteAll', async (req, res) => {
   Promise.all([
     closeCacheRef.remove(),
     historyRef.remove(),
-    holdingsTickersRef.remove(),
+    holdingsTemptickersRef.remove(),
     holdingsTradeRef.remove(),
     holdingsStatsRef.remove(),
     holdingsLatestInfoRef.remove()
@@ -217,8 +219,12 @@ router.post('/addStock', async (req, res) => {
 
   try {
     // set tickers
-    const readTickers = await holdingsTickersRef.child(tempTicker).once('value')
-    if (!readTickers.val()) holdingsTickersRef.child(tempTicker).set(ticker)
+    const readTickers = await holdingsTemptickersRef
+      .child(tempTicker)
+      .once('value')
+
+    holdingsTemptickersRef.child(tempTicker).set(ticker)
+    newAddingTempRef.child(tempTicker).set(ticker)
 
     // set latestInfo
     const latestInfoSnapshot = await holdingsLatestInfoRef
@@ -364,7 +370,7 @@ router.get('/history', async (req, res) => {
     const resPromise = await Promise.allSettled([
       testRef.once('value'),
       historyRef.once('value'),
-      holdingsTickersRef.once('value'),
+      holdingsTemptickersRef.once('value'),
       fxToTWDRef.once('value'),
       closeCacheRef.once('value')
     ])
@@ -386,22 +392,25 @@ router.get('/history', async (req, res) => {
     }
 
     const pricesAndFxRates = await Promise.allSettled([
-      fetchStockPrices(tempTickerSnapshot),
+      getHistoricalClosePrices(
+        tempTickerSnapshot.value.val(),
+        closeCacheSnapshot.value.val()
+      ),
       getFxRates(fxToTWDSnapshot)
     ])
 
-    const [closePriceMap, fxRates] = pricesAndFxRates.map((item) => item.value)
+    const [closePricesMap, fxRates] = pricesAndFxRates.map((item) => item.value)
 
-    // console.log('closePriceMap', closePriceMap)
-    // console.log('fxRates', fxRates)
+    console.log('closePricesMap', closePricesMap)
+    // // console.log('fxRates', fxRates)
 
     const { totalValueMap, historyMap } = calculateTotalValue(
       historySnapshot,
-      closePriceMap,
+      closePricesMap,
       fxRates
     )
-    console.log('totalValueMap', totalValueMap)
-    console.log('historyMap', historyMap)
+    // console.log('totalValueMap', totalValueMap)
+    // console.log('historyMap', historyMap)
 
     // const { totalValueMap1, historyMap1 } = calculateTotalValue1(
     //   testSnapshot,
@@ -413,21 +422,31 @@ router.get('/history', async (req, res) => {
 
     const totalValue = Array.from(totalValueMap).reduce(
       (obj, [date, values]) => {
-        const { non_acc, acc } = values
         obj.date.push(date)
-        obj.assetValue.push(acc)
+        obj.assetValue.push(values.acc)
         return obj
       },
       { date: [], assetValue: [] }
     )
-    const historyDetails = Object.fromEntries(historyMap)
+    const historyDetails = Object.fromEntries(Array.from(historyMap).reverse())
     // console.log('totalValue', totalValue)
     // console.log('historyDetails', historyDetails)
+
+    // const quoteOptions = {
+    //   symbols: ['C'],
+    //   from: '2023-02-24',
+    //   to: '2023-02-25',
+    //   period: 'd'
+    // }
+    // yahooFinance.historical(quoteOptions).then((res) => {
+    //   console.log('res', res)
+    // })
 
     const msg = {
       success: true,
       content: '成功獲得所有標的',
       errorMessage: null,
+      // result: holidays
       result: { totalValue, historyDetails }
     }
 
@@ -444,82 +463,638 @@ router.get('/history', async (req, res) => {
     res.send(msg)
   }
 
-  async function fetchStockPrices(tempTickerSnapshot) {
-    const dateRes = await Promise.allSettled([
-      historyRef.orderByKey().limitToFirst(1).once('child_added'),
-      historyRef.orderByKey().limitToLast(1).once('child_added')
-    ])
+  async function scheduleNextUpdateStock() {
+    const holidaySnapshot = await holidaysRef.once('value')
+    const holiday = holidaySnapshot.val()
 
-    const [startDate, endDate] = dateRes.map((item) => {
-      return item.value.key
-    })
-    // console.log('startDate', startDate)
-    // console.log('endDate', endDate)
+    const now = new Date()
+    const nextUpdate = new Date(now)
+    nextUpdate.setSeconds(0)
+    nextUpdate.setMilliseconds(0)
 
-    // 取得每日每標的收盤價
-    const tickers = Object.values(tempTickerSnapshot.value.val())
-    const adjustedEndDate = adjustDate(endDate, 'plus')
-    const quoteOptions = {
-      symbols: tickers,
-      from: startDate,
-      to: adjustedEndDate,
-      period: 'd'
+    const dayOfWeek = now.getDay()
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      nextUpdate.setDate(nextUpdate.getDate() + ((7 - dayOfWeek + 1) % 7))
+      nextUpdate.setHours(13)
+      nextUpdate.setMinutes(30)
+      console.log('今天是假日，下次更新為', nextUpdate.toLocaleString())
+
+      // 檢查下週一是否為假日
+      const nextUpdateISODate = getISODate(nextUpdate)
+      const isNextUpdateTWHoliday = holiday['TW'][nextUpdateISODate]
+      const isNextUpdateUSHoliday = holiday['US'][nextUpdateISODate]
+
+      if (isNextUpdateTWHoliday && isNextUpdateUSHoliday) {
+        // 重設為星期二 13:30
+        nextUpdate.setDate(nextUpdate.getDate() + 1)
+        nextUpdate.setHours(13)
+        nextUpdate.setMinutes(30)
+        console.log('下週一台美股皆休市，重設為', nextUpdate.toLocaleString())
+      }
+      if (isNextUpdateTWHoliday) {
+        // 重設為最近的美股更新時間
+        nextUpdate.setDate(nextUpdate.getDate() + 1)
+        nextUpdate.setHours(5)
+        nextUpdate.setMinutes(0)
+        console.log('下週一台股休市，重設為', nextUpdate.toLocaleString())
+      }
+      if (isNextUpdateUSHoliday) {
+        // 重設為最近的台股更新時間(為13:30所以不用重設)
+        console.log('下週一美股休市，最近的台股更新時間為 13:30 所以不用重設')
+      }
+
+      return nextUpdate.getTime()
     }
-    const isEndDateYesterday =
-      adjustedEndDate === new Date().toJSON().split('T')[0]
-    const isOnlyYesterdayTrade = startDate === endDate && isEndDateYesterday
-    console.log('isOnlyYesterdayTrade', isOnlyYesterdayTrade)
 
-    // 如果只有前一日有交易，抓資料就多抓兩天(避開假日)，避免回傳空陣列
-    if (isOnlyYesterdayTrade) {
-      quoteOptions.from = adjustDate(endDate, 'minus', 2)
-      console.log('adjustedStartDate', quoteOptions.from)
+    console.log('今天是平日')
+
+    const year = now.getFullYear()
+    const month = now.getMonth()
+    const date = now.getDate()
+    const usUpdateThreshold = new Date(year, month, date, 5, 0, 0)
+    const twUpdateThreshold = new Date(year, month, date, 13, 30, 0)
+    const startOfDay = new Date(year, month, date, 0, 0, 0)
+    const endOfDay = new Date(year, month, date, 23, 59, 59)
+    const ISODate = getISODate(now)
+
+    const isTodayTWHoliday = holiday['TW'][ISODate]
+    const isTodayUSHoliday = holiday['US'][ISODate]
+    console.log('isTodayTWHoliday', isTodayTWHoliday)
+    console.log('isTodayUSHoliday', isTodayUSHoliday)
+
+    // 現在介於 00:00 到 5:00，設為今日 5:00
+    if (
+      now.getTime() >= startOfDay.getTime() &&
+      now.getTime() <= usUpdateThreshold.getTime()
+    ) {
+      nextUpdate.setDate(nextUpdate.getDate())
+      nextUpdate.setHours(5)
+      nextUpdate.setMinutes(0)
+      console.log('下次更新設為今日清晨5點')
     }
 
-    const missingData = []
-    const closePriceMap = new Map()
-    const rawData = await yahooFinance.historical(quoteOptions)
-    // console.log('rawData', rawData)
+    // 現在介於 5:00 到 13:30，設為今日 13:30
+    if (
+      now.getTime() >= usUpdateThreshold.getTime() &&
+      now.getTime() <= twUpdateThreshold.getTime()
+    ) {
+      nextUpdate.setDate(nextUpdate.getDate())
+      nextUpdate.setHours(13)
+      nextUpdate.setMinutes(30)
+      console.log('下次更新設為今日下午一點半')
 
-    for (let i = 0; i < tickers.length; i++) {
-      const ticker = tickers[i]
-      const dataset = rawData[ticker]
+      if (isTodayTWHoliday) {
+        nextUpdate.setDate(nextUpdate.getDate() + 1)
+        nextUpdate.setHours(5)
+        nextUpdate.setMinutes(0)
+        console.log('但是因今日台股休市，改設隔日清晨5點')
+      }
+    }
 
-      for (let j = 0; j < dataset.length; j++) {
-        const { date, close } = dataset[j]
-        const dateString = date.toJSON().split('T')[0]
-        console.log('dateString', dateString, ticker)
+    // 現在介於 13:30 到 24:00，設為明日 5:00
+    if (
+      now.getTime() >= twUpdateThreshold.getTime() &&
+      now.getTime() <= endOfDay.getTime()
+    ) {
+      nextUpdate.setDate(nextUpdate.getDate() + 1)
+      nextUpdate.setHours(5)
+      nextUpdate.setMinutes(0)
+      console.log('下次更新設為隔日凌晨5點')
 
-        if (!close) {
-          missingData.push({ dateString, ticker })
-          continue
-        }
+      if (isTodayUSHoliday) {
+        nextUpdate.setDate(nextUpdate.getDate() + 1)
+        nextUpdate.setHours(13)
+        nextUpdate.setMinutes(30)
+        console.log('但是因今日美股休市，改設隔日 13:30')
 
-        const startUnix = Date.parse(startDate)
-        const endUnix = Date.parse(endDate)
-        const datasetDateUnix = Date.parse(dateString)
-        const isActualTradeDate =
-          startUnix <= datasetDateUnix && datasetDateUnix <= endUnix
-
-        console.log('isActualTradeDate', isActualTradeDate)
-
-        // 如果資料有多抓兩天，只有實際交易日需要寫入 closePriceMap
-        if (isActualTradeDate) {
-          closePriceMap.set(`${dateString}_${ticker}`, close)
+        if (nextUpdate.getDay() === 0 || nextUpdate.getDay() === 6) {
+          console.log('但隔日是，下次更新為下週一 13:30')
+          nextUpdate.setDate(nextUpdate.getDate() + ((7 - dayOfWeek + 1) % 7))
+          nextUpdate.setHours(13)
+          nextUpdate.setMinutes(30)
+          console.log(
+            'nextUpdateTime',
+            new Date(nextUpdate.getTime()).toLocaleString()
+          )
         }
       }
     }
 
-    if (missingData.length === 0) return closePriceMap
+    console.log('now', now.toLocaleString())
+    console.log('nextUpdate', nextUpdate.toLocaleString())
+    return nextUpdate.getTime()
 
-    // 如果前一日剛好新增標的，historical 模組會找不到 close，用 quote 模組代替
+    // // Check if it's a weekend day
+    // const dayOfWeek = nextUpdate.getDay()
+    // const isNextUpdateWeekend = dayOfWeek === 0 || dayOfWeek === 6
+
+    // const holiday = holidaySnapshot.val()
+    // if (dayOfWeek === 0 || dayOfWeek === 6) {
+    //   console.log('下次更新是假日，重設為下週一')
+    //   nextUpdate.setDate(nextUpdate.getDate() + ((7 - dayOfWeek + 1) % 7))
+    // } else {
+    //   console.log('下次更新是平日')
+    // }
+
+    // const nextUpdateTime = nextUpdate.getTime()
+    // console.log('nextUpdateTime', new Date(nextUpdateTime).toLocaleString())
+  }
+
+  function convertObjectToMap(object) {
+    const map = new Map()
+    for (const key in object) {
+      if (object.hasOwnProperty(key)) {
+        map.set(key, object[key])
+      }
+    }
+    return map
+  }
+
+  async function getHistoricalClosePrices(tempTickerObj, closeCache) {
+    // 沒 cache
+    if (!closeCache) {
+      console.log('========沒 cache========')
+      await createPriceCache()
+      return await getPriceCache()
+    }
+
+    const { closePrice, nextUpdateTime, latestUpdateTime } = closeCache
+
+    // 檢查新增標的
+    console.log('========檢查新增標的========')
+    const newAddingSnapshot = await newAddingTempRef.once('value')
+    const newAddingTemptickers = newAddingSnapshot.val()
+    if (newAddingTemptickers) {
+      const newClosePriceMap = await getClosePrices({
+        tempTickerObj: newAddingTemptickers,
+        customEndDate: new Date(latestUpdateTime)
+          .toLocaleDateString()
+          .replace(/\//g, '-')
+      })
+      newAddingTempRef.remove()
+      console.log('只有新增的標的 newClosePriceMap', newClosePriceMap)
+
+      await updatePriceCache(newClosePriceMap)
+    }
+
+    // 檢查更新日
+    console.log('========檢查更新日========')
+    console.log('下個更新日為：', new Date(nextUpdateTime).toLocaleString())
+    const now = Date.now()
+
+    // 還沒到更新時間
+    if (now < nextUpdateTime) {
+      console.log('========還沒到更新時間========')
+
+      if (newAddingTemptickers) {
+        console.log('========也有新增標的========')
+        return await getPriceCache()
+      }
+
+      console.log('========也沒有新增標的========')
+      return convertObjectToMap(closePrice)
+    }
+
+    // 超過更新時間
+    console.log('========超過更新時間========')
+    let startDate = new Date(latestUpdateTime)
+
+    if (startDate.getDay() === 6) {
+      startDate = new Date(latestUpdateTime - 86400000)
+    }
+    if (startDate.getDay() === 0) {
+      startDate = new Date(latestUpdateTime - 86400000 * 2)
+    }
+
+    const endDate = new Date(now)
+    const newClosePriceMap = await getClosePrices({
+      tempTickerObj,
+      customStartDate: startDate,
+      customEndDate: endDate
+    })
+    console.log('超過更新時間，更新後 closePriceMap', newClosePriceMap)
+
+    const newNextUpdateTime = await scheduleNextUpdateStock()
+    const newCurrentUpdateTime = Date.now()
+    closeCacheRef.update({
+      nextUpdateTime: newNextUpdateTime,
+      latestUpdateTime: newCurrentUpdateTime
+    })
+
+    try {
+      await updatePriceCache(newClosePriceMap)
+      console.log('========超過更新時間，資料庫新增完成========')
+      return await getPriceCache()
+    } catch (error) {
+      console.log('update failed', error)
+    }
+
+    /*
+    狀況：
+    1. 有新增，沒過更新時間 
+    2. 沒新增，沒過更新時間 
+    3. 有新增，過更新時間 
+    4. 沒新增，過更新時間 
+
+    if(沒資料){
+      // getClosePrices
+      // 取得下次更新時間 nextUpdateTime
+      // 取得當下更新日期 latestUpdateTime
+      // price, latestUpdateTime 及 nextUpdateTime 存進資料庫 closeCacheRef
+
+      return
+    }
+
+    newAddingTempRef === 上次新增後沒有更新及儲存股價的部分
+    (要實現此判斷前 addStock 要判斷新加入的是否已存在 holdingsTickers，如果沒有才存進 newAddingTemp)
+    
+    if(有新增標的 newAddingTemp){
+      1. 判斷最早日期是否有變動
+      2. const closePriceMap = getClosePrices(newAddingTempRef)
+      3. 清空 newAddingTempRef
+      4. 儲存股價
+    }
+
+    if(現在時間超過下次更新日){
+      // 檢查要新增幾日資料
+        1.latestUpdateTime 跟今天差距
+        2.getClosePrices(tickerRef)
+        3.取得下次更新時間 nextUpdateTime
+        4.取得當下更新日期 latestUpdateTime
+        5.price, latestUpdateTime 及 nextUpdateTime 存進資料庫 closeCacheRef
+    } else {
+      // 直接從資料庫 closeCacheRef 讀取資料
+    }
+    */
+  }
+
+  async function getEarliestTradeDate(tempTicker) {
+    const tradesRef = holdingsTradeRef.child(tempTicker)
+    return tradesRef
+      .orderByChild('tradeDate')
+      .limitToFirst(1)
+      .once('value')
+      .then((snapshot) => {
+        let code = null
+        let ticker = null
+        let earliestDate = null
+        snapshot.forEach((tradeSnapshot) => {
+          const trade = tradeSnapshot.val()
+          code = trade.code
+          ticker = trade.ticker
+          earliestDate = trade.tradeDate
+        })
+        return { code, ticker, startDate: earliestDate }
+      })
+  }
+
+  async function createPriceCache() {
+    const tempTickerSnapshot = await holdingsTemptickersRef.once('value')
+    const closePriceMap = await getClosePrices({
+      tempTickerObj: tempTickerSnapshot.val()
+    })
+    const closePrice = Object.fromEntries(closePriceMap)
+    const nextUpdateTime = await scheduleNextUpdateStock()
+    const currentUpdateTime = Date.now()
+    closeCacheRef.set({
+      closePrice,
+      nextUpdateTime,
+      latestUpdateTime: currentUpdateTime
+    })
+
+    return closePriceMap
+  }
+
+  async function getPriceCache() {
+    const snapshot = await closeCacheRef.child('closePrice').once('value')
+    return convertObjectToMap(snapshot.val())
+  }
+
+  async function updatePriceCache(closePriceMap) {
+    const updatePromises = []
+    for (const [date_tempticker, price] of closePriceMap.entries()) {
+      const updatePromise = closeCacheRef
+        .child('closePrice')
+        .child(date_tempticker)
+        .set(price)
+      updatePromises.push(updatePromise)
+    }
+
+    await Promise.allSettled(updatePromises)
+    console.log('========只有新增的標的 資料庫新增完成========')
+  }
+
+  async function getClosePrices({
+    tempTickerObj,
+    customStartDate,
+    customEndDate
+  }) {
+    // 取得每日每標的收盤價
+    const tempTickers = Object.keys(tempTickerObj)
+    const tradeDatePromise = tempTickers.map((tempTicker) => {
+      return getEarliestTradeDate(tempTicker)
+    })
+
+    const tradeDates = await Promise.allSettled(tradeDatePromise)
+    const earliestTradeDateInfo = tradeDates.map((result) => result.value)
+    console.log('earliestDates', earliestTradeDateInfo)
+
+    const rawData = await fetchHistoricalTradeRawData(
+      earliestTradeDateInfo,
+      customStartDate,
+      customEndDate
+    )
+
+    const closePricesMap = await geClosePricesMap(
+      earliestTradeDateInfo,
+      tempTickers,
+      tempTickerObj,
+      rawData
+    )
+
+    return closePricesMap
+  }
+
+  async function geClosePricesMap(
+    earliestTradeDateInfo,
+    tempTickers,
+    tempTickerObj,
+    rawData
+  ) {
+    const holidaySnapshot = await holidaysRef.once('value')
+    const holiday = holidaySnapshot.val()
+
+    const missingData = []
+    const holidayRecord = { us: [], tw: [] }
+    const closePriceMap = new Map()
+    const prevOpenDateMap = new Map() // 紀錄各市場的前一開盤日
+    let prevDate = ''
+
+    for (let i = 0; i < earliestTradeDateInfo.length; i++) {
+      const { ticker, startDate, code } = earliestTradeDateInfo[i]
+      const tempTicker = tempTickers[i]
+      const dataset = rawData[i].value[ticker].reverse()
+      console.log('dataset', dataset)
+
+      if (dataset.length === 0) {
+        console.log(`${tempTicker} 在 startDate 為 ${startDate} 沒有資料`)
+        missingData.push({ dateString: startDate, ticker, tempTicker })
+        continue
+      }
+
+      for (let j = 0; j < dataset.length; j++) {
+        const { date, close } = dataset[j]
+        const dateString = date.toJSON().split('T')[0]
+        console.log('close', close)
+        console.log('startDate', startDate)
+        console.log('dateString', dateString)
+
+        // 紀錄各市場的前一開盤日
+        prevOpenDateMap.set(`${dateString}_${code}`, prevDate)
+        prevDate = dateString
+
+        if (!close) {
+          console.log(`${tempTicker} 在 ${dateString} 沒有close`)
+          missingData.push({ dateString, ticker, tempTicker })
+          continue
+        }
+
+        const startUnix = Date.parse(startDate)
+        const datasetDateUnix = Date.parse(dateString)
+        const isActualTradeDate = startUnix <= datasetDateUnix
+        console.log('isActualTradeDate', isActualTradeDate)
+        if (!isActualTradeDate) continue
+
+        // 如果資料有多抓兩天，只有實際交易日需要寫入 closePriceMap
+        closePriceMap.set(`${dateString}_${tempTicker}`, close)
+
+        // 紀錄休市日
+        if (
+          holiday['US'][dateString] &&
+          holidayRecord['us'].indexOf(dateString) === -1
+        ) {
+          console.log(`${dateString} 美股休市`)
+          holidayRecord['us'].push(dateString)
+        }
+
+        if (
+          holiday['TW'][dateString] &&
+          holidayRecord['tw'].indexOf(dateString) === -1
+        ) {
+          console.log(`${dateString} 台股休市`)
+          holidayRecord['tw'].push(dateString)
+        }
+      }
+    }
+    console.log('prevOpenDateMap', prevOpenDateMap)
+    console.log('holidayRecord', holidayRecord)
+
+    // 如果前一日的資料，historical 模組會找不到 close，用 quote 模組代替
+    if (missingData.length !== 0) {
+      console.log('==用 quote 模組==, missingData:', missingData)
+      await fetchClosePriceForMissingData(missingData, closePriceMap)
+    }
+
+    // 找國定假日的股價
+    const convertedDate = []
+    if (holidayRecord['tw'].length !== 0) {
+      const result = findHolidayMissingData(
+        'tw',
+        holidayRecord,
+        prevOpenDateMap,
+        tempTickers,
+        tempTickerObj
+      )
+      convertedDate.push(...result)
+    }
+
+    if (holidayRecord['us'].length !== 0) {
+      const result = findHolidayMissingData(
+        'us',
+        holidayRecord,
+        prevOpenDateMap,
+        tempTickers,
+        tempTickerObj
+      )
+      convertedDate.push(...result)
+    }
+
+    convertedDate.forEach((item) => {
+      const { nominal, actual } = item
+      const actualClose = closePriceMap.get(actual)
+      if (actualClose) closePriceMap.set(nominal, actualClose)
+    })
+
+    return closePriceMap
+  }
+
+  function findHolidayMissingData(
+    code,
+    holidayRecord,
+    prevOpenDateMap,
+    tempTickers,
+    tempTickerObj
+  ) {
+    const marketDataToUse = {
+      us: 'tw', // us 休市要用 tw 前一開盤日資料
+      tw: 'us'
+    }
+    let temp = ''
+    let multiplier = 1
+
+    // 連假開始日期
+    const holidayStart = holidayRecord[code].reduce((obj, date) => {
+      const isLongWeekend =
+        Date.parse(temp) + 86400000 * multiplier === Date.parse(date)
+
+      if (temp && isLongWeekend) {
+        obj[date] = temp
+        multiplier++
+      } else {
+        multiplier = 1
+        temp = date
+      }
+
+      return obj
+    }, {})
+
+    console.log(code, 'holidayStart', holidayStart)
+
+    const convertedDate = holidayRecord[code]
+      .map((date) => {
+        const actualStartDate = holidayStart[date] ? holidayStart[date] : date
+        const actualPrevOpenDate = prevOpenDateMap.get(
+          `${actualStartDate}_${marketDataToUse[code]}`
+        )
+
+        return tempTickers
+          .filter((tempTicker) => {
+            const ticker = tempTickerObj[tempTicker]
+            return code === 'tw'
+              ? ticker.endsWith('.TW')
+              : !ticker.endsWith('.TW')
+          })
+          .map((tempTicker) => {
+            return {
+              nominal: `${date}_${tempTicker}`,
+              actual: `${actualPrevOpenDate}_${tempTicker}`
+            }
+          })
+      })
+      .reduce((acc, item) => acc.concat(item), [])
+
+    console.log(code, '有假日', convertedDate)
+
+    return convertedDate
+  }
+
+  function getQuoteOptionByDate(earliestDates, customStartDate, customEndDate) {
+    const { code, ticker, startDate } = earliestDates
+    const quoteOptions = {
+      symbols: [ticker],
+      from: null,
+      to: null,
+      period: 'd'
+    }
+
+    if (customStartDate) {
+      quoteOptions.from =
+        code === 'us'
+          ? adjustDate(customStartDate, 'plus')
+          : adjustDate(customStartDate, 'plus', 0)
+    } else {
+      console.log('沒有 customStartDate')
+      // us 會往前多抓一天所以要調整
+      quoteOptions.from =
+        code === 'us' ? adjustDate(startDate, 'plus') : startDate
+    }
+
+    const today = new Date()
+    const yesterday = adjustDate(
+      today.toLocaleDateString().replace(/\//g, '-'),
+      'minus'
+    )
+    const days = today.getDay()
+    const hours = today.getHours()
+    const mins = today.getMinutes()
+    const isTodayWeekDay = days !== 0 && days !== 6
+    const twMarketOpen =
+      isTodayWeekDay &&
+      // code === 'tw' &&
+      hours >= 9 &&
+      (hours < 13 || (hours === 13 && mins <= 30))
+
+    console.log('customEndDate', customEndDate)
+    if (customEndDate) {
+      if (twMarketOpen) {
+        // 開盤時抓的價格不包含今天，所以區間不用調整
+        quoteOptions.to = adjustDate(customEndDate, 'plus', 0)
+      } else {
+        quoteOptions.to = adjustDate(customEndDate, 'plus')
+      }
+    } else {
+      console.log('沒有 customEndDate')
+      quoteOptions.to = adjustDate(
+        today.toLocaleDateString().replace(/\//g, '-'),
+        'plus'
+      )
+    }
+
+    console.log('startDate', startDate)
+    console.log('yesterday', yesterday)
+
+    // const isEndDateYesterday =
+    //   quoteOptions.to === new Date().toLocaleDateString().replace(/\//g, '-')
+    // const isYesterdayTrade =
+    //   startDate === quoteOptions.to && isEndDateYesterday
+    // console.log('isYesterdayTrade', isYesterdayTrade)
+    const isYesterdayTrade = startDate === yesterday && isTodayWeekDay
+    console.log('isYesterdayTrade', isYesterdayTrade)
+
+    // 如果交易起始日為前一日，抓資料就多抓兩天(避開假日)，避免回傳空陣列
+    if (isYesterdayTrade && code === 'tw') {
+      quoteOptions.from = adjustDate(quoteOptions.from, 'minus', 2)
+      console.log(ticker, '交易起始日為前一日')
+      console.log('adjustedStartDate', quoteOptions.from)
+    }
+
+    if (isYesterdayTrade && code === 'us') {
+      quoteOptions.from = adjustDate(quoteOptions.from, 'plus', 0)
+      console.log(ticker, '交易起始日為前一日')
+      console.log('adjustedStartDate', quoteOptions.from)
+    }
+
+    console.log('quoteOptions', quoteOptions)
+
+    return quoteOptions
+  }
+
+  async function fetchHistoricalTradeRawData(
+    earliestTradeDateInfo,
+    customStartDate,
+    customEndDate
+  ) {
+    const historicalPromises = []
+    for (let i = 0; i < earliestTradeDateInfo.length; i++) {
+      const quoteOptions = getQuoteOptionByDate(
+        earliestTradeDateInfo[i],
+        customStartDate,
+        customEndDate
+      )
+      historicalPromises.push(yahooFinance.historical(quoteOptions))
+    }
+
+    const rawData = await Promise.allSettled(historicalPromises)
+    return rawData
+  }
+
+  async function fetchClosePriceForMissingData(missingData, closePriceMap) {
     const quotePromises = missingData.map((data) => {
       return yahooFinance.quote({
         symbol: data.ticker,
         modules: ['price']
       })
     })
-
     const rawQuotes = await Promise.allSettled(quotePromises)
 
     for (let i = 0; i < rawQuotes.length; i++) {
@@ -529,7 +1104,7 @@ router.get('/history', async (req, res) => {
         regularMarketPreviousClose
       } = rawQuotes[i].value.price
 
-      const { dateString, ticker } = missingData[i]
+      const { dateString, ticker, tempTicker } = missingData[i]
       console.log('rawQuotes dateString', dateString)
       console.log('rawQuotes ticker', ticker)
 
@@ -542,10 +1117,8 @@ router.get('/history', async (req, res) => {
         ? regularMarketPreviousClose // 今日已開盤
         : regularMarketPrice // 今日尚未開盤
 
-      closePriceMap.set(`${dateString}_${ticker}`, closePrice)
+      closePriceMap.set(`${dateString}_${tempTicker}`, closePrice)
     }
-
-    return closePriceMap
   }
 
   function calculateTotalValue1(testSnapshot, closePriceMap, fxRates) {
@@ -587,23 +1160,24 @@ router.get('/history', async (req, res) => {
     return { totalValueMap1: totalValueMap, historyMap1: historyMap }
   }
 
-  function calculateTotalValue(historySnapshot, closePriceMap, fxRates) {
-    const totalValueMap = new Map()
+  function calculateTotalValue(historySnapshot, closePricesMap, fxRates) {
+    const tradeDateTempMap = new Map() // 紀錄個股於交易日累積股數
     const historyMap = new Map()
-    const history = historySnapshot.value.val()
+    const historyEntries = Object.entries(historySnapshot.value.val())
 
-    let totalValuePortfolio = 0
-
-    for (const date in history) {
-      const trades = history[date]
+    for (let i = 0; i < historyEntries.length; i++) {
+      const [date, trades] = historyEntries[i]
+      console.log('date', date)
+      const tradesEntries = Object.entries(trades)
       const innerObj = {}
-      let totalValuePerDate = 0
 
       // 計算單日 total value
-      for (const id in trades) {
-        const trade = trades[id]
-        const { shares, ticker, code, cost } = trades[id]
-        const close = closePriceMap.get(`${date}_${ticker}`)
+      for (let j = 0; j < tradesEntries.length; j++) {
+        const [id, trade] = tradesEntries[j]
+        const { shares, tempTicker, code, cost } = trade
+        const key = `${date}_${tempTicker}`
+        const close = closePricesMap.get(key)
+        console.log('tempTicker', tempTicker, close, shares)
         const exchangeRate = fxRates[code]
         const marketValueTWD = shares * close * exchangeRate
         const profitOrLossValue = parseFloatByDecimal(close - cost, 2)
@@ -611,8 +1185,6 @@ router.get('/history', async (req, res) => {
           ((close - cost) * 100) / cost,
           2
         )
-
-        totalValuePerDate += marketValueTWD
 
         innerObj[id] = {
           ...trade,
@@ -630,47 +1202,255 @@ router.get('/history', async (req, res) => {
             profitOrLossValue,
             profitOrLossPercentage
           })
-      }
 
-      totalValuePortfolio += totalValuePerDate
+        if (!tradeDateTempMap.has(key)) {
+          tradeDateTempMap.set(key, {
+            shares: 0,
+            code
+          })
+        }
+
+        tradeDateTempMap.set(key, {
+          shares: tradeDateTempMap.get(key).shares + parseFloat(shares),
+          code
+        })
+      }
+      // console.log('====totalValuePerDate====', totalValuePerDate)
+
+      // totalValuePortfolio += totalValuePerDate
       // console.log('=====totalValuePortfolio=====', date, totalValuePortfolio)
-      totalValueMap.set(date, {
-        non_acc: parseFloatByDecimal(totalValuePerDate, 2),
-        acc: parseFloatByDecimal(totalValuePortfolio, 2)
-      })
+      // totalValueMap.set(date, {
+      //   // non_acc: parseFloatByDecimal(totalValuePerDate, 2),
+      //   acc: parseFloatByDecimal(totalValuePortfolio, 2)
+      // })
 
       historyMap.set(date, innerObj)
+    }
+
+    console.log('tradeDateTempMap', tradeDateTempMap)
+
+    const closePricesEntries = Array.from(closePricesMap)
+    const totalValueMap = new Map()
+    const prevTemp = new Map() // 紀錄個股每日累積股數
+
+    let totalTradeValue = 0
+    let totalNonTradeValue = 0
+    let sharesPerDate = {} // 紀錄所有個股當日的累積股數
+    let prevDate = '' // 紀錄前一開盤日
+
+    for (let i = 0; i < closePricesEntries.length; i++) {
+      const [key, close] = closePricesEntries[i]
+      const [date, tempticker] = key.split('_')
+
+      if (prevDate === date) {
+        console.log('沒歸零')
+      } else {
+        console.log('歸零')
+        totalTradeValue = 0
+        totalNonTradeValue = 0
+      }
+
+      if (tradeDateTempMap.has(key)) {
+        // 當天有交易
+        const { shares, code } = tradeDateTempMap.get(key)
+
+        if (!sharesPerDate[tempticker]) {
+          sharesPerDate[tempticker] = 0
+        }
+        sharesPerDate[tempticker] += shares
+        const sharesAsOfToday = sharesPerDate[tempticker]
+
+        const exchangeRate = 1 //fxRates[code]
+        const marketValueTWD = sharesAsOfToday * close * exchangeRate
+        totalTradeValue += marketValueTWD
+
+        prevTemp.set(tempticker, { shares: sharesAsOfToday, code })
+        console.log('if', key, sharesAsOfToday, totalTradeValue)
+      } else {
+        // 當天沒交易，用前一次的累績股數
+        const { shares, code } = prevTemp.get(tempticker)
+        const exchangeRate = 1 //fxRates[code]
+        const marketValueTWD = shares * close * exchangeRate
+        totalNonTradeValue += marketValueTWD
+        console.log('else', key, shares, totalNonTradeValue)
+      }
+
+      console.log('prevTemp', prevTemp)
+
+      // 紀錄當日尚未開盤之個股總市值
+      let notYetOpenTotal = 0
+      if (date === getISODate(new Date())) {
+        prevTemp.forEach((value, tradeDayTempTicker) => {
+          if (tempticker !== tradeDayTempTicker) {
+            const prevClose = closePricesMap.get(
+              `${prevDate}_${tradeDayTempTicker}`
+            )
+            notYetOpenTotal += prevClose * value.shares
+          }
+        })
+      }
+
+      prevDate = date
+
+      totalValueMap.set(date, {
+        acc: parseFloatByDecimal(
+          totalTradeValue + totalNonTradeValue + notYetOpenTotal,
+          2
+        )
+      })
     }
 
     return { totalValueMap, historyMap }
   }
 
-  async function checkUpdateTime() {
-    const now = new Date()
-    const snapshot = await closeCacheRef.child('nextUpdate').once('value')
-    const nextUpdate = snapshot.val()
-    const fourAM = nextUpdate?.unix
-      ? new Date(nextUpdate.unix)
-      : new Date(now.getFullYear(), now.getMonth(), now.getDate(), 4, 0, 0, 0)
+  async function getClosePricesBackup(tempTickerObj, dateRange) {
+    // console.log('startDate', startDate)
+    // console.log('endDate', endDate)
 
-    const isInitUpdate = now.getTime() > fourAM.getTime()
+    // 取得每日每標的收盤價
+    const { tempTickers, tickers } = Object.entries(tempTickerObj).reduce(
+      (obj, [tempTicker, ticker]) => {
+        obj.tempTickers.push(tempTicker)
+        obj.tickers.push(ticker)
+        return obj
+      },
+      { tempTickers: [], tickers: [] }
+    )
 
-    console.log('nextUpdate', nextUpdate)
-    console.log('before fourAM', fourAM.toLocaleDateString())
+    let startDate = dateRange?.startDate
+    let endDate = dateRange?.endDate
 
-    if (isInitUpdate) {
-      // 重設下一日的早上四點
-      fourAM.setDate(fourAM.getDate() + 1)
-
-      closeCacheRef.child('nextUpdate').set({
-        unix: fourAM.getTime()
-      })
-
-      console.log('isInitUpdate')
-      console.log('after fourAM', fourAM.toLocaleDateString())
+    if (!dateRange) {
+      const dateRes = await Promise.allSettled([
+        historyRef.orderByKey().limitToFirst(1).once('child_added')
+        // historyRef.orderByKey().limitToLast(1).once('child_added')
+      ])
+      startDate = dateRes[0].value.key
+      endDate = new Date().toLocaleDateString().replace(/\//g, '-')
+      // const [start, end] = dateRes.map((item) => item.value.key)
     }
 
-    return isInitUpdate
+    const adjustedEndDate = adjustDate(endDate, 'plus')
+
+    const quoteOptions = {
+      symbols: tickers,
+      from: startDate,
+      to: adjustedEndDate,
+      period: 'd'
+    }
+    const isEndDateYesterday =
+      adjustedEndDate === new Date().toLocaleDateString().replace(/\//g, '-')
+    const isYesterdayTrade = startDate === endDate && isEndDateYesterday
+    console.log('isYesterdayTrade', isYesterdayTrade)
+
+    // 如果只有前一日有交易，抓資料就多抓兩天(避開假日)，避免回傳空陣列
+    if (isYesterdayTrade) {
+      quoteOptions.from = adjustDate(endDate, 'minus', 2)
+      console.log('adjustedStartDate', quoteOptions.from)
+    }
+
+    const missingData = []
+    const closePriceMap = new Map()
+    const rawData = await yahooFinance.historical(quoteOptions)
+    // console.log('rawData', rawData)
+
+    for (let i = 0; i < tickers.length; i++) {
+      const ticker = tickers[i]
+      const tempTicker = tempTickers[i]
+      const dataset = rawData[ticker]
+
+      for (let j = 0; j < dataset.length; j++) {
+        const { date, close } = dataset[j]
+        const dateString = date.toJSON().split('T')[0]
+        console.log('tempTicker', tempTicker, close)
+        console.log('startDate', startDate)
+        console.log('dateString', dateString)
+        console.log('endDate', endDate)
+
+        if (!close) {
+          missingData.push({ dateString, ticker, tempTicker })
+          continue
+        }
+
+        const startUnix = Date.parse(startDate)
+        const endUnix = Date.parse(endDate)
+        const datasetDateUnix = Date.parse(dateString)
+        const isActualTradeDate =
+          startUnix <= datasetDateUnix && datasetDateUnix <= endUnix
+
+        console.log('isActualTradeDate', isActualTradeDate)
+
+        // 如果資料有多抓兩天，只有實際交易日需要寫入 closePriceMap
+        if (isActualTradeDate) {
+          closePriceMap.set(`${dateString}_${tempTicker}`, close)
+        }
+      }
+    }
+
+    if (missingData.length === 0) return closePriceMap
+    console.log('用 quote 模組代替')
+
+    // 如果前一日剛好新增標的，historical 模組會找不到 close，用 quote 模組代替
+    const quotePromises = missingData.map((data) => {
+      return yahooFinance.quote({
+        symbol: data.ticker,
+        modules: ['price']
+      })
+    })
+
+    const rawQuotes = await Promise.allSettled(quotePromises)
+
+    for (let i = 0; i < rawQuotes.length; i++) {
+      const {
+        regularMarketTime,
+        regularMarketPrice,
+        regularMarketPreviousClose
+      } = rawQuotes[i].value.price
+
+      const { dateString, ticker, tempTicker } = missingData[i]
+      console.log('rawQuotes dateString', dateString)
+      console.log('rawQuotes ticker', ticker)
+
+      const nowDate = new Date().toJSON().split('T')[0]
+      const marketOpenDate = regularMarketTime.toJSON().split('T')[0]
+      const hasMarketOpened = nowDate === marketOpenDate
+      console.log('hasMarketOpened', hasMarketOpened)
+
+      const closePrice = hasMarketOpened
+        ? regularMarketPreviousClose // 今日已開盤
+        : regularMarketPrice // 今日尚未開盤
+
+      closePriceMap.set(`${dateString}_${tempTicker}`, closePrice)
+    }
+
+    return closePriceMap
+  }
+
+  async function fetchHolidays() {
+    const holidayCountryCode = ['US', 'TW']
+    const holidayPromise = holidayCountryCode.map((code) => {
+      return axios.get(
+        `https://calendarific.com/api/v2/holidays?api_key=5957df4e7e6c4c7a2c3761fd4fd56b5e6cd55afb&country=${code}&year=2023&type=national`
+      )
+    })
+
+    const result = await Promise.allSettled(holidayPromise)
+    const holidays = result.reduce((obj, item, index) => {
+      const code = holidayCountryCode[index]
+      const holidays = item.value.data.response.holidays.reduce(
+        (innerObj, holiday) => {
+          const { name, date } = holiday
+          innerObj[date.iso] = name
+          return innerObj
+        },
+        {}
+      )
+
+      obj[code] = holidays
+      return obj
+    }, {})
+
+    holidaysRef.set(holidays)
   }
 
   async function getFxRates(fxToTWDSnapshot) {
@@ -702,7 +1482,7 @@ router.get('/history', async (req, res) => {
     }
 
     const fxRates = await fecthFxRates()
-    const newNextUpdateTime = scheduleNextUpdate()
+    const newNextUpdateTime = scheduleNextUpdateFxRates()
     updateFxToDB(fxRates, newNextUpdateTime)
     console.log('更新完成')
 
@@ -742,7 +1522,7 @@ router.get('/history', async (req, res) => {
     return fxRates
   }
 
-  function scheduleNextUpdate() {
+  function scheduleNextUpdateFxRates() {
     const now = new Date()
     const nextUpdate = new Date(now)
     nextUpdate.setMinutes(0)
@@ -755,11 +1535,11 @@ router.get('/history', async (req, res) => {
     const dayOfWeek = nextUpdate.getDay()
 
     if (dayOfWeek === 0 || dayOfWeek === 6) {
-      console.log('現在是假日')
+      console.log('scheduleNextUpdateFxRates 現在是假日')
       nextUpdate.setDate(nextUpdate.getDate() + ((7 - dayOfWeek + 1) % 7))
       nextUpdate.setHours(4)
     } else {
-      console.log('現在是平日')
+      console.log('scheduleNextUpdateFxRates 現在是平日')
     }
 
     const nextUpdateTime = nextUpdate.getTime()
@@ -771,98 +1551,13 @@ router.get('/history', async (req, res) => {
     fxToTWDRef.set({ fxRates, nextUpdateTime })
   }
 
-  async function updateCache({
-    tickers,
-    tempTickers,
-    tickerToTempTickerMap,
-    startDate,
-    endDate
-  }) {
-    // historicalData 順序為按日期由新到舊
-    // 如剛好前一日有紀錄，今日盤中會抓不到前一日交易資料，因此要用 quote 模組
-    const newRequest = await Promise.allSettled([
-      getQuotes(tickers, tickerToTempTickerMap),
-      getHistoricalData({
-        tickers,
-        tickerToTempTickerMap,
-        startDate,
-        endDate
-      })
-    ])
-    const [quotes, historicalData] = newRequest.map((item) => item.value)
-    // // 不存資料庫直接打 yahoo api
-    return { quotes, historicalData }
-
-    // tempTickers.forEach((tempTicker) => {
-    //   const quoteset = quotes[tempTicker]
-    //   const dataset = historicalData[tempTicker]
-    //   closeCacheRef.child('quotes').child(tempTicker).set(quoteset)
-    //   closeCacheRef.child('historicalData').child(tempTicker).set(dataset)
-    // })
-    // console.log('extraQuotes', quotes)
-    // console.log('extraData', historicalData)
-
-    const newCloseCacheSnapshot = await closeCacheRef.once('value')
-    return newCloseCacheSnapshot.val()
-  }
-
-  async function getHistoricalData({
-    tickers,
-    tickerToTempTickerMap,
-    startDate,
-    endDate
-  }) {
-    const rawData = await yahooFinance.historical({
-      symbols: tickers,
-      from: startDate,
-      to: adjustDate(endDate, 'plus'),
-      period: 'd'
-    })
-
-    // rename keys to tempTicker and replace date obj with yyyy-mm-dd
-    const dataEntries = Object.entries(rawData).map(([ticker, dataset]) => {
-      const tempTicker = tickerToTempTickerMap[ticker]
-      const newDataset = dataset.map((item) => {
-        const dateString = convertDate2(item.date)
-        return { ...item, date: dateString }
-      })
-      return [tempTicker, newDataset]
-    })
-
-    return Object.fromEntries(dataEntries)
-  }
-
-  async function getQuotes(tickers, tickerToTempTickerMap) {
-    const quotePromise = tickers.map((ticker) => {
-      return yahooFinance.quote({
-        symbol: ticker,
-        modules: ['price']
-      })
-    })
-    const quoteRes = await Promise.allSettled(quotePromise)
-    const quotes = quoteRes.reduce((obj, quote) => {
-      const { symbol, regularMarketTime, regularMarketPreviousClose } =
-        quote.value.price
-      const tempTicker = tickerToTempTickerMap[symbol]
-      obj[tempTicker] = {
-        regularMarketTime,
-        previousClose: regularMarketPreviousClose
-      }
-      return obj
-    }, {})
-
-    return quotes
-  }
-
-  function convertDate2(dateObj) {
+  function getISODate(dateObj) {
     const dd = String(dateObj.getDate()).padStart(2, '0')
     const mm = String(dateObj.getMonth() + 1).padStart(2, '0')
     const yyyy = dateObj.getFullYear()
-
-    console.log('convertDate2', yyyy + '-' + mm + '-' + dd)
-
     return yyyy + '-' + mm + '-' + dd
   }
+
   function adjustDate(yyyymmdd, sign, multiplier = 1) {
     const unix = Date.parse(yyyymmdd)
     // 加一天（84600000）才能要得到當天資料，例如結束日期為 1/27，實際上 fetch 的資料範圍結束日為 1/26
@@ -877,7 +1572,7 @@ router.get('/history', async (req, res) => {
     const dd = String(dateObj.getDate()).padStart(2, '0')
     const mm = String(dateObj.getMonth() + 1).padStart(2, '0')
     const yyyy = dateObj.getFullYear()
-    console.log('adjustDate', yyyy + '-' + mm + '-' + dd)
+    // console.log('adjustDate', yyyy + '-' + mm + '-' + dd)
 
     return yyyy + '-' + mm + '-' + dd
   }

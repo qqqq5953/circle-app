@@ -423,10 +423,10 @@ router.get('/history', async (req, res) => {
     const totalValue = Array.from(totalValueMap).reduce(
       (obj, [date, values]) => {
         obj.date.push(date)
-        obj.assetValue.push(values.acc)
+        obj['Asset Value'].push(values.acc)
         return obj
       },
-      { date: [], assetValue: [] }
+      { date: [], 'Asset Value': [] }
     )
     const historyDetails = Object.fromEntries(Array.from(historyMap).reverse())
     // console.log('totalValue', totalValue)
@@ -1043,11 +1043,6 @@ router.get('/history', async (req, res) => {
     console.log('startDate', startDate)
     console.log('yesterday', yesterday)
 
-    // const isEndDateYesterday =
-    //   quoteOptions.to === new Date().toLocaleDateString().replace(/\//g, '-')
-    // const isYesterdayTrade =
-    //   startDate === quoteOptions.to && isEndDateYesterday
-    // console.log('isYesterdayTrade', isYesterdayTrade)
     const isYesterdayTrade = startDate === yesterday && isTodayWeekDay
     console.log('isYesterdayTrade', isYesterdayTrade)
 
@@ -1190,6 +1185,7 @@ router.get('/history', async (req, res) => {
           ...trade,
           profitOrLossValue,
           profitOrLossPercentage,
+          close: parseFloatByDecimal(close, 2),
           marketValueTWD: parseFloatByDecimal(marketValueTWD, 2)
         }
 
@@ -1215,14 +1211,6 @@ router.get('/history', async (req, res) => {
           code
         })
       }
-      // console.log('====totalValuePerDate====', totalValuePerDate)
-
-      // totalValuePortfolio += totalValuePerDate
-      // console.log('=====totalValuePortfolio=====', date, totalValuePortfolio)
-      // totalValueMap.set(date, {
-      //   // non_acc: parseFloatByDecimal(totalValuePerDate, 2),
-      //   acc: parseFloatByDecimal(totalValuePortfolio, 2)
-      // })
 
       historyMap.set(date, innerObj)
     }
@@ -1260,7 +1248,7 @@ router.get('/history', async (req, res) => {
         sharesPerDate[tempticker] += shares
         const sharesAsOfToday = sharesPerDate[tempticker]
 
-        const exchangeRate = 1 //fxRates[code]
+        const exchangeRate = fxRates[code]
         const marketValueTWD = sharesAsOfToday * close * exchangeRate
         totalTradeValue += marketValueTWD
 
@@ -1269,7 +1257,7 @@ router.get('/history', async (req, res) => {
       } else {
         // 當天沒交易，用前一次的累績股數
         const { shares, code } = prevTemp.get(tempticker)
-        const exchangeRate = 1 //fxRates[code]
+        const exchangeRate = fxRates[code]
         const marketValueTWD = shares * close * exchangeRate
         totalNonTradeValue += marketValueTWD
         console.log('else', key, shares, totalNonTradeValue)
@@ -1285,7 +1273,8 @@ router.get('/history', async (req, res) => {
             const prevClose = closePricesMap.get(
               `${prevDate}_${tradeDayTempTicker}`
             )
-            notYetOpenTotal += prevClose * value.shares
+            const exchangeRate = fxRates[value.code]
+            notYetOpenTotal += value.shares * prevClose * exchangeRate
           }
         })
       }

@@ -149,28 +149,6 @@ export default {
         style: "hidden md:inline md:w-[20%] text-right",
       },
     ]);
-    const totalTitle = ref([
-      {
-        name: "Trade date",
-        style: "w-[22%] bg-blue-300",
-      },
-      {
-        name: "Total cost",
-        style: "w-[24%] text-right bg-red-300",
-      },
-      {
-        name: "Total shares",
-        style: "w-[15%] text-right bg-blue-300",
-      },
-      {
-        name: "Total value",
-        style: "w-[24%] text-right bg-red-300",
-      },
-      {
-        name: "",
-        style: "w-[15%] text-right bg-blue-300",
-      },
-    ]);
 
     function deleteAll() {
       http.post("/api/deleteAll").then((res) => {
@@ -186,7 +164,6 @@ export default {
       isLoading,
 
       childTitle,
-      totalTitle,
 
       deleteAll,
     };

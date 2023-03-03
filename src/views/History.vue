@@ -7,9 +7,9 @@
       <div class="rounded bg-gray-300 h-60"></div>
     </div>
     <div v-else>
-      <button class="border border-black p-2" @click="deleteAll">
+      <!-- <button class="border border-black p-2" @click="deleteAll">
         delete all
-      </button>
+      </button> -->
       <section v-if="source">
         <h2 class="font-semibold text-lg">History</h2>
         <MultiLineChart :source="source" />
@@ -17,24 +17,34 @@
 
       <section v-if="details.length !== 0">
         <h2 class="font-semibold text-lg mt-10">Details</h2>
-        <TitleList class="border-b px-1 py-1" :list="childTitle" />
+        <TitleList class="p-2 md:px-3 text-xs" :list="childTitle" />
 
-        <ul>
-          <li v-for="(trades, date) in details" :key="date">
+        <ul class="text-xs flex flex-col">
+          <li
+            class="last:mb-0"
+            :class="selectedDate.includes(date) ? 'mb-0' : 'mb-3'"
+            v-for="(trades, date) in details"
+            :key="date"
+          >
             <div
               class="
                 flex
                 justify-between
-                p-1
-                text-xs
+                px-2
+                py-1.5
+                md:px-3
                 font-medium
-                bg-indigo-100
-                border-b border-indigo-300
                 cursor-pointer
+                rounded
+              "
+              :class="
+                selectedDate.includes(date)
+                  ? 'outline outline-1 outline-slate-200 bg-slate-100'
+                  : 'bg-slate-100'
               "
               @click="toggleDropdown(date)"
             >
-              <span>{{ date }}</span>
+              <span class="text-slate-500">{{ date }}</span>
               <span>
                 <i
                   class="fa-solid fa-chevron-up"
@@ -43,8 +53,8 @@
                 <i class="fa-solid fa-chevron-down" v-else></i>
               </span>
             </div>
-            <ul class="text-xs" v-if="selectedDate.includes(date)">
-              <DetailList class="px-1 py-2" :list="trades" />
+            <ul v-if="selectedDate.includes(date)">
+              <DetailList class="px-2 py-3.5 md:px-3" :list="trades" />
             </ul>
           </li>
         </ul>
@@ -93,7 +103,7 @@ export default {
         console.log("historyDetails", historyDetails);
 
         // 顯示最近一筆
-        // selectedDate.value.push(source.value.date.at(-1));
+        selectedDate.value.push(Object.keys(historyDetails)[0]);
       } catch (error) {
         console.log("error", error);
       }
@@ -115,24 +125,28 @@ export default {
 
     const childTitle = ref([
       {
-        name: "Ticker",
-        style: "w-[22%] bg-blue-300",
-      },
-      {
-        name: "Cost",
-        style: "w-[24%] text-right bg-red-300",
-      },
-      {
-        name: "Shares",
-        style: "w-[15%] text-right bg-blue-300",
-      },
-      {
-        name: "Value (TWD)",
-        style: "w-[24%] text-right bg-red-300",
+        name: "",
+        style: "w-[27%] md:w-[15%]",
       },
       {
         name: "P / L %",
-        style: "w-[15%] text-right bg-blue-300",
+        style: "w-[23%] ml-auto text-right md:ml-0",
+      },
+      {
+        name: "Cost",
+        style: "w-[20%] text-right",
+      },
+      {
+        name: "Shares",
+        style: "w-[20%] md:w-[15%] text-right",
+      },
+      {
+        name: "Close",
+        style: "hidden md:inline md:w-[20%] text-right",
+      },
+      {
+        name: "Value (TWD)",
+        style: "hidden md:inline md:w-[20%] text-right",
       },
     ]);
     const totalTitle = ref([

@@ -25,6 +25,7 @@ const updateDb = require('../functions/holdings/updateDb')
 
 const getFormattedDate = require('../tools/getFormattedDate')
 const parseFloatByDecimal = require('../tools/parseFloatByDecimal')
+const formatNumber = require('../tools/formatNumber')
 
 // HOLDINNGS PAGE
 router.get('/', function (req, res, next) {
@@ -369,6 +370,7 @@ router.get('/history', async (req, res) => {
   try {
     const resPromise = await Promise.allSettled([
       testRef.once('value'),
+      holdingsLatestInfoRef.once('value'),
       historyRef.once('value'),
       holdingsTemptickersRef.once('value'),
       fxToTWDRef.once('value'),
@@ -376,6 +378,7 @@ router.get('/history', async (req, res) => {
     ])
     const [
       testSnapshot,
+      latestInfoSnapshot,
       historySnapshot,
       tempTickerSnapshot,
       fxToTWDSnapshot,
@@ -405,6 +408,7 @@ router.get('/history', async (req, res) => {
     // // console.log('fxRates', fxRates)
 
     const { totalValueMap, historyMap } = calculateTotalValue(
+      latestInfoSnapshot,
       historySnapshot,
       closePricesMap,
       fxRates
@@ -1155,7 +1159,12 @@ router.get('/history', async (req, res) => {
     return { totalValueMap1: totalValueMap, historyMap1: historyMap }
   }
 
-  function calculateTotalValue(historySnapshot, closePricesMap, fxRates) {
+  function calculateTotalValue(
+    latestInfoSnapshot,
+    historySnapshot,
+    closePricesMap,
+    fxRates
+  ) {
     const tradeDateTempMap = new Map() // 紀錄個股於交易日累積股數
     const historyMap = new Map()
     const historyEntries = Object.entries(historySnapshot.value.val())
@@ -1175,18 +1184,21 @@ router.get('/history', async (req, res) => {
         console.log('tempTicker', tempTicker, close, shares)
         const exchangeRate = fxRates[code]
         const marketValueTWD = shares * close * exchangeRate
-        const profitOrLossValue = parseFloatByDecimal(close - cost, 2)
-        const profitOrLossPercentage = parseFloatByDecimal(
-          ((close - cost) * 100) / cost,
-          2
-        )
+        const profitOrLossValue = formatNumber({ number: close - cost })
+        const profitOrLossPercentage = (((close - cost) * 100) / cost)
+          .toFixed(2)
+          .padStart(2, '0')
+        const { name, style } = latestInfoSnapshot.value.val()[tempTicker]
 
         innerObj[id] = {
           ...trade,
+          name,
+          style,
           profitOrLossValue,
           profitOrLossPercentage,
-          close: parseFloatByDecimal(close, 2),
-          marketValueTWD: parseFloatByDecimal(marketValueTWD, 2)
+          cost: formatNumber({ number: cost }),
+          close: formatNumber({ number: close }),
+          marketValueTWD: formatNumber({ number: marketValueTWD })
         }
 
         historyRef

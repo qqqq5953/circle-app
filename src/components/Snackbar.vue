@@ -30,11 +30,17 @@
           message.status === false || error ? 'text-red-400' : 'text-green-400'
         "
       ></i>
-      <span class="ml-4 font-semibold tracking-wider">{{ message.title }}</span>
-      <div class="ml-auto text-xs">
-        <slot name="btn"></slot>
+      <div class="mx-4 tracking-wider">
+        <span class="font-semibold">{{ message.title }}</span>
+        <div class="text-xs mt-1" v-if="message.errorMessage">
+          {{ message.errorMessage }}
+        </div>
       </div>
-      <a href="#" @click.prevent="closeToast(true)" class="ml-4">
+      <div class="ml-auto text-xs" v-if="message.result && !error">
+        <slot name="btn" :tradeResult="message"></slot>
+      </div>
+      <div class="ml-4" v-if="error">{{ error }}</div>
+      <a href="#" @click.prevent="closeToast(true)" class="ml-auto">
         <i class="fa-solid fa-xmark fa-sm"></i>
       </a>
     </div>
@@ -46,45 +52,66 @@ import { computed, ref, watch } from "vue";
 export default {
   props: {
     barMessage: {
-      type: [String, Object],
+      type: Object,
     },
   },
   setup(props) {
-    let toastOutTimer;
     const isFadeIn = ref(false);
     const isFadeOut = ref(false);
     const isActivate = ref(false);
     const error = ref(null);
 
     const message = computed(() => {
-      let obj;
+      if (!props.barMessage) return;
 
-      if (typeof props.barMessage === "object") {
-        obj = {
-          status: props.barMessage?.success,
-          title: props.barMessage?.content,
-          result: props.barMessage?.result,
-        };
-      } else {
-        // error passed from AddStock.vue is of string type
-        obj = {
-          status: false,
-          title: props.barMessage,
-          result: null,
-        };
-      }
+      const { success, content, errorMessage, result } = props.barMessage;
 
-      return obj;
+      return {
+        status: success,
+        title: content,
+        errorMessage,
+        result,
+      };
+
+      // let obj;
+      // if (typeof props.barMessage === "object") {
+      //   obj = {
+      //     status: props.barMessage?.success,
+      //     title: props.barMessage?.content,
+      //     errorMessage: props.barMessage?.errorMessage,
+      //     result: props.barMessage?.result,
+      //   };
+      // } else {
+      //   // error passed from AddStock.vue is of string type
+      //   obj = {
+      //     status: false,
+      //     title: props.barMessage,
+      //     result: null,
+      //   };
+      // }
+
+      // return obj;
     });
 
-    watch(message, () => {
-      activateNotification(1, 1000000);
-      deactivateToast(1100000);
-    });
+    let toastOutTimer;
+    const toastOut = (ms) => {
+      return new Promise((resolve) => {
+        toastOutTimer = setTimeout(() => {
+          isFadeIn.value = false;
+          isFadeOut.value = true;
+          resolve();
+        }, ms);
+      });
+    };
 
-    watch(isActivate, (newVal) => {
-      if (!newVal) clearTimeout(toastOutTimer);
-    });
+    const toastIn = (ms) => {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          isFadeIn.value = true;
+          resolve();
+        }, ms);
+      });
+    };
 
     const activateNotification = async (inMilisecond, outMilisecond) => {
       try {
@@ -104,30 +131,20 @@ export default {
       }, milisecond);
     };
 
-    const toastIn = (ms) => {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          isFadeIn.value = true;
-          resolve();
-        }, ms);
-      });
-    };
-
-    const toastOut = (ms) => {
-      return new Promise((resolve) => {
-        toastOutTimer = setTimeout(() => {
-          isFadeIn.value = false;
-          isFadeOut.value = true;
-          resolve();
-        }, ms);
-      });
-    };
-
     const closeToast = (isClose) => {
       isFadeOut.value = false;
       isFadeIn.value = false;
       isActivate.value = !isClose;
     };
+
+    watch(message, () => {
+      activateNotification(1, 1000000);
+      deactivateToast(1100000);
+    });
+
+    watch(isActivate, (newVal) => {
+      if (!newVal) clearTimeout(toastOutTimer);
+    });
 
     return {
       message,

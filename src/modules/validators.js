@@ -25,8 +25,6 @@ const tickerValidation = ({ isPatternMatch, ref, inputValue }) => {
 const twoDecimal = ({ isPatternMatch, ref, inputValue }) => {
   ref.setCustomValidity('')
 
-  if (isPatternMatch) return
-
   if (!isPatternMatch && inputValue[inputValue.length - 1] === '.') {
     // 最後一位為小數點
     ref.setCustomValidity('input incomplete')
@@ -45,11 +43,13 @@ const twoDecimal = ({ isPatternMatch, ref, inputValue }) => {
 }
 
 const isEmpty = ({ ref, inputValue }) => {
-  if (inputValue !== '') return null
+  ref.setCustomValidity('')
 
-  ref.setCustomValidity('required field')
-  const validationMessage = ref.validationMessage
-  return validationMessage
+  if (inputValue === '') {
+    ref.setCustomValidity('required field')
+  }
+
+  return ref.validationMessage
 }
 
 const isPositive = ({ ref, inputValue }) => {
@@ -61,10 +61,22 @@ const isPositive = ({ ref, inputValue }) => {
   return null
 }
 
-const isYYYYMMDD = ({ isPatternMatch, ref }) => {
+const isValidDate = ({ isPatternMatch, ref, inputValue }) => {
   ref.setCustomValidity('')
-  if (!isPatternMatch) ref.setCustomValidity('invalid date')
+
+  if (!isPatternMatch) {
+    ref.setCustomValidity('Invalid date format')
+  }
+
+  if (inputValue === '') ref.setCustomValidity('Please select ticker first')
+
+  const inputDate = new Date(inputValue)
+  const isWeekend = [0, 6].includes(inputDate.getDay())
+  if (isWeekend) {
+    ref.setCustomValidity('Please select weekdays')
+  }
+
   return ref.validationMessage
 }
 
-export { tickerValidation, isPositive, isEmpty, twoDecimal, isYYYYMMDD }
+export { tickerValidation, isPositive, isEmpty, twoDecimal, isValidDate }

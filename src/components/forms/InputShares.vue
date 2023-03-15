@@ -12,8 +12,9 @@
         w-full
         text-sm text-center
         lg:text-left
-        invalid:outline-red-400 invalid:border-red-400 invalid:border
-        focus:ring-blue-300/60 focus:ring-inset focus:ring-2 focus:outline-0
+        focus:outline-0
+        invalid:border-red-400 invalid:border
+        valid:focus:outline-blue-300/60 valid:focus:outline-2
       "
       ref="sharesRef"
       placeholder="shares"
@@ -21,13 +22,13 @@
       step="0.01"
       v-model="inputValue"
     />
-    <ErrorDisplay :errors="inputError" v-if="inputError.length" />
+    <ErrorDisplay :errors="inputError" v-if="hasError" />
   </div>
 </template>
 
 <script>
 import useInputValidator from "@/composables/useInputValidator";
-import { ref, watch, defineAsyncComponent } from "vue";
+import { ref, watch, defineAsyncComponent, computed } from "vue";
 import { twoDecimal, isEmpty } from "@/modules/validators";
 
 export default {
@@ -53,19 +54,21 @@ export default {
 
     const { inputError, inputValue, inputValidity } = useInputValidator(params);
 
-    watch(
-      () => props.modelValue,
-      () => emit("getInputValidity", inputValidity.value)
+    const hasError = computed(() =>
+      inputError.value.some((error) => error !== "")
     );
 
-    if (props.modelValue) {
-      emit("getInputValidity", { name: "shares", validity: true });
-    }
+    watch(
+      inputValidity,
+      (newValidity) => emit("setInputValidity", newValidity),
+      { deep: true }
+    );
 
     return {
       sharesRef,
       inputError,
       inputValue,
+      hasError,
     };
   },
 };

@@ -3,7 +3,15 @@
     class="flex flex-col gap-4 py-2 px-4 w-full sm:w-4/5 max-w-[400px] mx-auto"
   >
     <h1 class="text-center text-lg font-medium pb-2">
-      {{ tradeResult.content }}
+      {{ tradeResult.title }}
+      <i
+        class="fas"
+        :class="
+          tradeResult.status
+            ? 'fa-check text-green-500'
+            : 'fa-times text-red-600'
+        "
+      ></i>
     </h1>
     <ul>
       <li
@@ -20,7 +28,10 @@
         :key="value"
       >
         <span>{{ key }}: </span>
-        <span class="font-semibold">{{ value }}</span>
+        <span class="font-semibold" v-if="value">{{ value }}</span>
+        <span class="text-red-600" v-else
+          ><i class="fas fa-times fa-xl"></i
+        ></span>
       </li>
     </ul>
     <div class="text-center">

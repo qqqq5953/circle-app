@@ -8,19 +8,19 @@
       :validateMessage="validateMessage"
       :modelValue="stock.ticker"
       @input="stock.ticker = $event.target.value"
-      @getInputValidity="getInputValidity"
+      @setInputValidity="setInputValidity"
     />
 
     <InputCost
       :modelValue="stock.cost"
       @input="stock.cost = $event.target.value"
-      @getInputValidity="getInputValidity"
+      @setInputValidity="setInputValidity"
     />
 
     <InputShares
       :modelValue="stock.shares"
       @input="stock.shares = $event.target.value"
-      @getInputValidity="getInputValidity"
+      @setInputValidity="setInputValidity"
     />
 
     <button
@@ -75,7 +75,7 @@ export default {
       return true;
     });
 
-    const getInputValidity = (obj) =>
+    const setInputValidity = (obj) =>
       (inputValidity.value[obj.name] = obj.validity);
 
     function addStock() {
@@ -132,7 +132,7 @@ export default {
       stock,
       validateMessage,
 
-      getInputValidity,
+      setInputValidity,
       checkFormValidity,
     };
   },

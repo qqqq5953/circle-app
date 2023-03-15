@@ -3,7 +3,7 @@
     <!-- snackbar -->
     <Teleport to="body">
       <Snackbar :barMessage="notificationMessage">
-        <template #btn>
+        <template #btn="{ tradeResult }">
           <router-link
             :to="{
               name: 'TradeResult',
@@ -320,23 +320,15 @@ export default {
     const $searchStore = useSearchStore();
     const { searchList } = storeToRefs($searchStore);
     const $holdingStore = useHoldingStore();
-    const {
-      notificationMessage,
-      isModalOpen,
-      data,
-      error,
-      loading,
-      stock,
-      inputValidity,
-    } = storeToRefs($holdingStore);
+    const { notificationMessage, data, error, loading, stock, inputValidity } =
+      storeToRefs($holdingStore);
     const { toggleSkeleton, activateNotification } = $holdingStore;
-
-    const isHover = ref(false);
 
     // 跨頁面時重置 searchList
     onMounted(() => (searchList.value = null));
 
     // totalStats
+    const isHover = ref(false);
     const codeToCurrencyMap = ref({
       tw: "TWD",
       us: "USDTWD",
@@ -445,11 +437,9 @@ export default {
     });
 
     // addStock
-    const isAllValid = computed(() =>
-      Object.values(inputValidity.value).every((item) => !!item)
-    );
-
-    const tradeResult = ref(null);
+    const isAllValid = computed(() => {
+      return Object.values(inputValidity.value).every((item) => !!item);
+    });
 
     async function addStock() {
       if (!isAllValid.value) return;
@@ -461,7 +451,7 @@ export default {
         const stockObj = {
           ...stock.value,
           ticker: stock.value.ticker,
-          tempTicker: stock.value.tempTicker.toUpperCase(),
+          tempTicker: stock.value.tempTicker?.toUpperCase(),
           recordUnix: Date.now(),
         };
 
@@ -469,77 +459,87 @@ export default {
 
         const res = await http.post(`/api/addStock`, stockObj);
 
-        await updateHoldings(res.data, res.data.errorMessage);
+        await updateHoldings(res.data);
       } catch (error) {
         console.log("addStock error", error);
+        toggleSkeleton(false);
       }
     }
 
-    async function updateHoldings(newData, errorMessage) {
+    async function updateHoldings(newData) {
       console.log("updateHoldings newData", newData);
-      if (!newData.success) return activateNotification(errorMessage);
+      const { ticker, cost, shares, tradeDate, recordUnix } = newData.result;
+      const addDate = new Date(recordUnix);
+      const result = {
+        Ticker: ticker,
+        Cost: cost,
+        Shares: shares,
+        "Trade date": tradeDate,
+        "Record time": addDate.toLocaleString("zh-TW").replace(/\//g, "-"),
+      };
 
-      try {
-        const res = await http.get(`/api/holdings`);
-        data.value = res.data;
-        console.log("res", res);
-
-        const { ticker, cost, shares, tradeDate, recordUnix } = newData.result;
-        const addDate = new Date(recordUnix);
-        const result = {
-          Ticker: ticker,
-          Cost: cost,
-          Shares: shares,
-          "Trade date": tradeDate,
-          "Record time": addDate.toLocaleString("zh-TW").replace(/\//g, "-"),
-        };
-
-        toggleSkeleton(false);
-
-        activateNotification({ ...newData, result: null });
-        tradeResult.value = { ...newData, result };
-      } catch (error) {
-        console.log("updateHoldings error", error);
+      if (newData.success) {
+        try {
+          const res = await http.get(`/api/holdings`);
+          data.value = res.data;
+          console.log("res", res);
+        } catch (error) {
+          console.log("updateHoldings error", error);
+        }
       }
+
+      toggleSkeleton(false);
+      activateNotification({ ...newData, result });
     }
 
     // toggleModal
     const tickerToBeTraded = ref(null);
-    const isBuyMore = ref(null);
     const newAddingRef = ref(null);
+    const isBuyMore = ref(null);
+    const isModalOpen = ref(false);
 
     function toggleModal(parmas) {
-      const { open, type, ...latestInfo } = parmas;
+      const { open, type, ...tickerInfo } = parmas;
       const style = open ? "overflow:hidden" : null;
       disableVerticalScrollbar(style);
-      if (!open) clearInvalidMessage();
       isModalOpen.value = open;
+
+      if (!open) {
+        //  disable 日期欄位
+        const { inputDateRef } = newAddingRef.value.$refs;
+        inputDateRef.dateRef.disabled = true;
+
+        resetInput();
+        return;
+      }
 
       if (type === "buy") {
         isBuyMore.value = true;
-        tickerToBeTraded.value = latestInfo;
+        tickerToBeTraded.value = tickerInfo;
       }
+      if (type === "invest") {
+        isBuyMore.value = false;
+      }
+    }
+
+    function resetInput() {
+      // 清空 cost 及 date(直接修改 inputValue 可同時修改驗證)
+      Object.keys(newAddingRef.value.$refs).forEach((inputRef) => {
+        newAddingRef.value.$refs[inputRef].inputValue =
+          inputRef === "inputSharesRef" ? "1" : null;
+      });
+
+      // 清空已選的 ticker
+      stock.value.ticker = null;
+      inputValidity.value.ticker = false;
+
+      // reset 要帶入 buy modal 的 tickerToBeTraded
+      tickerToBeTraded.value = null;
     }
 
     function disableVerticalScrollbar(style) {
       document.querySelector("body").style = style;
     }
-
-    function clearInvalidMessage() {
-      const { inputCostRef, inputSharesRef } = newAddingRef.value.$refs;
-      inputCostRef.costRef.setCustomValidity("");
-      inputCostRef.inputError.length = 0;
-      inputSharesRef.sharesRef.setCustomValidity("");
-      inputSharesRef.inputError.length = 0;
-    }
-
-    // 清空 buy modal
-    watch(isModalOpen, (newVal) => {
-      if (!newVal) {
-        isBuyMore.value = false;
-        tickerToBeTraded.value = null;
-      }
-    });
 
     // Card
     const topThreePerformance = computed(() => {
@@ -580,7 +580,6 @@ export default {
       error,
       notificationMessage,
 
-      toggleModal,
       isModalOpen,
       tickerToBeTraded,
 
@@ -588,7 +587,6 @@ export default {
       addStock,
       isAllValid,
       isBuyMore,
-      tradeResult,
       newAddingRef,
 
       holdings,

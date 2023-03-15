@@ -199,6 +199,24 @@ router.post('/deleteAll', async (req, res) => {
 })
 
 router.post('/addStock', async (req, res) => {
+  const invalidInput = Object.keys(req.body).filter((key) => !req.body[key])
+
+  if (invalidInput.length !== 0) {
+    const reservedKey = ['ticker', 'cost', 'shares', 'tradeDate']
+    const errorMessage =
+      'Invalid input field: ' +
+      invalidInput.filter((key) => reservedKey.includes(key)).join(', ')
+    const message = {
+      success: false,
+      content: '標的新增失敗',
+      errorMessage,
+      result: req.body
+    }
+
+    res.send(message)
+    return
+  }
+
   const {
     previousCloseChange,
     previousCloseChangePercent,
@@ -220,10 +238,6 @@ router.post('/addStock', async (req, res) => {
 
   try {
     // set tickers
-    const readTickers = await holdingsTemptickersRef
-      .child(tempTicker)
-      .once('value')
-
     holdingsTemptickersRef.child(tempTicker).set(ticker)
     newAddingTempRef.child(tempTicker).set(ticker)
 
@@ -324,6 +338,8 @@ router.post('/addStock', async (req, res) => {
       errorMessage: null,
       result: { ticker, ...tradeInfo }
     }
+
+    console.log('message', message)
     res.send(message)
   } catch (error) {
     const message = {
@@ -363,6 +379,31 @@ router.get('/tradeDetails/:tempTicker', async (req, res) => {
       result: tradeArray
     })
   } catch (error) {}
+})
+
+router.get('/holidays', async (req, res) => {
+  try {
+    const snapshot = await holidaysRef.once('value')
+    const holidays = snapshot.val()
+
+    const message = {
+      success: true,
+      content: 'holidays fetched',
+      errorMessage: null,
+      result: holidays
+    }
+
+    res.send(message)
+  } catch (error) {
+    const message = {
+      success: false,
+      content: 'failed to get holidays',
+      errorMessage: error.message,
+      result: null
+    }
+
+    res.send(message)
+  }
 })
 
 // HISTORY PAGE

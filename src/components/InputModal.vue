@@ -9,7 +9,7 @@
       <slot name="inputs"></slot>
     </template>
     <template #footer>
-      <div class="text-right">
+      <div class="absolute text-right bottom-6 right-0 mr-5">
         <button class="text-blue-600 px-2 py-1.5 mr-2" @click="closeModal">
           Close
         </button>
@@ -64,7 +64,7 @@ export default {
   },
   setup(props) {
     function closeModal() {
-      if (props.closeFunc) props.closeFunc(false);
+      if (props.closeFunc) props.closeFunc({ open: false });
     }
 
     return {
@@ -72,4 +72,20 @@ export default {
     };
   },
 };
+/* 
+打開 buy
+isBuyMore.value = true;
+tickerToBeTraded.value = tickerInfo;
+set validity true：ticker, date
+
+關閉
+清空欄位
+tickerToBeTraded.value = null
+validity 重設
+
+
+
+
+*/
 </script>
+

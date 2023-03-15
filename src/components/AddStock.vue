@@ -7,7 +7,7 @@
       :validateMessage="validateMessage"
       :modelValue="stock.ticker"
       @input="stock.ticker = $event.target.value"
-      @getInputValidity="getInputValidity"
+      @setInputValidity="setInputValidity"
     >
       <small v-if="isValidating" class="flex items-center gap-2 py-1">
         <span
@@ -28,13 +28,13 @@
     <InputCost
       :modelValue="stock.cost"
       @input="stock.cost = $event.target.value"
-      @getInputValidity="getInputValidity"
+      @setInputValidity="setInputValidity"
     />
 
     <InputShares
       :modelValue="stock.shares"
       @input="stock.shares = $event.target.value"
-      @getInputValidity="getInputValidity"
+      @setInputValidity="setInputValidity"
     />
     <button
       type="submit"
@@ -124,7 +124,7 @@ export default {
       return true;
     });
 
-    const getInputValidity = (obj) => {
+    const setInputValidity = (obj) => {
       inputValidity.value[obj.name] = obj.validity;
     };
 
@@ -203,7 +203,7 @@ export default {
       isTickerExist,
       isDisabled,
 
-      getInputValidity,
+      setInputValidity,
       checkFormValidity,
     };
   },

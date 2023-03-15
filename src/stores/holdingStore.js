@@ -3,23 +3,20 @@ import { ref, computed } from 'vue'
 import useAxios from '@/composables/useAxios.js'
 
 const useHoldingStore = defineStore('holding', () => {
-  const today = computed(() => {
-    return new Date().toISOString().split('T')[0]
-  })
-
   const stock = ref({
     ticker: null,
     tempTicker: null,
     cost: null,
     shares: '1',
     style: null,
-    tradeDate: today.value
+    tradeDate: null
   })
 
   const inputValidity = ref({
     ticker: null,
     cost: null,
-    shares: null
+    shares: true,
+    date: null
   })
 
   const { data, error, loading } = useAxios('/api/holdings', 'get')
@@ -44,20 +41,20 @@ const useHoldingStore = defineStore('holding', () => {
   const notificationMessage = ref(null)
   const activateNotification = (val) => (notificationMessage.value = val)
 
-  const isModalOpen = ref(false)
+  // holiday
+  const { data: holidaysRes } = useAxios('/api/holidays', 'get')
 
   return {
     notificationMessage,
-    isModalOpen,
     stock,
     data,
     error,
     loading,
     lastMarketOpenDate,
     inputValidity,
-    today,
     activateNotification,
-    toggleSkeleton
+    toggleSkeleton,
+    holidaysRes
   }
 })
 

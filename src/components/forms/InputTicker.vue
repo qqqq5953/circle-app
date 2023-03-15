@@ -14,8 +14,10 @@
         text-sm text-center
         lg:text-left
         invalid:outline-red-400 invalid:border-red-400 invalid:border
-        focus:ring-blue-300/60 focus:ring-inset focus:ring-2 focus:outline-0
       "
+      :class="{
+        'focus:outline-blue-300/60 focus:outline-2': inputError.length === 0,
+      }"
       ref="tickerRef"
       maxlength="5"
       placeholder="ticker"
@@ -57,7 +59,7 @@ export default {
 
     watch(
       () => props.modelValue,
-      () => emit("getInputValidity", inputValidity.value)
+      () => emit("setInputValidity", inputValidity.value)
     );
 
     watch(
@@ -65,7 +67,7 @@ export default {
       (newObject) => {
         // console.log("validity: false");
 
-        // emit("getInputValidity", { name: "ticker", validity: false });
+        // emit("setInputValidity", { name: "ticker", validity: false });
         tickerRef.value.setCustomValidity(newObject.content);
         inputError.value = newObject.content;
 

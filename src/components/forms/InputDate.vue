@@ -1,7 +1,7 @@
 <template>
   <div>
     <input
-      name="cost"
+      name="date"
       type="date"
       class="
         border border-slate-300
@@ -12,21 +12,20 @@
         w-full
         text-sm text-center
         lg:text-left
-        invalid:outline-red-400 invalid:border-red-400 invalid:border
-        focus:ring-blue-300/60 focus:ring-inset focus:ring-2 focus:outline-0
+        focus:outline-0
+        invalid:border-red-400 invalid:border
+        valid:focus:outline-blue-300/60 valid:focus:outline-2
       "
       ref="dateRef"
-      placeholder="date"
-      :max="today"
       v-model="inputValue"
     />
-    <ErrorDisplay :errors="inputError" v-if="inputError.length" />
+    <ErrorDisplay :errors="inputError" v-if="hasError" />
   </div>
 </template>
 
 <script>
-import { ref, watch, defineAsyncComponent } from "vue";
-import { isYYYYMMDD } from "@/modules/validators";
+import { ref, watch, defineAsyncComponent, computed } from "vue";
+import { isValidDate } from "@/modules/validators";
 import useInputValidator from "@/composables/useInputValidator";
 import useHoldingStore from "@/stores/holdingStore.js";
 import { storeToRefs } from "pinia";
@@ -41,15 +40,16 @@ export default {
     modelValue: {
       type: String,
     },
+    code: {
+      type: String,
+    },
   },
   setup(props, { emit }) {
-    const $store = useHoldingStore();
-    const { today } = storeToRefs($store);
     const dateRef = ref(null);
     const regex = /^\d{4}\-(0[1-9]|1[0-2])\-(0[1-9]|[1-2][0-9]|3[0-1])$/;
 
     const params = {
-      validators: [isYYYYMMDD],
+      validators: [isValidDate],
       modelValue: props.modelValue,
       DOM: dateRef,
       regex,
@@ -57,16 +57,62 @@ export default {
 
     const { inputError, inputValue, inputValidity } = useInputValidator(params);
 
-    watch(
-      () => props.modelValue,
-      () => emit("getInputValidity", inputValidity.value)
+    const hasError = computed(() =>
+      inputError.value.some((error) => error !== "")
     );
+
+    watch(
+      inputValidity,
+      (newValidity) => emit("setInputValidity", newValidity),
+      { deep: true }
+    );
+
+    // 檢查國定假日
+    const $holdingStore = useHoldingStore();
+    const { holidaysRes } = storeToRefs($holdingStore);
+    const countryHolidays = computed(() => {
+      if (!holidaysRes.value.result || !props.code) return;
+      return holidaysRes.value.result[props.code];
+    });
+
+    watch(inputValue, (inputDate) => {
+      if (!inputDate) return;
+
+      try {
+        setHolidayErrorMsg(inputDate);
+      } catch (error) {
+        // 第一次打開 TradePanel 時 countryHolidays.value 還沒好
+        let count = 0;
+        const timeId = setInterval(() => {
+          if (countryHolidays.value || count === 10) {
+            setHolidayErrorMsg(inputDate);
+            clearInterval(timeId);
+          }
+          count++;
+        }, 500);
+      }
+    });
+
+    function setHolidayErrorMsg(isoDate) {
+      const hasHoliday = countryHolidays.value[isoDate];
+      if (!hasHoliday) return;
+
+      const day = new Date(isoDate).getDay();
+      const isWeekend = [0, 6].includes(day);
+      if (isWeekend) return;
+
+      const msg = "Must not select national holiday";
+      dateRef.value.setCustomValidity(msg);
+      inputValidity.value.name = dateRef.value?.name;
+      inputValidity.value.validity = false;
+      inputError.value.push(msg);
+    }
 
     return {
       dateRef,
       inputError,
       inputValue,
-      today,
+      hasError,
     };
   },
 };

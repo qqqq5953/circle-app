@@ -1,5 +1,7 @@
 <template>
-  <main class="px-4 md:p-10 mx-auto w-full max-w-[1200px]">
+  <main
+    class="flex flex-col space-y-10 px-4 md:p-10 mx-auto w-full max-w-[1200px]"
+  >
     <!-- snackbar -->
     <Teleport to="body">
       <Snackbar :barMessage="notificationMessage">
@@ -47,6 +49,56 @@
         <template #okButton>Trade</template>
       </InputModal>
     </Teleport>
+
+    <!-- totalStats -->
+    <section class="px-4 md:px-0 lg:px-4 text-xs" v-if="holdings">
+      <!-- skeleton -->
+      <div class="flex items-center" v-if="loading">
+        <div class="w-40 h-6 bg-gray-300 rounded"></div>
+        <div class="w-[83px] h-6 bg-gray-300 rounded-full ml-auto"></div>
+      </div>
+
+      <!-- title -->
+      <div class="flex items-center" v-if="!loading && totalStats">
+        <h2 class="font-semibold text-lg inline">Total stats</h2>
+        <p class="ml-1 pt-1 tracking-wider">(TWD)</p>
+      </div>
+
+      <!-- skeleton -->
+      <div class="animate-pulse" v-if="!totalStats || !fxRates">
+        <div class="text-right pt-1.5" v-if="fxRatesUsedTwoDecimals">
+          <span class="w-28 h-3 bg-gray-300 rounded-full inline-block"></span>
+        </div>
+        <ul class="flex flex-wrap -m-1 md:-m-2 pt-1.5">
+          <li class="w-1/2 p-1 sm:w-1/4 md:p-2" v-for="i in 4" :key="i">
+            <div
+              class="
+                flex flex-col
+                items-center
+                justify-center
+                gap-y-2
+                bg-slate-100
+                h-12
+                w-full
+                rounded
+                shadow
+              "
+            >
+              <div class="bg-gray-300 rounded-full w-2/3 h-3"></div>
+              <div class="bg-gray-300 rounded-full w-2/3 h-3"></div>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- stats -->
+      <div v-if="totalStats && !loading">
+        <TotalStats
+          :fxRatesUsedTwoDecimals="fxRatesUsedTwoDecimals"
+          :totalStats="totalStats"
+        />
+      </div>
+    </section>
 
     <!-- Top 3 Performance -->
     <section class="px-4 md:px-0 lg:px-4">
@@ -119,11 +171,11 @@
                   "
                 >
                   <span v-if="item.totalStats.profitOrLossValue >= 0">
-                    <span class="mr-px">+$</span>
+                    <span>+$</span>
                     <span>{{ item.totalStats.profitOrLossValue }}</span>
                   </span>
                   <span v-else>
-                    <span class="mr-0.5">-$</span>
+                    <span>-$</span>
                     <span>{{ item.totalStats.profitOrLossValue * -1 }}</span>
                   </span>
                 </p>
@@ -148,58 +200,8 @@
       </div>
     </section>
 
-    <!-- totalStats -->
-    <section class="mt-8 px-4 md:px-0 lg:px-4 text-xs" v-if="holdings">
-      <!-- skeleton -->
-      <div class="flex items-center" v-if="loading">
-        <div class="w-40 h-6 bg-gray-300 rounded"></div>
-        <div class="w-[83px] h-6 bg-gray-300 rounded-full ml-auto"></div>
-      </div>
-
-      <!-- title -->
-      <div class="flex items-center" v-if="!loading && totalStats">
-        <h2 class="font-semibold text-lg inline">Total stats</h2>
-        <p class="ml-1 pt-1 tracking-wider">(TWD)</p>
-      </div>
-
-      <!-- skeleton -->
-      <div class="animate-pulse" v-if="!totalStats || !fxRates">
-        <div class="text-right pt-1.5" v-if="fxRatesUsedTwoDecimals">
-          <span class="w-28 h-3 bg-gray-300 rounded-full inline-block"></span>
-        </div>
-        <ul class="flex flex-wrap -m-1 md:-m-2 pt-1.5">
-          <li class="w-1/2 p-1 sm:w-1/4 md:p-2" v-for="i in 4" :key="i">
-            <div
-              class="
-                flex flex-col
-                items-center
-                justify-center
-                gap-y-2
-                bg-slate-100
-                h-12
-                w-full
-                rounded
-                shadow
-              "
-            >
-              <div class="bg-gray-300 rounded-full w-2/3 h-3"></div>
-              <div class="bg-gray-300 rounded-full w-2/3 h-3"></div>
-            </div>
-          </li>
-        </ul>
-      </div>
-
-      <!-- stats -->
-      <div v-if="totalStats && !loading">
-        <TotalStats
-          :fxRatesUsedTwoDecimals="fxRatesUsedTwoDecimals"
-          :totalStats="totalStats"
-        />
-      </div>
-    </section>
-
     <!-- Holdings -->
-    <section class="mt-8 px-4 md:px-0 lg:px-4">
+    <section class="px-4 md:px-0 lg:px-4">
       <!-- skeleton -->
       <div class="flex items-center" v-if="loading">
         <div class="w-40 h-6 bg-gray-300 rounded"></div>
@@ -267,11 +269,13 @@ import InputSkeleton from "@/components/skeleton/InputSkeleton.vue";
 import TradePanel from "@/components/TradePanel.vue";
 import TotalStats from "@/components/Holdings/TotalStats.vue";
 
-import { ref, defineAsyncComponent, computed, onMounted, watch } from "vue";
+import { ref, defineAsyncComponent, computed, onMounted } from "vue";
 import useHoldingStore from "@/stores/holdingStore.js";
 import useSearchStore from "@/stores/searchStore.js";
 import { storeToRefs } from "pinia";
 import http from "../api/index";
+
+import formatNumber from "@/modules/formatNumber.js";
 
 export default {
   components: {
@@ -288,10 +292,6 @@ export default {
     ),
   },
   setup() {
-    // http.get(`/api/testHolidays/2023`).then((res) => {
-    //   console.log("res", res.data.result);
-    // });
-
     const $searchStore = useSearchStore();
     const { searchList } = storeToRefs($searchStore);
     const $holdingStore = useHoldingStore();
@@ -303,7 +303,6 @@ export default {
     onMounted(() => (searchList.value = null));
 
     // totalStats
-    const isHover = ref(false);
     const codeToCurrencyMap = ref({
       tw: "TWD",
       us: "USDTWD",
@@ -358,14 +357,16 @@ export default {
       );
 
       // 計算總損益、總報酬率
-      stats["Total value"] = parseFloat(stats["Total value"].toFixed(2));
-      stats["Total cost"] = parseFloat(stats["Total cost"].toFixed(2));
-      stats["P / L"] = parseFloat(
-        (stats["Total value"] - stats["Total cost"]).toFixed(2)
-      );
-      stats["P / L %"] = parseFloat(
-        ((stats["P / L"] * 100) / stats["Total cost"]).toFixed(2)
-      );
+      const totalValue = stats["Total value"];
+      const totalCost = stats["Total cost"];
+      stats["Total value"] = formatNumber({ number: totalValue });
+      stats["Total cost"] = formatNumber({ number: totalCost });
+      stats["P / L"] = formatNumber({
+        number: totalValue - totalCost,
+      });
+      stats["P / L %"] = formatNumber({
+        number: ((totalValue - totalCost) * 100) / totalCost,
+      });
 
       return stats;
     }
@@ -380,6 +381,7 @@ export default {
     // holdings
     const holdings = computed(() => {
       if (!data.value) return;
+      console.log(data.value?.result);
       return data.value?.result;
     });
 
@@ -542,7 +544,6 @@ export default {
       fxRatesUsedTwoDecimals,
       totalCodesInHoldings,
       getExchangeRate,
-      isHover,
     };
   },
 };

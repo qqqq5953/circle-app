@@ -6,7 +6,6 @@ const yahooFinance = require('yahoo-finance')
 const firebaseDb = require('../firebase/index.js')
 
 const holidaysRef = firebaseDb.ref('/holidays/')
-const testHolidaysRef = firebaseDb.ref('/testHolidays/')
 const historyRef = firebaseDb.ref('/history/')
 const testRef = firebaseDb.ref('/test/')
 const fxToTWDRef = firebaseDb.ref('/fxToTWD/')
@@ -383,53 +382,6 @@ router.get('/tradeDetails/:tempTicker', async (req, res) => {
   } catch (error) {}
 })
 
-router.get(`/testHolidays/:year`, async (req, res) => {
-  const year = req.params.year
-  const holidays = await fetchHolidays(year)
-  const message = {
-    success: true,
-    content: 'holidays fetched',
-    errorMessage: null,
-    result: holidays
-  }
-
-  res.send(message)
-
-  async function fetchHolidays(year) {
-    const holidayCountryCode = ['US', 'TW']
-    const holidayPromise = holidayCountryCode.map((code) => {
-      return axios.get(
-        `https://calendarific.com/api/v2/holidays?api_key=5957df4e7e6c4c7a2c3761fd4fd56b5e6cd55afb&country=${code}&year=${year}&type=national`
-      )
-    })
-
-    const result = await Promise.allSettled(holidayPromise)
-    const holidays = result.reduce((obj, item, index) => {
-      const code = holidayCountryCode[index]
-      const holidays = item.value.data.response.holidays.reduce(
-        (innerObj, holiday) => {
-          const { name, date } = holiday
-          innerObj[date.iso] = name
-          return innerObj
-        },
-        {}
-      )
-
-      obj[year] = {
-        ...obj[year],
-        [code]: holidays
-      }
-
-      // obj[code] = holidays
-      return obj
-    }, {})
-
-    testHolidaysRef.set(holidays)
-
-    return holidays
-  }
-})
-
 router.get('/holidays', async (req, res) => {
   try {
     const snapshot = await holidaysRef.once('value')
@@ -515,8 +467,8 @@ router.get('/history', async (req, res) => {
       closePricesMap,
       fxRates
     )
-    // console.log('totalValueMap', totalValueMap)
-    // console.log('historyMap', historyMap)
+    console.log('totalValueMap', totalValueMap)
+    console.log('historyMap', historyMap)
 
     // const { totalValueMap1, historyMap1 } = calculateTotalValue1(
     //   testSnapshot,

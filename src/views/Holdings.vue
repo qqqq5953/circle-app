@@ -288,6 +288,10 @@ export default {
     ),
   },
   setup() {
+    // http.get(`/api/testHolidays/2023`).then((res) => {
+    //   console.log("res", res.data.result);
+    // });
+
     const $searchStore = useSearchStore();
     const { searchList } = storeToRefs($searchStore);
     const $holdingStore = useHoldingStore();

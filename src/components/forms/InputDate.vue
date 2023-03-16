@@ -16,6 +16,7 @@
         invalid:border-red-400 invalid:border
         valid:focus:outline-blue-300/60 valid:focus:outline-2
       "
+      min="2022-01-01"
       ref="dateRef"
       v-model="inputValue"
     />
@@ -79,7 +80,9 @@ export default {
       if (!inputDate) return;
 
       try {
+        setLessThanMinErrorMsg(inputDate);
         setHolidayErrorMsg(inputDate);
+        setExceedMaxErrorMsg(inputDate);
       } catch (error) {
         // 第一次打開 TradePanel 時 countryHolidays.value 還沒好
         let count = 0;
@@ -93,6 +96,21 @@ export default {
       }
     });
 
+    function setExceedMaxErrorMsg(isoDate) {
+      const selectedUnix = new Date(isoDate).getTime();
+      const maxDate = new Date(dateRef.value.max).getTime();
+      if (selectedUnix > maxDate) {
+        setErrorMsg("Must not select date after today");
+      }
+    }
+
+    function setLessThanMinErrorMsg(isoDate) {
+      const year = new Date(isoDate).getFullYear();
+      if (year !== 2023) {
+        setErrorMsg("Year must be 2023");
+      }
+    }
+
     function setHolidayErrorMsg(isoDate) {
       const hasHoliday = countryHolidays.value[isoDate];
       if (!hasHoliday) return;
@@ -100,11 +118,14 @@ export default {
       const day = new Date(isoDate).getDay();
       const isWeekend = [0, 6].includes(day);
       if (isWeekend) return;
+      setErrorMsg("Must not select national holiday");
+    }
 
-      const msg = "Must not select national holiday";
+    function setErrorMsg(msg) {
       dateRef.value.setCustomValidity(msg);
       inputValidity.value.name = dateRef.value?.name;
       inputValidity.value.validity = false;
+      inputError.value.length = 0;
       inputError.value.push(msg);
     }
 

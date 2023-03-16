@@ -13,7 +13,14 @@
       "
     >
       <li
-        class="border-r last:border-none border-slate-300 pr-1.5 py-0.5"
+        class="
+          border-r
+          last:border-none
+          border-slate-300
+          pr-1.5
+          py-0.5
+          tracking-wider
+        "
         v-for="(rate, currency) in fxRatesUsedTwoDecimals"
         :key="currency"
       >

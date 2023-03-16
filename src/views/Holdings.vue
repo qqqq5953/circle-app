@@ -159,36 +159,7 @@
       <!-- title -->
       <div class="flex items-center" v-if="!loading && totalStats">
         <h2 class="font-semibold text-lg inline">Total stats</h2>
-        <p class="ml-1 pt-1">(Calculated in TWD)</p>
-        <button
-          class="
-            rounded-full
-            font-semibold
-            py-1
-            ml-auto
-            w-[83px]
-            border border-indigo-600
-            active:bg-indigo-600 active:text-white
-            disabled:bg-indigo-300
-            disabled:border-indigo-300
-            disabled:text-white
-          "
-          :disabled="!totalStats || !fxRates"
-          :class="isHover ? 'bg-indigo-600 text-white' : 'text-indigo-600'"
-          @mouseenter="isHover = true"
-          @mouseleave="isHover = false"
-          @click="
-            getExchangeRate($event);
-            isHover = false;
-          "
-          v-if="currenciesInHoldings.length !== 0"
-        >
-          <i
-            class="fa-solid fa-rotate-right"
-            :class="{ 'animate-spin': !totalStats || !fxRates }"
-          ></i>
-          <span class="mx-1">Refresh</span>
-        </button>
+        <p class="ml-1 pt-1 tracking-wider">(TWD)</p>
       </div>
 
       <!-- skeleton -->
@@ -337,20 +308,18 @@ export default {
       hk: "HKDTWD",
       ks: "KRWTWD",
     });
-    const fxRateApi = "https://api.coinbase.com/v2/exchange-rates";
     const fxRates = ref(null);
-    const currenciesInHoldings = ref([]);
+    const totalCodesInHoldings = ref([]);
     const fxRatesUsedTwoDecimals = computed(() => {
       if (!fxRates.value) return {};
 
-      const { TWD, ...restFx } = fxRates.value;
+      const { tw, ...restCode } = fxRates.value;
       const obj = {};
 
-      for (let i = 0; i < currenciesInHoldings.value.length; i++) {
-        const currency = currenciesInHoldings.value[i];
-
-        let rate = restFx[currency];
-        rate = +(+rate).toFixed(2);
+      for (let i = 0; i < totalCodesInHoldings.value.length; i++) {
+        const code = totalCodesInHoldings.value[i];
+        const currency = codeToCurrencyMap.value[code];
+        const rate = +(+restCode[code]).toFixed(2);
         obj[currency] = rate;
       }
 
@@ -358,19 +327,22 @@ export default {
     });
     const totalStats = computed(() => {
       if (!data.value?.result || !fxRates.value) return {};
-      currenciesInHoldings.value.length = 0;
+      totalCodesInHoldings.value.length = 0;
+      const stats = getTotalStats();
+      return stats;
+    });
 
+    function getTotalStats() {
       // 計算總成本、總市值
       const stats = Object.values(data.value.result).reduce(
         (obj, item) => {
           const { latestInfo, totalStats } = item;
           const { totalValue, totalCost } = totalStats;
           const { code } = latestInfo;
-          const currency = codeToCurrencyMap.value[code];
-          const exchangeRate = fxRates.value[currency];
+          const exchangeRate = fxRates.value[code];
 
-          if (currency !== "TWD") {
-            currenciesInHoldings.value.push(currency);
+          if (code !== "tw" && !totalCodesInHoldings.value.includes(code)) {
+            totalCodesInHoldings.value.push(code);
           }
 
           obj["Total value"] += totalValue * parseFloat(exchangeRate);
@@ -392,40 +364,11 @@ export default {
       );
 
       return stats;
-    });
+    }
 
     async function getExchangeRate(e) {
-      // 阻止連續點擊
-      if (e && !fxRates.value) return;
-
-      const currencies = ["TWD", "USD", "GBP", "HKD", "KRW"];
-      const currencyPromise = currencies.map((currency) => {
-        return http.get(`${fxRateApi}?currency=${currency}`);
-      });
-
-      const res = await Promise.allSettled(currencyPromise);
-      const rateMap = res.reduce((obj, item) => {
-        const { currency, rates } = item.value.data.data;
-        if (currency !== "TWD") {
-          obj[`${currency}TWD`] = rates.TWD;
-        } else {
-          obj[`TWD`] = rates.TWD;
-        }
-
-        return obj;
-      }, {});
-
-      // refresh 時延遲一秒顯示 loading effect
-      if (e?.type === "click") {
-        fxRates.value = null;
-        setTimeout(() => {
-          fxRates.value = rateMap;
-        }, 300);
-      } else {
-        fxRates.value = rateMap;
-      }
-
-      console.log("fxRates.value", fxRates.value.USDTWD);
+      const res = await http.get(`/api/fxRates`);
+      fxRates.value = res.data.result;
     }
 
     getExchangeRate();
@@ -593,7 +536,7 @@ export default {
       totalStats,
       fxRates,
       fxRatesUsedTwoDecimals,
-      currenciesInHoldings,
+      totalCodesInHoldings,
       getExchangeRate,
       isHover,
     };

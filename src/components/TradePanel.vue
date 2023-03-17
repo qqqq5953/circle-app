@@ -161,7 +161,6 @@ export default {
       const twUpdateTime = new Date();
       twUpdateTime.setHours(13);
       twUpdateTime.setMinutes(30);
-
       let maxDate;
 
       if (now.getDay() === 6) {
@@ -185,7 +184,7 @@ export default {
       return maxDate;
     }
 
-    function getUSMaxDate() {
+    function getUSMaxDate(code) {
       const now = new Date();
       const usUpdateTime = new Date();
       usUpdateTime.setHours(5);
@@ -195,27 +194,35 @@ export default {
       if (now.getDay() === 6) {
         // 星期六
         console.log("星期六");
-        maxDate = getISODate(1);
+        if (now.getTime() >= usUpdateTime.getTime()) {
+          // 超過零晨五點 選星期五
+          console.log("超過零晨五點 選星期五");
+          maxDate = getMaxDate(code, 1);
+        } else {
+          // 早於零晨五點 選星期四
+          console.log("早於零晨五點 選星期四");
+          maxDate = getMaxDate(code, 2);
+        }
       } else if (now.getDay() === 0) {
         // 星期日
         console.log("星期日");
-        maxDate = getISODate(2);
+        maxDate = getMaxDate(code, 2);
       } else if (now.getDay() === 1) {
         // 星期一
         console.log("星期一");
-        maxDate = getISODate(3);
+        maxDate = getMaxDate(code, 3);
       } else if (now.getTime() >= usUpdateTime.getTime()) {
         // 星期二到五 超過零晨五點 選昨天
         console.log("星期二到五 超過零晨五點 選昨天");
-        maxDate = getISODate(1);
+        maxDate = getMaxDate(code, 1);
       } else if (now.getDay() === 2) {
         // 星期二 早於零晨五點 選上週五
         console.log("星期二 早於零晨五點 選上週五");
-        maxDate = getISODate(4);
+        maxDate = getMaxDate(code, 4);
       } else {
         // 星期三到五 早於零晨五點 選前天
         console.log("星期三到五 早於零晨五點 選前天");
-        maxDate = getISODate(2);
+        maxDate = getMaxDate(code, 2);
       }
 
       return maxDate;

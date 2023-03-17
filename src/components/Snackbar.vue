@@ -13,7 +13,6 @@
       text-white text-sm
       sm:mx-auto sm:w-1/2
       md:w-1/3
-      lg:w-2/5
     "
     :class="{
       'animate-fade-in': isFadeIn,
@@ -21,7 +20,7 @@
     }"
   >
     <div
-      class="flex items-center py-3 px-6"
+      class="flex items-center py-3 px-6 relative"
       :class="{ 'border-b border-slate-200': message.result }"
     >
       <i
@@ -30,17 +29,32 @@
           message.status === false || error ? 'text-red-400' : 'text-green-400'
         "
       ></i>
-      <div class="mx-4 tracking-wider">
+      <div class="ml-4 tracking-wider">
         <span class="font-semibold">{{ message.title }}</span>
         <div class="text-xs mt-1" v-if="message.errorMessage">
           {{ message.errorMessage }}
         </div>
       </div>
-      <div class="ml-auto text-xs" v-if="message.result && !error">
+      <div
+        class="ml-auto mr-4 text-xs shrink-0"
+        v-if="message.result && !error"
+      >
         <slot name="btn" :tradeResult="message"></slot>
       </div>
-      <div class="ml-4" v-if="error">{{ error }}</div>
-      <a href="#" @click.prevent="closeToast(true)" class="ml-auto">
+      <div class="mx-4" v-if="error">{{ error }}</div>
+      <a
+        class="
+          absolute
+          top-1
+          right-2
+          py-0.5
+          px-2
+          cursor-pointer
+          hover:bg-gray-100/30 hover:rounded-full
+        "
+        href="#"
+        @click.prevent="closeToast(true)"
+      >
         <i class="fa-solid fa-xmark fa-sm"></i>
       </a>
     </div>

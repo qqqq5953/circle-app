@@ -22,7 +22,7 @@
               text-indigo-700
               hover:bg-white
             "
-            >View result</router-link
+            >View</router-link
           >
         </template>
       </Snackbar>
@@ -209,7 +209,7 @@
       </div>
 
       <div
-        class="flex items-center justify-between mb-2"
+        class="flex items-center justify-between mb-4"
         v-if="!loading && holdings"
       >
         <h2 class="font-semibold text-lg">Holdings</h2>
@@ -269,7 +269,7 @@ import InputSkeleton from "@/components/skeleton/InputSkeleton.vue";
 import TradePanel from "@/components/TradePanel.vue";
 import TotalStats from "@/components/Holdings/TotalStats.vue";
 
-import { ref, defineAsyncComponent, computed, onMounted } from "vue";
+import { ref, defineAsyncComponent, computed, onMounted, nextTick } from "vue";
 import useHoldingStore from "@/stores/holdingStore.js";
 import useSearchStore from "@/stores/searchStore.js";
 import { storeToRefs } from "pinia";
@@ -381,7 +381,6 @@ export default {
     // holdings
     const holdings = computed(() => {
       if (!data.value) return;
-      console.log(data.value?.result);
       return data.value?.result;
     });
 
@@ -431,7 +430,6 @@ export default {
         try {
           const res = await http.get(`/api/holdings`);
           data.value = res.data;
-          console.log("res", res);
         } catch (error) {
           console.log("updateHoldings error", error);
         }
@@ -447,7 +445,7 @@ export default {
     const isBuyMore = ref(null);
     const isModalOpen = ref(false);
 
-    function toggleModal(parmas) {
+    async function toggleModal(parmas) {
       const { open, type, ...tickerInfo } = parmas;
       const style = open ? "overflow:hidden" : null;
       disableVerticalScrollbar(style);
@@ -458,6 +456,8 @@ export default {
         const { inputDateRef } = newAddingRef.value.$refs;
         inputDateRef.dateRef.disabled = true;
 
+        // 等關閉後再清空，否則 api 會傳失敗
+        await nextTick();
         resetInput();
         return;
       }

@@ -138,6 +138,7 @@ export default {
       code.value = countryCode;
 
       const maxDate = getMaxInputDate(countryCode);
+      stock.value.tradeDate = maxDate;
       inputDateRef.value.inputValue = maxDate;
       inputDateRef.value.$refs.dateRef.max = maxDate;
       inputDateRef.value.$refs.dateRef.disabled = false;

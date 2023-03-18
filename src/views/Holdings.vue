@@ -101,7 +101,10 @@
     </section>
 
     <!-- Top 3 Performance -->
-    <section class="px-4 md:px-0 lg:px-4">
+    <section
+      class="px-4 md:px-0 lg:px-4"
+      v-if="topThreePerformance.length >= 3"
+    >
       <div class="flex items-center mb-4">
         <div class="w-40 h-6 bg-gray-300 rounded" v-if="loading"></div>
         <h2
@@ -364,9 +367,8 @@ export default {
       stats["P / L"] = formatNumber({
         number: totalValue - totalCost,
       });
-      stats["P / L %"] = formatNumber({
-        number: ((totalValue - totalCost) * 100) / totalCost,
-      });
+      stats["P / L %"] =
+        (((totalValue - totalCost) * 100) / totalCost).toFixed(2) + "%";
 
       return stats;
     }

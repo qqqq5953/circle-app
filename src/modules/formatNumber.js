@@ -2,15 +2,14 @@ const formatNumber = ({
   number,
   locales = 'en-US',
   signDisplay = 'auto',
-  currency = 'USD',
-  decimal = 2
+  style = 'currency',
+  currency = 'USD'
 }) => {
-  const twoDecimal = parseFloat(number.toFixed(decimal))
-
   return new Intl.NumberFormat(locales, {
     signDisplay,
+    style,
     currency
-  }).format(twoDecimal)
+  }).format(number)
 }
 
 export default formatNumber

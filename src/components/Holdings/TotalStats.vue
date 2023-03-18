@@ -55,15 +55,15 @@
           <span
             class="font-medium text-sm md:text-base"
             :class="
-              value > 0 && (key === 'P / L' || key === 'P / L %')
+              !value.includes('-') && (key === 'P / L' || key === 'P / L %')
                 ? 'text-red-600'
-                : value < 0 && (key === 'P / L' || key === 'P / L %')
+                : value.includes('-') && (key === 'P / L' || key === 'P / L %')
                 ? 'text-green-700'
                 : null
             "
-            >{{ key !== "P / L %" ? "$" : null }}{{ value }}
-            {{ key === "P / L %" ? "%" : null }}</span
           >
+            {{ value }}
+          </span>
           <span class="font-light">{{ key }}</span>
         </div>
       </li>
@@ -83,6 +83,3 @@ export default {
   },
 };
 </script>
-
-<style>
-</style>

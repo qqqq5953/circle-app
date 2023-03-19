@@ -1,64 +1,85 @@
 <template>
-  <div
-    v-if="isActivate"
-    class="
-      fixed
-      right-6
-      left-6
-      bottom-6
-      z-10
-      shadow
-      rounded
-      bg-indigo-700
-      text-white text-sm
-      sm:mx-auto sm:w-1/2
-      md:w-1/3
-    "
-    :class="{
-      'animate-fade-in': isFadeIn,
-      'animate-fade-out': isFadeOut,
-    }"
-  >
+  <transition>
     <div
-      class="flex items-center py-3 px-6 relative"
-      :class="{ 'border-b border-slate-200': message.result }"
+      v-if="isActivate"
+      class="
+        fixed
+        right-6
+        left-6
+        bottom-6
+        z-10
+        sm:mx-auto sm:w-1/2
+        md:w-1/3
+        flex flex-col
+        space-y-3
+      "
     >
-      <i
-        class="fa-solid fa-square fa-xs"
-        :class="
-          message.status === false || error ? 'text-red-400' : 'text-green-400'
+      <div
+        class="
+          flex
+          items-center
+          py-3
+          px-6
+          relative
+          bg-indigo-700
+          text-white text-sm
+          shadow
+          rounded
         "
-      ></i>
-      <div class="ml-4 tracking-wider">
-        <span class="font-semibold">{{ message.title }}</span>
-        <div class="text-xs mt-1" v-if="message.errorMessage">
+        :class="{ 'border-b border-slate-200': message.errorMessage }"
+        v-for="message in messages"
+        :key="message.title"
+      >
+        <i
+          class="fa-solid fa-square fa-xs"
+          :class="message.status === false ? 'text-red-400' : 'text-green-400'"
+        ></i>
+        <div class="ml-4 tracking-wider font-semibold">
+          {{ message.title }}
+        </div>
+        <div class="ml-auto mr-4 text-xs shrink-0" v-if="message.routeName">
+          <router-link
+            :to="{
+              name: message.routeName,
+              params: {
+                tradeResult: JSON.stringify(message),
+              },
+            }"
+            class="
+              px-2
+              py-1.5
+              rounded
+              text-xs
+              bg-gray-100
+              text-indigo-700
+              hover:bg-white
+            "
+            >View</router-link
+          >
+        </div>
+        <a
+          class="
+            absolute
+            right-2
+            py-0.5
+            px-2
+            cursor-pointer
+            hover:bg-gray-100/30 hover:rounded-full
+          "
+          :class="[
+            message.errorMessage ? 'top-2 mt-px' : 'top-1/2 -translate-y-1/2',
+          ]"
+          href="#"
+          @click.prevent="isActivate = false"
+        >
+          <i class="fa-solid fa-xmark fa-sm"></i>
+        </a>
+        <div class="text-xs py-3 px-6" v-if="message.errorMessage">
           {{ message.errorMessage }}
         </div>
       </div>
-      <div
-        class="ml-auto mr-4 text-xs shrink-0"
-        v-if="message.result && !error"
-      >
-        <slot name="btn" :tradeResult="message"></slot>
-      </div>
-      <div class="mx-4" v-if="error">{{ error }}</div>
-      <a
-        class="
-          absolute
-          top-1
-          right-2
-          py-0.5
-          px-2
-          cursor-pointer
-          hover:bg-gray-100/30 hover:rounded-full
-        "
-        href="#"
-        @click.prevent="closeToast(true)"
-      >
-        <i class="fa-solid fa-xmark fa-sm"></i>
-      </a>
     </div>
-  </div>
+  </transition>
 </template>
 
 <script>
@@ -66,108 +87,35 @@ import { computed, ref, watch } from "vue";
 export default {
   props: {
     barMessage: {
-      type: Object,
+      type: Array,
     },
   },
   setup(props) {
-    const isFadeIn = ref(false);
-    const isFadeOut = ref(false);
     const isActivate = ref(false);
-    const error = ref(null);
-
-    const message = computed(() => {
-      if (!props.barMessage) return;
-
-      const { success, content, errorMessage, result } = props.barMessage;
-
-      return {
-        status: success,
-        title: content,
-        errorMessage,
-        result,
-      };
-
-      // let obj;
-      // if (typeof props.barMessage === "object") {
-      //   obj = {
-      //     status: props.barMessage?.success,
-      //     title: props.barMessage?.content,
-      //     errorMessage: props.barMessage?.errorMessage,
-      //     result: props.barMessage?.result,
-      //   };
-      // } else {
-      //   // error passed from AddStock.vue is of string type
-      //   obj = {
-      //     status: false,
-      //     title: props.barMessage,
-      //     result: null,
-      //   };
-      // }
-
-      // return obj;
+    const messages = computed(() => {
+      return props.barMessage;
     });
 
-    let toastOutTimer;
-    const toastOut = (ms) => {
-      return new Promise((resolve) => {
-        toastOutTimer = setTimeout(() => {
-          isFadeIn.value = false;
-          isFadeOut.value = true;
-          resolve();
-        }, ms);
-      });
-    };
-
-    const toastIn = (ms) => {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          isFadeIn.value = true;
-          resolve();
-        }, ms);
-      });
-    };
-
-    const activateNotification = async (inMilisecond, outMilisecond) => {
-      try {
+    watch(
+      () => props.barMessage,
+      () => {
         isActivate.value = true;
-        await toastIn(inMilisecond);
-        await toastOut(outMilisecond);
-      } catch (error) {
-        error.value = error;
-        console.log("error", error);
-      }
-    };
 
-    const deactivateToast = (milisecond) => {
-      setTimeout(() => {
-        isFadeOut.value = false;
-        isActivate.value = false;
-      }, milisecond);
-    };
-
-    const closeToast = (isClose) => {
-      isFadeOut.value = false;
-      isFadeIn.value = false;
-      isActivate.value = !isClose;
-    };
-
-    watch(message, () => {
-      activateNotification(1, 1000000);
-      deactivateToast(1100000);
-    });
-
-    watch(isActivate, (newVal) => {
-      if (!newVal) clearTimeout(toastOutTimer);
-    });
+        setTimeout(() => {
+          isActivate.value = false;
+          messages.value.pop();
+        }, 10000);
+      },
+      { deep: true }
+    );
 
     return {
-      message,
-      isFadeIn,
-      isFadeOut,
       isActivate,
-      error,
-      closeToast,
+      messages,
     };
   },
 };
 </script>
+
+<style scoped>
+</style>

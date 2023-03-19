@@ -2,32 +2,6 @@
   <main
     class="flex flex-col space-y-10 px-4 md:p-10 mx-auto w-full max-w-[1200px]"
   >
-    <!-- snackbar -->
-    <Teleport to="body">
-      <Snackbar :barMessage="notificationMessage">
-        <template #btn="{ tradeResult }">
-          <router-link
-            :to="{
-              name: 'TradeResult',
-              params: {
-                tradeResult: JSON.stringify(tradeResult),
-              },
-            }"
-            class="
-              px-2
-              py-1.5
-              rounded
-              text-xs
-              bg-gray-100
-              text-indigo-700
-              hover:bg-white
-            "
-            >View</router-link
-          >
-        </template>
-      </Snackbar>
-    </Teleport>
-
     <!-- trade modal -->
     <Teleport to="body">
       <InputModal
@@ -272,12 +246,19 @@ import InputSkeleton from "@/components/skeleton/InputSkeleton.vue";
 import TradePanel from "@/components/TradePanel.vue";
 import TotalStats from "@/components/Holdings/TotalStats.vue";
 
-import { ref, defineAsyncComponent, computed, onMounted, nextTick } from "vue";
+import {
+  ref,
+  defineAsyncComponent,
+  computed,
+  onMounted,
+  nextTick,
+  inject,
+} from "vue";
 import useHoldingStore from "@/stores/holdingStore.js";
 import useSearchStore from "@/stores/searchStore.js";
 import { storeToRefs } from "pinia";
 import http from "../api/index";
-
+import useAxios from "@/composables/useAxios.js";
 import formatNumber from "@/modules/formatNumber.js";
 
 export default {
@@ -289,7 +270,6 @@ export default {
     CardSkeleton,
     TableSkeleton,
     InputSkeleton,
-    Snackbar: defineAsyncComponent(() => import("@/components/Snackbar.vue")),
     InputModal: defineAsyncComponent(() =>
       import("@/components/InputModal.vue")
     ),
@@ -298,12 +278,22 @@ export default {
     const $searchStore = useSearchStore();
     const { searchList } = storeToRefs($searchStore);
     const $holdingStore = useHoldingStore();
-    const { notificationMessage, data, error, loading, stock, inputValidity } =
-      storeToRefs($holdingStore);
-    const { toggleSkeleton, activateNotification } = $holdingStore;
+    const { stock, inputValidity } = storeToRefs($holdingStore);
+    const setSnackbarMessage = inject("setSnackbarMessage");
 
     // 跨頁面時重置 searchList
     onMounted(() => (searchList.value = null));
+
+    // holdings
+    const { data, error, loading } = useAxios("/api/holdings", "get");
+    const holdings = computed(() => {
+      if (!data.value) return;
+      return data.value?.result;
+    });
+
+    function toggleSkeleton(isLoading) {
+      loading.value = isLoading;
+    }
 
     // totalStats
     const codeToCurrencyMap = ref({
@@ -373,18 +363,12 @@ export default {
       return stats;
     }
 
-    async function getExchangeRate(e) {
+    // fx rate
+    async function getExchangeRate() {
       const res = await http.get(`/api/fxRates`);
       fxRates.value = res.data.result;
     }
-
     getExchangeRate();
-
-    // holdings
-    const holdings = computed(() => {
-      if (!data.value) return;
-      return data.value?.result;
-    });
 
     // addStock
     const isAllValid = computed(() => {
@@ -438,7 +422,7 @@ export default {
       }
 
       toggleSkeleton(false);
-      activateNotification({ ...newData, result });
+      setSnackbarMessage({ ...newData, result, routeName: "TradeResult" });
     }
 
     // toggleModal
@@ -529,7 +513,6 @@ export default {
       data,
       loading,
       error,
-      notificationMessage,
 
       isModalOpen,
       tickerToBeTraded,
@@ -550,20 +533,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.5s ease-in-out;
-}
-
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-}
-
-.modal-enter-to,
-.modal-leave-from {
-  opacity: 1;
-}
-</style>

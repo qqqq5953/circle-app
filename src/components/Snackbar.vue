@@ -1,5 +1,5 @@
 <template>
-  <transition>
+  <Transition name="bar">
     <div
       v-if="isActivate"
       class="
@@ -79,7 +79,7 @@
         </div>
       </div>
     </div>
-  </transition>
+  </Transition>
 </template>
 
 <script>
@@ -118,4 +118,18 @@ export default {
 </script>
 
 <style scoped>
+.bar-enter-active,
+.bar-leave-active {
+  transition: opacity 0.5s ease-in-out;
+}
+
+.bar-enter-from,
+.bar-leave-to {
+  opacity: 0;
+}
+
+.bar-enter-to,
+.bar-leave-from {
+  opacity: 1;
+}
 </style>

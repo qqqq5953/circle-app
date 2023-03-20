@@ -1,6 +1,5 @@
 <template>
   <router-view class="h-screen" />
-
   <Snackbar :barMessage="messages" />
 </template>
 
@@ -33,20 +32,5 @@ export default {
 <style>
 * {
   -webkit-tap-highlight-color: transparent;
-}
-
-.v-enter-active,
-.v-leave-active {
-  transition: opacity 0.5s ease-in-out;
-}
-
-.v-enter-from,
-.v-leave-to {
-  opacity: 0;
-}
-
-.v-enter-to,
-.v-leave-from {
-  opacity: 1;
 }
 </style>

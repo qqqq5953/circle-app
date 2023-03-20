@@ -1,5 +1,8 @@
 <template>
-  <div class="flex flex-col gap-4 py-2 px-3 max-w-[1000px] w-full mx-auto">
+  <div
+    class="flex flex-col gap-4 py-2 px-3 max-w-[1000px] w-full mx-auto"
+    v-if="totalStats"
+  >
     <section>
       <h1 class="flex items-center gap-x-3 pb-2" v-if="basicInfo">
         <span class="ticker-badge" :class="basicInfo.style">
@@ -9,11 +12,7 @@
       </h1>
 
       <TitleList :titles="titles_Total" />
-      <ContentList
-        :list="totalStats"
-        fontWeight="font-medium"
-        v-if="totalStats"
-      >
+      <ContentList :list="totalStats" fontWeight="font-medium">
         <template #diff-percent>
           <span
             class="inline-block px-2 py-1 rounded"
@@ -76,20 +75,20 @@
           <span
             class="inline-block font-medium"
             :class="
-              basicInfo.price > price
+              basicInfo.close > price
                 ? 'text-red-600'
-                : basicInfo.price < price
+                : basicInfo.close < price
                 ? 'text-green-700'
                 : 'text-slate-500'
             "
           >
             <i
               class="fas fa-arrow-up text-red-600"
-              v-if="basicInfo.price > price"
+              v-if="basicInfo.close > price"
             ></i>
             <i
               class="fas fa-arrow-down text-green-700"
-              v-else-if="basicInfo.price < price"
+              v-else-if="basicInfo.close < price"
             ></i>
             <span v-else>--</span>
             <span class="ml-1">
@@ -101,9 +100,9 @@
           <span
             class="inline-block"
             :class="
-              basicInfo.price > price
+              basicInfo.close > price
                 ? 'text-red-600'
-                : basicInfo.price < price
+                : basicInfo.close < price
                 ? 'text-green-700'
                 : 'text-slate-500'
             "
@@ -114,68 +113,79 @@
         <template #totlal-value="{ value }">
           <span>${{ value }}</span>
         </template>
+        <template #delete="{ id }">
+          <button @click="deleteTrade(id)">
+            <i class="fa-regular fa-trash-can"></i>
+          </button>
+        </template>
       </ContentList>
     </section>
   </div>
 </template>
 
 <script>
-import { ref } from "vue";
+import { inject, ref } from "vue";
 import http from "../api/index";
 import TitleList from "@/components/TradeDetails/TitleList.vue";
 import ContentList from "@/components/TradeDetails/ContentList.vue";
+import { useRouter, useRoute } from "vue-router";
 
 export default {
   components: {
     TitleList,
     ContentList,
   },
-  props: {
-    holdings: Object,
-  },
-  setup(props) {
+  setup() {
     const basicInfo = ref(null);
     const totalStats = ref(null);
     const tradeList = ref(null);
+    const router = useRouter();
+    const route = useRoute();
 
-    http
-      .get(`/api/tradeDetails/${props.holdings.latestInfo.tempTicker}`)
-      .then((res) => {
-        const { latestInfo, totalStats: stats } = props.holdings;
-        const { ticker, name, style, close } = latestInfo;
+    async function getTradeDetails() {
+      const tempTicker = route.query.tempTicker;
+      const res = await http.get(`/api/tradeDetails/${tempTicker}`);
 
-        basicInfo.value = { ticker, name, style, price: close };
-        totalStats.value = [stats].map((item) => {
-          const { totalShares, profitOrLossPercentage, profitOrLossValue } =
-            item;
-          return {
-            id: Date.now(),
-            price: close,
-            shares: totalShares,
-            date: new Date().toLocaleDateString("zh-TW").replace(/\//g, "-"),
-            value: close * totalShares,
-            profitOrLossPercentage,
-            profitOrLossValue,
-          };
-        });
-        tradeList.value = res.data.result.map((trade) => {
-          const { id, cost, shares, status, tradeDate } = trade;
-          return {
-            id,
-            shares,
-            status,
-            price: cost,
-            date: tradeDate,
-            value: close * shares,
-          };
-        });
+      if (!res.data.result) {
+        return router.replace({ name: "Holdings1" });
+      }
+
+      const { sortedTrade, stats, latestInfo } = res.data.result;
+      const { close } = latestInfo;
+
+      basicInfo.value = latestInfo;
+      totalStats.value = [stats].map((item) => {
+        const { totalShares, profitOrLossPercentage, profitOrLossValue } = item;
+        return {
+          id: Date.now(),
+          price: close,
+          shares: totalShares,
+          date: new Date().toLocaleDateString("zh-TW").replace(/\//g, "-"),
+          value: close * totalShares,
+          profitOrLossPercentage,
+          profitOrLossValue,
+        };
       });
+      tradeList.value = sortedTrade.map((trade) => {
+        const { id, cost, shares, status, tradeDate } = trade;
+        return {
+          id,
+          shares,
+          status,
+          price: cost,
+          date: tradeDate,
+          value: close * shares,
+        };
+      });
+    }
+
+    getTradeDetails();
 
     function calculatePerformance(type, cost) {
       switch (type) {
         case "percent": {
           const percent = parseFloat(
-            (((basicInfo.value.price - cost) * 100) / cost).toFixed(2)
+            (((basicInfo.value.close - cost) * 100) / cost).toFixed(2)
           );
           if (percent >= 0) {
             return `${percent}`;
@@ -184,7 +194,7 @@ export default {
           }
         }
         case "value": {
-          const value = parseFloat((basicInfo.value.price - cost).toFixed(2));
+          const value = parseFloat((basicInfo.value.close - cost).toFixed(2));
           if (value > 0) {
             return `+$${value}`;
           } else if (value < 0) {
@@ -207,19 +217,23 @@ export default {
       },
       {
         name: "Total shares",
-        style: "w-[22%] text-right",
+        style: "w-1/5 text-right",
       },
       {
         name: "P / L %",
-        style: "w-1/5 grow text-right",
+        style: "w-1/4 sm:w-1/5 grow text-right",
       },
       {
         name: "P / L",
-        style: "w-[15%] grow text-right",
+        style: "w-[15%] hidden sm:block grow text-right",
       },
       {
         name: "Value",
         style: "w-[15%] hidden sm:block grow text-right",
+      },
+      {
+        name: "",
+        style: "w-[15%] grow text-right",
       },
     ]);
 
@@ -234,21 +248,35 @@ export default {
       },
       {
         name: "Shares",
-        style: "w-[22%] text-right",
+        style: "w-1/5 text-right ",
       },
       {
         name: "P / L %",
-        style: "w-1/5 grow text-right",
+        style: "w-1/4 sm:w-1/5 grow text-right",
       },
       {
         name: "P / L",
-        style: "w-[15%] grow text-right",
+        style: "w-[15%] hidden sm:block grow text-right",
       },
       {
         name: "Value",
         style: "w-[15%] hidden sm:block grow text-right",
       },
+      {
+        name: "",
+        style: "w-[15%] grow text-right",
+      },
     ]);
+
+    const setSnackbarMessage = inject("setSnackbarMessage");
+    async function deleteTrade(id) {
+      const res = await http.post(
+        `/api/delete/${basicInfo.value.tempTicker}/${id}`
+      );
+
+      setSnackbarMessage(res.data);
+      await getTradeDetails();
+    }
 
     return {
       tradeList,
@@ -257,6 +285,7 @@ export default {
       calculatePerformance,
       titles_Total,
       titles_Records,
+      deleteTrade,
     };
   },
 };

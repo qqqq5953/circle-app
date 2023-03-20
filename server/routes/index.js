@@ -199,6 +199,76 @@ router.post('/deleteAll', async (req, res) => {
     })
 })
 
+router.post('/delete/:tempTicker/:tradeId', async (req, res) => {
+  const { tradeId, tempTicker } = req.params
+
+  try {
+    const result = await Promise.allSettled([
+      holdingsLatestInfoRef.child(tempTicker).once('value'),
+      holdingsStatsRef.child(tempTicker).once('value'),
+      holdingsTradeRef.child(tempTicker).child(tradeId).once('value')
+    ])
+
+    const [latestInfo, stats, trade] = result.map((item) => item.value.val())
+
+    const { close } = latestInfo
+    const { cost, shares, tradeDate } = trade
+    const { totalCost, totalShares } = stats
+    const newTotalCost = totalCost - cost
+    const newTotalShares = totalShares - shares
+    const newAverageCost = newTotalCost / newTotalShares
+    const { profitOrLossPercentage, profitOrLossValue } = calculateStats(
+      close,
+      newAverageCost,
+      newTotalShares
+    )
+
+    // delete close cache
+    closeCacheRef
+      .child('closePrice')
+      .child(`${tradeDate}_${tempTicker}`)
+      .remove()
+
+    // delete history trade
+    historyRef.child(tradeDate).child(tradeId).remove()
+
+    // delete holdingsTrade
+    await holdingsTradeRef.child(tempTicker).child(tradeId).remove()
+
+    if (newTotalShares !== 0) {
+      // update holdingsStats
+      updateDb(holdingsStatsRef, tempTicker, {
+        totalCost: newTotalCost,
+        totalShares: newTotalShares,
+        averageCost: newAverageCost,
+        profitOrLossPercentage,
+        profitOrLossValue
+      })
+    } else {
+      // 該標的已全數刪除，刪除 holdingsTemptickers,  holdingsLatestInfo, holdingsStatsRef
+      holdingsTemptickersRef.child(tempTicker).remove()
+      holdingsLatestInfoRef.child(tempTicker).remove()
+      holdingsStatsRef.child(tempTicker).remove()
+      newAddingTempRef.child(tempTicker).remove()
+    }
+
+    res.send({
+      success: true,
+      content: 'trade deleted',
+      errorMessage: null,
+      result: null
+    })
+  } catch (error) {
+    console.log('error', error)
+    res.send({
+      success: false,
+      content: 'trade delete falied',
+      errorMessage: error.message,
+      result: null
+    })
+  }
+})
+
 router.post('/addStock', async (req, res) => {
   const invalidInput = Object.keys(req.body).filter((key) => !req.body[key])
 
@@ -356,8 +426,9 @@ router.post('/addStock', async (req, res) => {
 router.get('/tradeDetails/:tempTicker', async (req, res) => {
   try {
     const tempTicker = req.params.tempTicker
-    const tickerRef = await holdingsTradeRef.child(tempTicker).once('value')
-    const tradeDetails = tickerRef.val()
+    const tradeSnapshot = await holdingsTradeRef.child(tempTicker).once('value')
+    const tradeDetails = tradeSnapshot.val()
+
     console.log('tradeDetails', tradeDetails)
 
     if (!tradeDetails) {
@@ -368,8 +439,14 @@ router.get('/tradeDetails/:tempTicker', async (req, res) => {
         result: null
       })
     }
+    const result = await Promise.allSettled([
+      holdingsStatsRef.child(tempTicker).once('value'),
+      holdingsLatestInfoRef.child(tempTicker).once('value')
+    ])
 
-    const tradeArray = [...Object.values(tradeDetails)].sort((a, b) => {
+    const [stats, latestInfo] = result.map((item) => item.value.val())
+
+    const sortedTrade = [...Object.values(tradeDetails)].sort((a, b) => {
       return b.tradeUnix - a.tradeUnix
     })
 
@@ -377,7 +454,7 @@ router.get('/tradeDetails/:tempTicker', async (req, res) => {
       success: true,
       content: '成功獲得交易紀錄',
       errorMessage: null,
-      result: tradeArray
+      result: { sortedTrade, stats, latestInfo }
     })
   } catch (error) {}
 })

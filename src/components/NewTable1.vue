@@ -352,8 +352,8 @@
                 "
                 :to="{
                   name: 'TradeDetails',
-                  params: {
-                    holdings: JSON.stringify(item),
+                  query: {
+                    tempTicker: item.latestInfo.tempTicker,
                   },
                 }"
               >

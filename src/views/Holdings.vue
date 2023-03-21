@@ -17,6 +17,8 @@
             ref="newAddingRef"
             :tickerToBeTraded="tickerToBeTraded"
             :isBuyMore="isBuyMore"
+            :inputValidity="inputValidity"
+            @setInputValidity="setInputValidity"
             v-show="!loading"
           />
         </template>
@@ -278,11 +280,25 @@ export default {
     const $searchStore = useSearchStore();
     const { searchList } = storeToRefs($searchStore);
     const $holdingStore = useHoldingStore();
-    const { stock, inputValidity } = storeToRefs($holdingStore);
+    const { stock } = storeToRefs($holdingStore);
     const setSnackbarMessage = inject("setSnackbarMessage");
 
+    const inputValidity = ref({
+      ticker: null,
+      cost: null,
+      shares: true,
+      date: null,
+    });
+
     // 跨頁面時重置 searchList
-    onMounted(() => (searchList.value = null));
+    onMounted(async () => {
+      searchList.value = null;
+    });
+
+    function setInputValidity(validityObj) {
+      const { name, validity } = validityObj;
+      inputValidity.value[name] = validity;
+    }
 
     // holdings
     const { data, error, loading } = useAxios("/api/holdings", "get");
@@ -465,8 +481,12 @@ export default {
       });
 
       // 清空已選的 ticker
-      stock.value.ticker = null;
       inputValidity.value.ticker = false;
+      stock.value.ticker = null;
+
+      // 清空 cost tradeDate(否則換頁後再回來無法清空)
+      stock.value.cost = null;
+      stock.value.tradeDate = null;
 
       // reset 要帶入 buy modal 的 tickerToBeTraded
       tickerToBeTraded.value = null;
@@ -529,6 +549,9 @@ export default {
       fxRatesUsedTwoDecimals,
       totalCodesInHoldings,
       getExchangeRate,
+
+      inputValidity,
+      setInputValidity,
     };
   },
 };

@@ -99,13 +99,16 @@ export default {
       type: Boolean,
       default: false,
     },
+    inputValidity: {
+      type: Object,
+    },
   },
-  setup(props) {
+  setup(props, { emit }) {
     const $searchStore = useSearchStore();
     const { searchList, isFocus, isSearchListLoading } =
       storeToRefs($searchStore);
     const $holdingStore = useHoldingStore();
-    const { stock, inputValidity, holidaysRes } = storeToRefs($holdingStore);
+    const { stock, holidaysRes } = storeToRefs($holdingStore);
 
     const inputCostRef = ref(null);
     const inputSharesRef = ref(null);
@@ -113,10 +116,8 @@ export default {
     const stockLists = ref([]);
 
     function setInputValidity(validityObj) {
-      const { name, validity } = validityObj;
-      inputValidity.value[name] = validity;
+      emit("setInputValidity", validityObj);
     }
-
     const code = ref("");
     async function selectTicker() {
       const [tickerInfo] = searchList.value;
@@ -301,7 +302,6 @@ export default {
       inputSharesRef,
       inputDateRef,
       stockLists,
-      inputValidity,
       code,
     };
   },

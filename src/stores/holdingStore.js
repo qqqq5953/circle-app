@@ -12,19 +12,11 @@ const useHoldingStore = defineStore('holding', () => {
     tradeDate: null
   })
 
-  const inputValidity = ref({
-    ticker: null,
-    cost: null,
-    shares: true,
-    date: null
-  })
-
   // holiday
   const { data: holidaysRes } = useAxios('/api/holidays', 'get')
 
   return {
     stock,
-    inputValidity,
     holidaysRes
   }
 })

@@ -1,6 +1,6 @@
 <template>
   <router-view class="h-screen" />
-  <Snackbar :barMessage="messages" />
+  <Snackbar :barMessage="message" />
 </template>
 
 <script>
@@ -9,22 +9,23 @@ import { ref, provide } from "vue-demi";
 export default {
   components: { Snackbar },
   setup() {
-    const messages = ref([]);
+    const message = ref({});
 
     function setSnackbarMessage(msg) {
       const { success, content, errorMessage, result, routeName } = msg;
-      messages.value.unshift({
+      message.value = {
         status: success,
         title: content,
         errorMessage,
         result,
         routeName,
-      });
+        id: Date.now() + Math.random(),
+      };
     }
 
     provide("setSnackbarMessage", setSnackbarMessage);
 
-    return { messages };
+    return { message };
   },
 };
 </script>

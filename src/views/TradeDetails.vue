@@ -269,13 +269,22 @@ export default {
     ]);
 
     const setSnackbarMessage = inject("setSnackbarMessage");
+    let count = 0;
     async function deleteTrade(id, date) {
-      const res = await http.post(
-        `/api/delete/${basicInfo.value.tempTicker}/${id}/${date}`
-      );
+      count++;
+      setSnackbarMessage({
+        success: true,
+        content: "title" + count,
+        errorMessage: null,
+        result: null,
+        routeName: null,
+      });
+      // const res = await http.post(
+      //   `/api/delete/${basicInfo.value.tempTicker}/${id}/${date}`
+      // );
 
-      setSnackbarMessage(res.data);
-      await getTradeDetails();
+      // setSnackbarMessage(res.data);
+      // await getTradeDetails();
     }
 
     return {

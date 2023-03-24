@@ -113,8 +113,8 @@
         <template #totlal-value="{ value }">
           <span>${{ value }}</span>
         </template>
-        <template #delete="{ id }">
-          <button @click="deleteTrade(id)">
+        <template #delete="{ id, date }">
+          <button @click="deleteTrade(id, date)">
             <i class="fa-regular fa-trash-can"></i>
           </button>
         </template>
@@ -269,9 +269,9 @@ export default {
     ]);
 
     const setSnackbarMessage = inject("setSnackbarMessage");
-    async function deleteTrade(id) {
+    async function deleteTrade(id, date) {
       const res = await http.post(
-        `/api/delete/${basicInfo.value.tempTicker}/${id}`
+        `/api/delete/${basicInfo.value.tempTicker}/${id}/${date}`
       );
 
       setSnackbarMessage(res.data);

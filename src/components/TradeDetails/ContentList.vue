@@ -32,7 +32,7 @@
             item.status === "buy" ? "B" : item.status === "sell" ? "S" : null
           }}</span
         >
-        <slot name="delete" :id="item.id"></slot>
+        <slot name="delete" :id="item.id" :date="item.date"></slot>
       </div>
     </li>
   </ul>

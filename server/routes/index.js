@@ -199,8 +199,17 @@ router.post('/deleteAll', async (req, res) => {
     })
 })
 
-router.post('/delete/:tempTicker/:tradeId', async (req, res) => {
-  const { tradeId, tempTicker } = req.params
+router.post('/delete/:tempTicker/:tradeId/:tradeDate', async (req, res) => {
+  const { tradeId, tempTicker, tradeDate } = req.params
+
+  // res.send({
+  //   success: false,
+  //   content: 'trade delete falied',
+  //   errorMessage: null,
+  //   result: null
+  // })
+
+  // return
 
   try {
     const result = await Promise.allSettled([
@@ -212,7 +221,7 @@ router.post('/delete/:tempTicker/:tradeId', async (req, res) => {
     const [latestInfo, stats, trade] = result.map((item) => item.value.val())
 
     const { close } = latestInfo
-    const { cost, shares, tradeDate } = trade
+    const { cost, shares } = trade
     const { totalCost, totalShares } = stats
     const newTotalCost = totalCost - cost
     const newTotalShares = totalShares - shares
@@ -223,17 +232,72 @@ router.post('/delete/:tempTicker/:tradeId', async (req, res) => {
       newTotalShares
     )
 
-    // delete close cache
-    closeCacheRef
-      .child('closePrice')
-      .child(`${tradeDate}_${tempTicker}`)
-      .remove()
-
     // delete history trade
     historyRef.child(tradeDate).child(tradeId).remove()
 
+    // delete close cache
+    const historySnapshot = await historyRef
+      .child(tradeDate)
+      .orderByChild('tempTicker')
+      .equalTo(tempTicker)
+      .once('value')
+    const history = historySnapshot.val()
+
+    // 該日期刪完已無交易
+    if (!history) {
+      const unixRange = []
+      await holdingsTradeRef
+        .child(tempTicker)
+        .orderByChild('tradeDate')
+        .limitToFirst(2)
+        .once('value')
+        .then((snapshot) => {
+          snapshot.forEach((childSnapshot) => {
+            unixRange.push(childSnapshot.val().tradeUnix)
+          })
+        })
+
+      const [firstTradeUnix, secondTradeUnix] = unixRange
+      console.log('unixRange', unixRange)
+
+      const isEarliestTrade = Date.parse(tradeDate) === firstTradeUnix
+
+      console.log('isEarliestTrade', isEarliestTrade)
+
+      // 刪除條件：刪除的交易為最早的交易
+      if (isEarliestTrade) {
+        let hasDeleteAll = false
+        let countBack = 1
+        const deletePromises = []
+
+        // 刪除最早交易日至第二交易日間的 cache
+        while (!hasDeleteAll) {
+          const unix = secondTradeUnix - 86400000 * countBack
+          const dateObj = new Date(unix)
+          const dd = String(dateObj.getDate()).padStart(2, '0')
+          const mm = String(dateObj.getMonth() + 1).padStart(2, '0')
+          const yyyy = dateObj.getFullYear()
+          const key = `${yyyy}-${mm}-${dd}_${tempTicker}`
+          const deletePromise = closeCacheRef
+            .child('closePrice')
+            .child(key)
+            .remove()
+          deletePromises.push(deletePromise)
+          countBack++
+          console.log('刪除的 cache', key)
+
+          if (unix <= firstTradeUnix) {
+            hasDeleteAll = true
+          }
+        }
+
+        await Promise.all(deletePromises)
+      }
+    }
+
     // delete holdingsTrade
-    await holdingsTradeRef.child(tempTicker).child(tradeId).remove()
+    const tradesRef = holdingsTradeRef.child(tempTicker)
+    await tradesRef.child(tradeId).remove()
 
     if (newTotalShares !== 0) {
       // update holdingsStats
@@ -343,7 +407,7 @@ router.post('/addStock', async (req, res) => {
     // set trade
     const stockInfo = holdingsTradeRef.child(tempTicker).push()
     const id = stockInfo.key
-    const tradeUnix = Math.floor(Date.parse(tradeInfo.tradeDate) / 1000)
+    const tradeUnix = Math.floor(Date.parse(tradeInfo.tradeDate))
     const trade = {
       ...tradeInfo,
       id,
@@ -410,7 +474,6 @@ router.post('/addStock', async (req, res) => {
       result: { ticker, ...tradeInfo }
     }
 
-    console.log('message', message)
     res.send(message)
   } catch (error) {
     const message = {
@@ -525,6 +588,23 @@ router.get('/history', async (req, res) => {
       })
     }
 
+    // const quoteOptions = {
+    //   symbols: ['0050.tw'],
+    //   from: '2023-03-20',
+    //   to: '2023-03-22',
+    //   period: 'd'
+    // }
+    // yahooFinance.historical(quoteOptions).then((res) => {
+    //   console.log('res', res)
+    // })
+
+    // yahooFinance.quote({
+    //   symbol: "0050.tw",
+    //   modules: ['price']
+    // }).then(res=>{
+
+    // })
+
     const pricesAndFxRates = await Promise.allSettled([
       getHistoricalClosePrices(
         tempTickerSnapshot.value.val(),
@@ -545,7 +625,7 @@ router.get('/history', async (req, res) => {
       fxRates
     )
     console.log('totalValueMap', totalValueMap)
-    console.log('historyMap', historyMap)
+    // console.log('historyMap', historyMap)
 
     // const { totalValueMap1, historyMap1 } = calculateTotalValue1(
     //   testSnapshot,
@@ -566,16 +646,6 @@ router.get('/history', async (req, res) => {
     const historyDetails = Object.fromEntries(Array.from(historyMap).reverse())
     // console.log('totalValue', totalValue)
     // console.log('historyDetails', historyDetails)
-
-    // const quoteOptions = {
-    //   symbols: ['C'],
-    //   from: '2023-02-24',
-    //   to: '2023-02-25',
-    //   period: 'd'
-    // }
-    // yahooFinance.historical(quoteOptions).then((res) => {
-    //   console.log('res', res)
-    // })
 
     const msg = {
       success: true,
@@ -1132,59 +1202,79 @@ router.get('/history', async (req, res) => {
       period: 'd'
     }
 
+    console.log('=====code=====', code)
+
+    // case：超過更新時間
     if (customStartDate) {
+      console.log('有 customStartDate', customStartDate)
       quoteOptions.from =
         code === 'us'
           ? adjustDate(customStartDate, 'plus')
           : adjustDate(customStartDate, 'plus', 0)
     } else {
-      console.log('沒有 customStartDate')
+      // case：檢查新增標的、第一次新增
+      console.log('沒有 customStartDate，用 startDate', startDate)
       // us 會往前多抓一天所以要調整
       quoteOptions.from =
         code === 'us' ? adjustDate(startDate, 'plus') : startDate
     }
 
     const today = new Date()
-    const yesterday = adjustDate(
-      today.toLocaleDateString().replace(/\//g, '-'),
-      'minus'
-    )
+    const ISOToday = adjustDate(today.toLocaleDateString().replace(/\//g, '-'))
+    const ISOYesterday = adjustDate(ISOToday, 'minus')
+
     const days = today.getDay()
     const hours = today.getHours()
     const mins = today.getMinutes()
     const isTodayWeekDay = days !== 0 && days !== 6
     const twMarketOpen =
       isTodayWeekDay &&
-      // code === 'tw' &&
+      code === 'tw' &&
       hours >= 9 &&
       (hours < 13 || (hours === 13 && mins <= 30))
 
-    console.log('customEndDate', customEndDate)
+    // case：超過更新時間、檢查新增標的
     if (customEndDate) {
+      console.log('有 customEndDate', customEndDate)
       if (twMarketOpen) {
         // 開盤時抓的價格不包含今天，所以區間不用調整
+        console.log('現在為盤中')
         quoteOptions.to = adjustDate(customEndDate, 'plus', 0)
+      } else if (quoteOptions.from === ISOToday) {
+        // quoteOptions.from 為今天（當日收盤新增標的）
+        console.log('當日收盤後有新增標的')
+        quoteOptions.to = quoteOptions.from
       } else {
+        console.log('一般收盤後')
         quoteOptions.to = adjustDate(customEndDate, 'plus')
       }
     } else {
+      // case：第一次新增
       console.log('沒有 customEndDate')
-      quoteOptions.to = adjustDate(
-        today.toLocaleDateString().replace(/\//g, '-'),
-        'plus'
-      )
+      if (twMarketOpen) {
+        // 開盤時抓的價格不包含今天，所以區間不用調整
+        console.log('現在為盤中')
+        quoteOptions.to = adjustDate(ISOToday, 'plus', 0)
+      } else {
+        quoteOptions.to = adjustDate(ISOToday, 'plus')
+      }
     }
 
     console.log('startDate', startDate)
-    console.log('yesterday', yesterday)
+    console.log('ISOYesterday', ISOYesterday)
 
-    const isYesterdayTrade = startDate === yesterday && isTodayWeekDay
+    const isYesterdayTrade = startDate === ISOYesterday && isTodayWeekDay
     console.log('isYesterdayTrade', isYesterdayTrade)
 
     // 如果交易起始日為前一日，抓資料就多抓兩天(避開假日)，避免回傳空陣列
     if (isYesterdayTrade && code === 'tw') {
-      quoteOptions.from = adjustDate(quoteOptions.from, 'minus', 2)
       console.log(ticker, '交易起始日為前一日')
+      if (new Date(ISOYesterday).getDay() === 1 && startDate === ISOToday) {
+        console.log('前一日為星期一')
+        quoteOptions.to = adjustDate(ISOToday, 'plus', 1)
+      } else {
+        quoteOptions.from = adjustDate(quoteOptions.from, 'minus', 2)
+      }
       console.log('adjustedStartDate', quoteOptions.from)
     }
 
@@ -1244,8 +1334,8 @@ router.get('/history', async (req, res) => {
       console.log('hasMarketOpened', hasMarketOpened)
 
       const closePrice = hasMarketOpened
-        ? regularMarketPreviousClose // 今日已開盤
-        : regularMarketPrice // 今日尚未開盤
+        ? regularMarketPrice // 今日已開盤
+        : regularMarketPreviousClose // 今日尚未開盤
 
       closePriceMap.set(`${dateString}_${tempTicker}`, closePrice)
     }
@@ -1362,21 +1452,22 @@ router.get('/history', async (req, res) => {
 
     const closePricesEntries = Array.from(closePricesMap)
     const totalValueMap = new Map()
-    const prevTemp = new Map() // 紀錄個股每日累積股數
+    const sharesEachDate = new Map() // 紀錄個股每日累積股數
 
     let totalTradeValue = 0
     let totalNonTradeValue = 0
-    let sharesPerDate = {} // 紀錄所有個股當日的累積股數
+    let sharesAsOfDate = {} // 紀錄所有個股當日的累積股數
     let prevDate = '' // 紀錄前一開盤日
 
     for (let i = 0; i < closePricesEntries.length; i++) {
       const [key, close] = closePricesEntries[i]
-      const [date, tempticker] = key.split('_')
+      const [marketOpenDate, tempticker] = key.split('_')
+      console.log('===date===', marketOpenDate)
 
-      if (prevDate === date) {
-        console.log('沒歸零')
+      if (prevDate === marketOpenDate) {
+        console.log('同一天，沒歸零')
       } else {
-        console.log('歸零')
+        console.log('換一天，歸零')
         totalTradeValue = 0
         totalNonTradeValue = 0
       }
@@ -1385,34 +1476,57 @@ router.get('/history', async (req, res) => {
         // 當天有交易
         const { shares, code } = tradeDateTempMap.get(key)
 
-        if (!sharesPerDate[tempticker]) {
-          sharesPerDate[tempticker] = 0
+        if (!sharesAsOfDate[tempticker]) {
+          sharesAsOfDate[tempticker] = 0
         }
-        sharesPerDate[tempticker] += shares
-        const sharesAsOfToday = sharesPerDate[tempticker]
+        sharesAsOfDate[tempticker] += shares
+        const sharesAsOfToday = sharesAsOfDate[tempticker]
 
         const exchangeRate = fxRates[code]
         const marketValueTWD = sharesAsOfToday * close * exchangeRate
         totalTradeValue += marketValueTWD
 
-        prevTemp.set(tempticker, { shares: sharesAsOfToday, code })
-        console.log('if', key, sharesAsOfToday, totalTradeValue)
+        sharesEachDate.set(tempticker, { shares: sharesAsOfToday, code })
+        console.log('當天有交易', key, sharesAsOfToday, totalTradeValue)
       } else {
+        // 沒刪乾淨的 cache price（暫時擋掉）
+        if (!sharesEachDate.get(tempticker)) return
         // 當天沒交易，用前一次的累績股數
-        const { shares, code } = prevTemp.get(tempticker)
+        const { shares, code } = sharesEachDate.get(tempticker)
         const exchangeRate = fxRates[code]
         const marketValueTWD = shares * close * exchangeRate
         totalNonTradeValue += marketValueTWD
-        console.log('else', key, shares, totalNonTradeValue)
+        console.log(
+          '當天沒交易，用前一次的累績股數',
+          key,
+          shares,
+          totalNonTradeValue
+        )
       }
 
-      console.log('prevTemp', prevTemp)
+      console.log('sharesEachDate', sharesEachDate)
 
-      // 紀錄當日尚未開盤之個股總市值
+      // 紀錄當日尚未開盤之個股總市值(用前一日的收盤價)
+      const now = new Date()
+      const nowYear = now.getFullYear()
+      const nowMonth = now.getMonth()
+      const nowDate = now.getDate()
+      const usMarketOpen = new Date(nowYear, nowMonth, nowDate, 21, 30, 0)
+      const twMarketOpen = new Date(nowYear, nowMonth, nowDate, 9, 30, 0)
+
       let notYetOpenTotal = 0
-      if (date === getISODate(new Date())) {
-        prevTemp.forEach((value, tradeDayTempTicker) => {
-          if (tempticker !== tradeDayTempTicker) {
+      if (marketOpenDate === getISODate(now)) {
+        sharesEachDate.forEach((value, tradeDayTempTicker) => {
+          const isUsMarketOpen =
+            value.code === 'us' && now.getTime() < usMarketOpen.getTime()
+          const isTwMarketOpen =
+            value.code === 'tw' && now.getTime() < twMarketOpen.getTime()
+
+          if (
+            // ＋且昨天有交易?
+            (isUsMarketOpen || isTwMarketOpen) &&
+            tempticker !== tradeDayTempTicker //當日個股closePriceMap中沒有價格
+          ) {
             const prevClose = closePricesMap.get(
               `${prevDate}_${tradeDayTempTicker}`
             )
@@ -1421,14 +1535,12 @@ router.get('/history', async (req, res) => {
           }
         })
       }
+      console.log('notYetOpenTotal', notYetOpenTotal)
 
-      prevDate = date
-
-      totalValueMap.set(date, {
-        acc: parseFloatByDecimal(
-          totalTradeValue + totalNonTradeValue + notYetOpenTotal,
-          2
-        )
+      prevDate = marketOpenDate
+      const total = totalTradeValue + totalNonTradeValue + notYetOpenTotal
+      totalValueMap.set(marketOpenDate, {
+        acc: parseFloatByDecimal(total, 2)
       })
     }
 
@@ -1601,12 +1713,14 @@ router.get('/history', async (req, res) => {
       dateObj = new Date(unix + 84600000 * multiplier)
     } else if (sign === 'minus') {
       dateObj = new Date(unix - 84600000 * multiplier)
+    } else {
+      dateObj = new Date(unix)
     }
 
     const dd = String(dateObj.getDate()).padStart(2, '0')
     const mm = String(dateObj.getMonth() + 1).padStart(2, '0')
     const yyyy = dateObj.getFullYear()
-    // console.log('adjustDate', yyyy + '-' + mm + '-' + dd)
+    // console.log('adjustDate', sign, yyyy + '-' + mm + '-' + dd)
 
     return yyyy + '-' + mm + '-' + dd
   }

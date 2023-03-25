@@ -1,6 +1,6 @@
 <template>
   <main class="px-4 md:p-10 mx-auto w-full max-w-[1000px]">
-    <div class="flex flex-col gap-y-10 animate-pulse" v-if="isLoading">
+    <div class="flex flex-col gap-y-10 animate-pulse" v-if="loading">
       <div class="rounded bg-gray-300 h-6 w-40"></div>
       <div class="rounded bg-gray-300 h-40"></div>
       <div class="rounded bg-gray-300 h-6 w-40"></div>
@@ -10,6 +10,7 @@
       <!-- <button class="border border-black p-2" @click="deleteAll">
         delete all
       </button> -->
+
       <section v-if="source">
         <h2 class="font-semibold text-lg">History</h2>
         <MultiLineChart :source="source" />
@@ -19,48 +20,41 @@
         <h2 class="font-semibold text-lg mt-10">Details</h2>
         <TitleList class="p-2 md:px-3 text-xs" :list="childTitle" />
 
-        <ul class="text-xs flex flex-col">
-          <li
-            class="last:mb-0"
-            :class="selectedDate.includes(date) ? 'mb-0' : 'mb-3'"
+        <div class="text-xs flex flex-col">
+          <details
+            class="last:mb-0 group mb-3 open:mb-0"
             v-for="(trades, date) in details"
             :key="date"
+            :open="Object.keys(details)[0] === date"
           >
-            <div
-              class="
-                flex
-                justify-between
-                px-2
-                py-1.5
-                md:px-3
-                font-medium
-                cursor-pointer
-                rounded
-              "
-              :class="
-                selectedDate.includes(date)
-                  ? 'outline outline-1 outline-slate-200 bg-slate-100'
-                  : 'bg-slate-100'
-              "
-              @click="toggleDropdown(date)"
+            <summary
+              class="flex justify-between px-2 py-1.5 md:px-3 font-medium cursor-pointer rounded bg-slate-100 group-open:outline group-open:outline-1 group-open:outline-slate-200"
             >
               <span class="text-slate-500">{{ date }}</span>
-              <span>
-                <i
-                  class="fa-solid fa-chevron-up"
-                  v-if="selectedDate.includes(date)"
-                ></i>
-                <i class="fa-solid fa-chevron-down" v-else></i>
+              <span class="hidden group-open:inline">
+                <i class="fa-solid fa-chevron-up"></i>
               </span>
-            </div>
-            <ul v-if="selectedDate.includes(date)">
+              <span class="group-open:hidden">
+                <i class="fa-solid fa-chevron-down"></i>
+              </span>
+            </summary>
+            <ul>
               <DetailList class="px-2 py-3.5 md:px-3" :list="trades" />
             </ul>
-          </li>
-        </ul>
+          </details>
+        </div>
       </section>
 
-      <p v-else>no data</p>
+      <section
+        class="flex flex-col items-center space-y-2"
+        v-if="!data.success"
+      >
+        <h2 class="text-lg font-medium">
+          {{ error.content }}
+          <i class="fas fa-times text-red-600"></i>
+        </h2>
+        <p class="text-slate-700">{{ error.message }}</p>
+      </section>
     </div>
   </main>
 </template>
@@ -70,8 +64,9 @@ import http from "../api/index";
 import MultiLineChart from "@/components/MultiLineChart.vue";
 import TitleList from "@/components/History/TitleList.vue";
 import DetailList from "@/components/History/DetailList.vue";
+import useAxios from "@/composables/useAxios.js";
 
-import { ref } from "vue";
+import { computed, ref } from "vue";
 export default {
   components: {
     MultiLineChart,
@@ -79,58 +74,23 @@ export default {
     DetailList,
   },
   setup() {
-    const source = ref(null);
-    const details = ref([]);
-    const isLoading = ref(false);
+    const { data, error, loading } = useAxios("/api/history", "get");
 
-    async function getHistoryAssets() {
-      isLoading.value = true;
-
-      try {
-        const res = await http.get(`/api/history`);
-
-        console.log("res", res.data.result);
-
-        if (!res.data.result) {
-          isLoading.value = false;
-          return;
-        }
-
-        const { totalValue, historyDetails } = res.data.result;
-        source.value = totalValue;
-        details.value = historyDetails;
-        console.log("totalValue", totalValue);
-        console.log("historyDetails", historyDetails);
-
-        // 顯示最近一筆
-        selectedDate.value.push(Object.keys(historyDetails)[0]);
-      } catch (error) {
-        console.log("error", error);
-      }
-
-      isLoading.value = false;
-    }
-
-    getHistoryAssets();
-
-    const selectedDate = ref([]);
-
-    function toggleDropdown(date) {
-      if (selectedDate.value.includes(date)) {
-        selectedDate.value = selectedDate.value.filter((item) => item !== date);
-      } else {
-        selectedDate.value.push(date);
-      }
-    }
+    const source = computed(() => {
+      return data.value?.result?.totalValue;
+    });
+    const details = computed(() => {
+      return data.value?.result?.historyDetails || [];
+    });
 
     const childTitle = ref([
       {
         name: "",
-        style: "w-[27%] md:w-[15%]",
+        style: "w-[25%] md:w-[15%]",
       },
       {
         name: "P / L %",
-        style: "w-[23%] ml-auto text-right md:ml-0",
+        style: "w-[30%] ml-auto text-right md:ml-0",
       },
       {
         name: "Cost",
@@ -159,12 +119,10 @@ export default {
     return {
       source,
       details,
-      toggleDropdown,
-      selectedDate,
-      isLoading,
-
+      data,
+      error,
+      loading,
       childTitle,
-
       deleteAll,
     };
   },

@@ -649,9 +649,8 @@ router.get('/history', async (req, res) => {
 
     const msg = {
       success: true,
-      content: '成功獲得所有標的',
+      content: 'Historical data fetched',
       errorMessage: null,
-      // result: holidays
       result: { totalValue, historyDetails }
     }
 
@@ -660,7 +659,7 @@ router.get('/history', async (req, res) => {
     console.log('error', error)
     const msg = {
       success: false,
-      content: '獲得標的失敗',
+      content: 'Failed to fetch historical data',
       errorMessage: error.message,
       result: null
     }

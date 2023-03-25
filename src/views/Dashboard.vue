@@ -4,7 +4,7 @@
     <div class="lg:ml-56 flex flex-col">
       <NavbarDashboard></NavbarDashboard>
       <router-view class="grow"></router-view>
-      <Footer class="mt-48"></Footer>
+      <Footer class="mt-10"></Footer>
     </div>
   </div>
 </template>

@@ -5,12 +5,10 @@
     v-for="(item, index) in content"
     :key="index"
   >
-    <span class="w-[27%] md:w-[15%]">
-      <div class="ticker-badge" :class="item.style">
-        {{ item.ticker }}
-      </div>
+    <span class="w-[25%] md:w-[15%]">
+      <div class="ticker-badge" :class="item.style">{{ item.ticker }}</div>
     </span>
-    <span class="w-[23%] ml-auto text-right md:ml-0">
+    <span class="w-[30%] ml-auto text-right md:ml-0">
       <span
         class="px-2 py-1 md:px-3 md:py-2 rounded font-medium break-words"
         :class="

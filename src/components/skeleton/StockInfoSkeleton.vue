@@ -1,17 +1,9 @@
 <template>
-  <div class="flex flex-col gap-4 px-4 md:p-10 mx-auto w-full animate-pulse">
+  <div class="flex flex-col gap-4 mx-auto w-full animate-pulse">
     <header class="w-full">
       <h2 class="w-1/3 lg:w-28 h-6 md:h-8 bg-gray-300 rounded mb-3"></h2>
       <div
-        class="
-          flex flex-col
-          md:flex-row md:items-center
-          gap-1.5
-          md:gap-5
-          border-t
-          py-2.5
-          md:pt-4
-        "
+        class="flex flex-col md:flex-row md:items-center gap-1.5 md:gap-5 border-t py-2.5 md:pt-4"
       >
         <!-- price -->
         <span class="w-1/3 lg:w-28 h-9 bg-gray-300 rounded"></span>
@@ -80,16 +72,7 @@
       </div>
 
       <div
-        class="
-          rounded
-          bg-gray-300
-          p-3
-          flex flex-col
-          gap-8
-          h-72
-          lg:h-auto lg:col-start-1 lg:col-end-3 lg:row-start-2 lg:row-end-4
-          xl:row-start-2 xl:row-end-4
-        "
+        class="rounded bg-gray-300 p-3 flex flex-col gap-8 h-72 lg:h-auto lg:col-start-1 lg:col-end-3 lg:row-start-2 lg:row-end-4 xl:row-start-2 xl:row-end-4"
       ></div>
 
       <!-- Profile -->
@@ -114,14 +97,7 @@
               </div>
             </li>
             <li
-              class="
-                flex
-                items-center
-                justify-between
-                py-2
-                border-b
-                last:border-0
-              "
+              class="flex items-center justify-between py-2 border-b last:border-0"
               v-for="item in 3"
               :key="item"
             >

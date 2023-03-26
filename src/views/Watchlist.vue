@@ -1,5 +1,5 @@
 <template>
-  <main class="flex flex-col gap-3 px-4 md:p-10 mx-auto w-full max-w-[1000px]">
+  <main>
     <div class="relative w-full pb-14">
       <!-- keep-alive: switch tab 時 ticker 不會消失 -->
       <keep-alive>
@@ -50,15 +50,7 @@
       v-show="isWatchlistLoading"
       ><template #table-title>
         <div
-          class="
-            rounded-t
-            pl-4
-            lg:pl-8
-            py-3
-            flex flex-wrap
-            items-center
-            border-b
-          "
+          class="rounded-t pl-4 lg:pl-8 py-3 flex flex-wrap items-center border-b"
         >
           <h3 class="font-semibold">
             {{ currentTab }}

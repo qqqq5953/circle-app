@@ -1,5 +1,5 @@
 <template>
-  <main class="px-4 md:p-10 mx-auto w-full max-w-[1000px]">
+  <main>
     <div class="flex flex-col gap-y-10 animate-pulse" v-if="loading">
       <div class="rounded bg-gray-300 h-6 w-40"></div>
       <div class="rounded bg-gray-300 h-40"></div>

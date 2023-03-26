@@ -1,27 +1,14 @@
 <template>
-  <div>
-    <!-- v-if="isSkeletonLoading"
-    -->
+  <main>
     <StockInfoSkeleton v-if="isSkeletonLoading" />
-    <div
-      class="flex flex-col gap-2 px-4 md:p-10 mx-auto w-full"
-      v-if="!isSkeletonLoading"
-    >
+    <div class="flex flex-col gap-2" v-if="!isSkeletonLoading">
       <header>
         <h2 class="text-xl md:text-2xl pb-2 md:pb-3 max-w-fit">
           <span>{{ stock.price?.name }} </span>
           <span class="ml-1.5">({{ stock.price?.ticker }})</span>
         </h2>
         <div
-          class="
-            flex flex-col
-            md:flex-row md:items-center
-            gap-1.5
-            md:gap-5
-            border-t
-            py-2
-            md:pt-4
-          "
+          class="flex flex-col md:flex-row md:items-center gap-1.5 md:gap-5 border-t py-2 md:pt-4"
         >
           <span class="text-3xl">${{ stock.price?.previousClose }}</span>
           <div
@@ -51,14 +38,7 @@
           </div>
         </div>
         <div
-          class="
-            flex flex-col
-            gap-1
-            text-xs
-            break-all
-            text-slate-500
-            font-light
-          "
+          class="flex flex-col gap-1 text-xs break-all text-slate-500 font-light"
         >
           <span>
             <span class="font-medium">{{ marketState }}: </span>
@@ -72,7 +52,7 @@
       </header>
 
       <!-- class binding 的 xl: mt / mb 為調整用 -->
-      <main class="grid gap-4 lg:gap-4 lg:grid-cols-3">
+      <div class="grid gap-4 lg:gap-4 lg:grid-cols-3">
         <PriceTrend
           class="pb-5 lg:col-start-1 lg:col-end-4 xl:col-end-3"
           :ticker="ticker"
@@ -84,15 +64,7 @@
           :stock="stock"
         />
         <div
-          class="
-            border
-            rounded
-            p-3
-            flex flex-col
-            gap-8
-            lg:col-start-1 lg:col-end-3 lg:row-start-2
-            xl:row-start-2 xl:row-end-4
-          "
+          class="border rounded p-3 flex flex-col gap-8 lg:col-start-1 lg:col-end-3 lg:row-start-2 xl:row-start-2 xl:row-end-4"
           v-if="stock.financialData?.earnings"
         >
           <div class="max-w-[99%]">
@@ -107,10 +79,7 @@
           </div>
         </div>
         <FinancialData
-          class="
-            lg:col-start-1 lg:col-end-3 lg:row-start-3 lg:row-end-5
-            xl:row-start-4
-          "
+          class="lg:col-start-1 lg:col-end-3 lg:row-start-3 lg:row-end-5 xl:row-start-4"
           :financialData="stock.financialData"
         />
         <SummaryProfile
@@ -124,9 +93,9 @@
           @toggleProfileSummary="(val) => (isSummaryShow = val)"
           ref="summaryProfileRef"
         />
-      </main>
+      </div>
     </div>
-  </div>
+  </main>
 </template>
 
 <script>

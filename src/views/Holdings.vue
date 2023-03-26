@@ -1,7 +1,5 @@
 <template>
-  <main
-    class="flex flex-col space-y-10 px-4 md:p-10 mx-auto w-full max-w-[1200px]"
-  >
+  <main>
     <!-- trade modal -->
     <Teleport to="body">
       <InputModal
@@ -27,7 +25,7 @@
     </Teleport>
 
     <!-- totalStats -->
-    <section class="px-4 md:px-0 lg:px-4 text-xs" v-if="holdings">
+    <section class="md:px-0 lg:px-4 text-xs" v-if="holdings">
       <!-- skeleton -->
       <div class="flex items-center" v-if="loading">
         <div class="w-40 h-6 bg-gray-300 rounded"></div>
@@ -48,17 +46,7 @@
         <ul class="flex flex-wrap -m-1 md:-m-2 pt-1.5">
           <li class="w-1/2 p-1 sm:w-1/4 md:p-2" v-for="i in 4" :key="i">
             <div
-              class="
-                flex flex-col
-                items-center
-                justify-center
-                gap-y-2
-                bg-slate-100
-                h-12
-                w-full
-                rounded
-                shadow
-              "
+              class="flex flex-col items-center justify-center gap-y-2 bg-slate-100 h-12 w-full rounded shadow"
             >
               <div class="bg-gray-300 rounded-full w-2/3 h-3"></div>
               <div class="bg-gray-300 rounded-full w-2/3 h-3"></div>
@@ -77,10 +65,7 @@
     </section>
 
     <!-- Top 3 Performance -->
-    <section
-      class="px-4 md:px-0 lg:px-4"
-      v-if="topThreePerformance.length >= 3"
-    >
+    <section class="md:px-0 lg:px-4" v-if="topThreePerformance.length >= 3">
       <div class="flex items-center mb-4">
         <div class="w-40 h-6 bg-gray-300 rounded" v-if="loading"></div>
         <h2
@@ -180,7 +165,7 @@
     </section>
 
     <!-- Holdings -->
-    <section class="px-4 md:px-0 lg:px-4">
+    <section class="md:px-0 lg:px-4">
       <!-- skeleton -->
       <div class="flex items-center" v-if="loading">
         <div class="w-40 h-6 bg-gray-300 rounded"></div>
@@ -193,16 +178,7 @@
       >
         <h2 class="font-semibold text-lg">Holdings</h2>
         <button
-          class="
-            border border-indigo-600
-            text-indigo-600
-            hover:bg-indigo-600 hover:text-white
-            rounded-full
-            font-semibold
-            py-1
-            text-xs
-            w-[83px]
-          "
+          class="border border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-full font-semibold py-1 text-xs w-[83px]"
           @click="toggleModal({ open: true, type: 'invest' })"
           v-if="holdings"
         >
@@ -220,15 +196,7 @@
 
       <div class="pt-[40%] md:pt-[20%] text-center" v-if="!holdings">
         <button
-          class="
-            bg-indigo-700
-            text-white
-            hover:bg-indigo-600
-            rounded-full
-            px-3
-            py-1.5
-            text-xs
-          "
+          class="bg-indigo-700 text-white hover:bg-indigo-600 rounded-full px-3 py-1.5 text-xs"
           @click="toggleModal({ open: true, type: 'invest' })"
         >
           <span>+</span>

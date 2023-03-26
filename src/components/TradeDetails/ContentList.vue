@@ -1,14 +1,14 @@
 <template>
   <ul>
     <li
-      class="flex items-center gap-x-1.5 py-2 text-xs border-b"
+      class="flex items-center gap-x-1.5 py-2 text-xs border-b hover:bg-slate-100"
       :class="fontWeight"
       v-for="item in list"
       :key="item.id"
     >
-      <div class="w-1/5">{{ item.date }}</div>
-      <div class="w-[12%] text-right">{{ item.price }}</div>
-      <div class="w-1/5 text-right">
+      <div class="w-[22%]">{{ item.date }}</div>
+      <div class="w-[15%] text-right">{{ item.price }}</div>
+      <div class="w-[18%] text-right">
         <span class="break-words w-1/2 md:w-[40%] xl:w-1/4">{{
           item.shares
         }}</span>

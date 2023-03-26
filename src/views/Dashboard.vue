@@ -1,20 +1,17 @@
 <template>
-  <div>
-    <Sidebar></Sidebar>
-    <div class="lg:ml-56 flex flex-col">
-      <NavbarDashboard></NavbarDashboard>
-      <router-view class="grow"></router-view>
-      <Footer class="mt-10"></Footer>
-    </div>
+  <div class="flex flex-col">
+    <NavbarDashboard></NavbarDashboard>
+    <router-view
+      class="flex flex-col grow space-y-10 pt-24 pb-10 px-6 md:px-10 md:pt-28 mx-auto w-full max-w-[1200px] container"
+    ></router-view>
+    <Footer class="mt-10"></Footer>
   </div>
 </template>
 <script>
-import Sidebar from "@/components/Global/Sidebar.vue";
 import NavbarDashboard from "@/components/Global/NavbarDashboard.vue";
 export default {
   components: {
     NavbarDashboard,
-    Sidebar,
   },
 };
 </script>

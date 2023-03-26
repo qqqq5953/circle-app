@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex flex-col gap-4 py-2 px-3 max-w-[1000px] w-full mx-auto"
+    class="flex flex-col space-y-10 py-2 px-6 md:px-10 md:pt-28 max-w-[800px] w-full mx-auto"
     v-if="totalStats"
   >
     <section>
@@ -91,8 +91,8 @@
               v-else-if="basicInfo.close < price"
             ></i>
             <span v-else>--</span>
-            <span class="ml-1">
-              {{ calculatePerformance("percent", price) }} %
+            <span class="ml-1"
+              >{{ calculatePerformance("percent", price) }}%
             </span>
           </span>
         </template>
@@ -114,7 +114,7 @@
           <span>${{ value }}</span>
         </template>
         <template #delete="{ id, date }">
-          <button @click="deleteTrade(id, date)">
+          <button class="sm:mx-2" @click="deleteTrade(id, date)">
             <i class="fa-regular fa-trash-can"></i>
           </button>
         </template>
@@ -209,26 +209,26 @@ export default {
     const titles_Total = ref([
       {
         name: "Today",
-        style: "w-1/5",
+        style: "w-[22%]",
       },
       {
         name: "Price",
-        style: "w-[12%] text-right",
+        style: "w-[15%] text-right",
       },
       {
         name: "Total shares",
-        style: "w-1/5 text-right",
+        style: "w-[18%] text-right",
       },
       {
-        name: "P / L %",
+        name: "Total P / L %",
         style: "w-1/4 sm:w-1/5 grow text-right",
       },
       {
-        name: "P / L",
+        name: "Total P / L",
         style: "w-[15%] hidden sm:block grow text-right",
       },
       {
-        name: "Value",
+        name: "Total value",
         style: "w-[15%] hidden sm:block grow text-right",
       },
       {
@@ -240,15 +240,15 @@ export default {
     const titles_Records = ref([
       {
         name: "Trade date",
-        style: "w-1/5",
+        style: "w-[22%]",
       },
       {
         name: "Cost",
-        style: "w-[12%] text-right",
+        style: "w-[15%] text-right",
       },
       {
         name: "Shares",
-        style: "w-1/5 text-right ",
+        style: "w-[18%] text-right ",
       },
       {
         name: "P / L %",

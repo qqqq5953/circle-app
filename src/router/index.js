@@ -12,6 +12,7 @@ const routes = [
     path: '/admin/dashboard',
     name: 'Dashboard',
     component: () => import('../views/Dashboard.vue'),
+    redirect: { name: 'Portfolio' },
     children: [
       {
         path: 'portfolio',
@@ -69,7 +70,7 @@ const routes = [
 
 const router = createRouter({
   history: createWebHashHistory(),
-  linkActiveClass: 'text-amber-400',
+  linkActiveClass: 'font-semibold text-indigo-600',
   scrollBehavior(to, from, savedPosition) {
     return { top: 0, behavior: 'smooth' }
   },

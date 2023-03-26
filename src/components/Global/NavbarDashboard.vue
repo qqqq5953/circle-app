@@ -1,116 +1,107 @@
 <template>
-  <!-- absolute top-0 left-0 z-10 -->
   <nav
-    class="
-      w-full
-      bg-transparent
-      md:flex-row md:flex-nowrap md:justify-start
-      flex
-      items-center
-      p-4
-      shadow
-      bg-slate-500
-    "
+    class="fixed top-0 z-10 w-full shadow-lg px-6 py-4 md:px-10"
+    :class="isShow ? 'bg-slate-50' : 'bg-slate-50/70 backdrop-blur-sm'"
   >
-    <div
-      class="
-        w-full
-        mx-auto
-        items-center
-        flex
-        justify-between
-        md:flex-nowrap
-        flex-wrap
-        md:px-10
-        px-4
-      "
-    >
-      <!-- Brand -->
-      <!-- <a
-        class="
-          text-white text-sm
-          uppercase
-          hidden
-          lg:inline-block
-          font-semibold
-        "
-        href="#"
-        >CIRCLE</a
-      > -->
-      <!-- Form -->
-      <form class="md:flex hidden lg:ml-auto mr-3">
-        <div class="relative w-full">
-          <span
-            class="
-              z-10
-              h-full
-              leading-snug
-              font-normal
-              text-center text-blueGray-300
-              absolute
-              bg-transparent
-              rounded
-              text-base
-              px-3
-              py-3
-            "
-            ><i class="fas fa-search"></i
-          ></span>
-          <input
-            type="text"
-            placeholder="In process..."
-            class="
-              border-0
-              pr-3
-              pl-10
-              py-3
-              placeholder-blueGray-300
-              text-blueGray-600
-              bg-white
-              rounded
-              text-sm
-              shadow
-              outline-none
-              focus:outline-none focus:ring
-              w-full
-            "
-          />
-        </div>
-      </form>
-      <!-- <form class="flex justify-center">
-        <div class="relative w-full">
-          <span
-            class="leading-snug font-normal text-blueGray-300 absolute bg-transparent rounded px-3 py-3"
-            ><i class="fas fa-search"></i
-          ></span>
-          <input
-            type="text"
-            placeholder="Search here..."
-            class="border-0 pr-3 pl-10 py-3 placeholder-blueGray-300 text-blueGray-600 bg-white rounded text-sm shadow outline-none focus:outline-none focus:ring w-full"
-          />
-        </div>
-      </form> -->
-      <!-- User -->
-      <ul class="flex-col md:flex-row list-none items-center hidden md:flex">
-        <i class="fa-solid fa-bars fa-2x text-white"></i>
-        <!-- <user-dropdown-component></user-dropdown-component> -->
+    <div class="flex items-center justify-between max-w-[1200px] mx-auto">
+      <h1 class="inline-block uppercase font-semibold text-2xl text-indigo-700">
+        Circle App
+      </h1>
+
+      <ul class="hidden md:flex font-light">
+        <li v-for="item in menu" :key="item.name">
+          <router-link class="block px-4 group" :to="{ name: item.routeName }">
+            <span class="relative group-hover:text-indigo-500">
+              {{ item.name }}
+              <span
+                class="absolute top-full left-1/2 -translate-x-1/2 bg-indigo-500 hidden md:inline transition-all duration-300 mt-1 h-1 w-0 md:group-hover:w-full"
+              ></span>
+            </span>
+          </router-link>
+        </li>
       </ul>
+
+      <!-- menu -->
+      <div class="md:hidden" @click="isShow = !isShow">
+        <button ref="menuBtn" class="flex flex-col space-y-1 text-indigo-700">
+          <span
+            class="w-6 h-[3px] rounded bg-indigo-700 transition duration-500 ease-in-out"
+            :class="{
+              'rotate-45 translate-y-[7px]': isShow,
+            }"
+          ></span>
+          <span
+            class="w-6 h-[3px] rounded bg-indigo-700 transition duration-500 ease-in-out"
+            :class="{ 'opacity-0 ': isShow }"
+          ></span>
+          <span
+            class="w-6 h-[3px] rounded bg-indigo-700 transition duration-500 ease-in-out"
+            :class="{
+              '-rotate-45 -translate-y-[7px]': isShow,
+            }"
+          ></span>
+        </button>
+        <ul
+          ref="menuList"
+          v-show="isShow"
+          class="absolute z-50 mt-px top-full right-0 bg-slate-50 shadow-lg text-black text-xs py-1 w-full divide-y"
+        >
+          <li class="text-center" v-for="item in menu" :key="item.name">
+            <router-link class="block px-4 py-3" :to="{ name: item.routeName }">
+              {{ item.name }}
+            </router-link>
+          </li>
+        </ul>
+      </div>
     </div>
   </nav>
 </template>
 
 <script>
-// import UserDropdownComponent from './UserDropdown.vue';
-import { useRoute } from "vue-router";
+import { onMounted, ref } from "vue";
 export default {
-  // components: {
-  //   UserDropdownComponent
-  // }
   setup() {
-    const route = useRoute();
+    const isShow = ref(false);
+    const menuBtn = ref(false);
+    const menuList = ref(false);
+    const menu = ref([
+      {
+        name: "Portfolio",
+        routeName: "Portfolio",
+      },
+      {
+        name: "Holdings",
+        routeName: "Holdings1",
+      },
+      {
+        name: "History",
+        routeName: "History",
+      },
+      {
+        name: "Watchlist",
+        routeName: "Watchlist",
+      },
+    ]);
+
+    onMounted(() => clickOutsideToggle());
+
+    function clickOutsideToggle() {
+      document.addEventListener("click", (e) => {
+        if (
+          !menuBtn.value?.contains(e.target) &&
+          !menuList.value?.contains(e.target)
+        ) {
+          isShow.value = false;
+        }
+      });
+    }
 
     return {
-      route,
+      menuBtn,
+      menuList,
+      isShow,
+      menu,
+      clickOutsideToggle,
     };
   },
 };

@@ -43,8 +43,10 @@
         </button>
         <ul
           ref="menuList"
-          v-show="isShow"
-          class="absolute z-50 mt-px top-full right-0 bg-slate-50 shadow-lg text-black text-xs py-1 w-full divide-y"
+          class="absolute z-50 mt-px top-full right-0 bg-slate-50 shadow-lg text-black text-xs py-1 w-full divide-y transition-all duration-300 ease-in-out"
+          :class="{
+            '-translate-y-5 opacity-0 invisible pointer-events-none': !isShow,
+          }"
         >
           <li class="text-center" v-for="item in menu" :key="item.name">
             <router-link class="block px-4 py-3" :to="{ name: item.routeName }">

@@ -7,7 +7,6 @@ const firebaseDb = require('../firebase/index.js')
 
 const holidaysRef = firebaseDb.ref('/holidays/')
 const historyRef = firebaseDb.ref('/history/')
-const testRef = firebaseDb.ref('/test/')
 const fxToTWDRef = firebaseDb.ref('/fxToTWD/')
 const closeCacheRef = firebaseDb.ref('/closeCache/')
 const newAddingTempRef = firebaseDb.ref('/newAddingTemp/')
@@ -199,109 +198,52 @@ router.post('/deleteAll', async (req, res) => {
     })
 })
 
-router.post('/delete/:tempTicker/:tradeId/:tradeDate', async (req, res) => {
+router.delete('/stock/:tempTicker/:tradeId/:tradeDate', async (req, res) => {
   const { tradeId, tempTicker, tradeDate } = req.params
 
-  // res.send({
-  //   success: false,
-  //   content: 'trade delete falied',
-  //   errorMessage: null,
-  //   result: null
-  // })
-
-  // return
-
   try {
+    // 讀取刪除前資料
     const result = await Promise.allSettled([
       holdingsLatestInfoRef.child(tempTicker).once('value'),
       holdingsStatsRef.child(tempTicker).once('value'),
       holdingsTradeRef.child(tempTicker).child(tradeId).once('value')
     ])
 
+    // delete close cache
+    await deleteCachePrice(tradeDate, tempTicker)
+
+    // delete history trade
+    const deleteHistoryPromise = historyRef
+      .child(tradeDate)
+      .child(tradeId)
+      .remove()
+
+    // delete holdingsTrade
+    const deleteTradePromise = holdingsTradeRef
+      .child(tempTicker)
+      .child(tradeId)
+      .remove()
+
     const [latestInfo, stats, trade] = result.map((item) => item.value.val())
 
     const { close } = latestInfo
     const { cost, shares } = trade
     const { totalCost, totalShares } = stats
-    const newTotalCost = totalCost - cost
     const newTotalShares = totalShares - shares
-    const newAverageCost = newTotalCost / newTotalShares
-    const { profitOrLossPercentage, profitOrLossValue } = calculateStats(
-      close,
-      newAverageCost,
-      newTotalShares
-    )
 
-    // delete history trade
-    historyRef.child(tradeDate).child(tradeId).remove()
-
-    // delete close cache
-    const historySnapshot = await historyRef
-      .child(tradeDate)
-      .orderByChild('tempTicker')
-      .equalTo(tempTicker)
-      .once('value')
-    const history = historySnapshot.val()
-
-    // 該日期刪完已無交易
-    if (!history) {
-      const unixRange = []
-      await holdingsTradeRef
-        .child(tempTicker)
-        .orderByChild('tradeDate')
-        .limitToFirst(2)
-        .once('value')
-        .then((snapshot) => {
-          snapshot.forEach((childSnapshot) => {
-            unixRange.push(childSnapshot.val().tradeUnix)
-          })
-        })
-
-      const [firstTradeUnix, secondTradeUnix] = unixRange
-      console.log('unixRange', unixRange)
-
-      const isEarliestTrade = Date.parse(tradeDate) === firstTradeUnix
-
-      console.log('isEarliestTrade', isEarliestTrade)
-
-      // 刪除條件：刪除的交易為最早的交易
-      if (isEarliestTrade) {
-        let hasDeleteAll = false
-        let countBack = 1
-        const deletePromises = []
-
-        // 刪除最早交易日至第二交易日間的 cache
-        while (!hasDeleteAll) {
-          const unix = secondTradeUnix - 86400000 * countBack
-          const dateObj = new Date(unix)
-          const dd = String(dateObj.getDate()).padStart(2, '0')
-          const mm = String(dateObj.getMonth() + 1).padStart(2, '0')
-          const yyyy = dateObj.getFullYear()
-          const key = `${yyyy}-${mm}-${dd}_${tempTicker}`
-          const deletePromise = closeCacheRef
-            .child('closePrice')
-            .child(key)
-            .remove()
-          deletePromises.push(deletePromise)
-          countBack++
-          console.log('刪除的 cache', key)
-
-          if (unix <= firstTradeUnix) {
-            hasDeleteAll = true
-          }
-        }
-
-        await Promise.all(deletePromises)
-      }
-    }
-
-    // delete holdingsTrade
-    const tradesRef = holdingsTradeRef.child(tempTicker)
-    await tradesRef.child(tradeId).remove()
-
+    let updateStatsPromise
     if (newTotalShares !== 0) {
       // update holdingsStats
-      updateDb(holdingsStatsRef, tempTicker, {
+      console.log('update holdingsStats')
+      const newTotalCost = totalCost - cost
+      const newAverageCost = newTotalCost / newTotalShares
+      const { profitOrLossPercentage, profitOrLossValue } = calculateStats(
+        close,
+        newAverageCost,
+        newTotalShares
+      )
+
+      updateStatsPromise = updateDb(holdingsStatsRef, tempTicker, {
         totalCost: newTotalCost,
         totalShares: newTotalShares,
         averageCost: newAverageCost,
@@ -309,12 +251,24 @@ router.post('/delete/:tempTicker/:tradeId/:tradeDate', async (req, res) => {
         profitOrLossValue
       })
     } else {
-      // 該標的已全數刪除，刪除 holdingsTemptickers,  holdingsLatestInfo, holdingsStatsRef
+      console.log('該標的已全數刪除')
+      // 該標的已全數刪除
       holdingsTemptickersRef.child(tempTicker).remove()
       holdingsLatestInfoRef.child(tempTicker).remove()
       holdingsStatsRef.child(tempTicker).remove()
-      newAddingTempRef.child(tempTicker).remove()
+      newAddingTempRef.child(`${tradeDate}_${tempTicker}`).remove()
     }
+
+    await Promise.allSettled([
+      deleteHistoryPromise,
+      deleteTradePromise,
+      updateStatsPromise
+    ])
+
+    // 如果 holding 已空則刪除 cachePrice
+    await holdingsTemptickersRef.once('value').then((snapshot) => {
+      if (!snapshot.exists()) closeCacheRef.remove()
+    })
 
     res.send({
       success: true,
@@ -331,9 +285,124 @@ router.post('/delete/:tempTicker/:tradeId/:tradeDate', async (req, res) => {
       result: null
     })
   }
+
+  async function deleteCachePrice(deletedTradeDate, tempTicker) {
+    try {
+      const hasCache = await closeCacheRef
+        .child('closePrice')
+        .child(`${deletedTradeDate}_${tempTicker}`)
+        .once('value')
+
+      if (!hasCache.exists()) return console.log('沒有 cache')
+
+      //檢查該日幾筆交易
+      const numberOfTrades = []
+      await historyRef
+        .child(deletedTradeDate)
+        .orderByChild('tempTicker')
+        .equalTo(tempTicker)
+        .once('value')
+        .then((snapshot) => {
+          snapshot.forEach((childSnapshot) => {
+            numberOfTrades.push(childSnapshot.val().tempTicker)
+          })
+        })
+
+      console.log('numberOfTrades', numberOfTrades)
+
+      if (numberOfTrades.length >= 1) return console.log('該日有多筆交易')
+
+      // 該交易是否只有於一個日期交易
+      console.log(deletedTradeDate, '只有一筆交易')
+      const tradeDateSet = new Set()
+      await holdingsTradeRef
+        .child(tempTicker)
+        .orderByChild('tradeUnix')
+        .once('value')
+        .then((snapshot) => {
+          snapshot.forEach((childSnapshot) => {
+            const tradeDate = childSnapshot.val().tradeDate
+            if (!tradeDateSet.has(tradeDate)) {
+              tradeDateSet.add(tradeDate)
+            }
+          })
+        })
+
+      const isSingleTradeDate = tradeDateSet.size === 1
+      const todayDate = getFormattedDate()
+
+      // 標的只有於一個日期交易
+      if (isSingleTradeDate) {
+        console.log('標的只有於一個日期交易')
+
+        await closeCacheRef
+          .child('closePrice')
+          .orderByKey()
+          .startAt(`${deletedTradeDate}_${tempTicker}`)
+          .endAt(`${todayDate}_${tempTicker}`)
+          .once('value')
+          .then((snapshot) => {
+            snapshot.forEach((childSnapshot) => {
+              if (childSnapshot.key.endsWith(`_${tempTicker}`)) {
+                console.log('刪除的日期', childSnapshot.key)
+                childSnapshot.ref.remove()
+              }
+            })
+          })
+
+        return
+      }
+
+      // 標的於多個日期交易
+      console.log('標的於多個日期交易')
+      const [firstTradeDate, secondTradeDate] = [...tradeDateSet.values()]
+
+      if (firstTradeDate === deletedTradeDate) {
+        // 刪除的標的為最早交易日
+        console.log('刪除的標的為最早交易日')
+        const deletePromises = []
+        let countBack = 1
+        let hasDeleteAll = false
+
+        // 刪除第二交易日至最早交易日間的 cache
+        console.log(
+          '刪除第二交易日',
+          secondTradeDate,
+          '至最早交易日',
+          firstTradeDate,
+          '間的 cache'
+        )
+        while (!hasDeleteAll) {
+          const toDeleteDate = getFormattedDate(
+            countBack,
+            new Date(secondTradeDate)
+          )
+          const key = `${toDeleteDate}_${tempTicker}`
+          const deletePromise = closeCacheRef
+            .child('closePrice')
+            .child(key)
+            .remove()
+          deletePromises.push(deletePromise)
+          countBack++
+          console.log('刪除的 cache', key)
+
+          // 已從第二交易日刪到最早交易日
+          if (toDeleteDate === firstTradeDate) {
+            console.log('已從第二交易日刪到最早交易日')
+            hasDeleteAll = true
+            break
+          }
+        }
+
+        await Promise.allSettled(deletePromises)
+      }
+    } catch (error) {
+      console.log('deleteCachePrice error', error)
+    }
+  }
 })
 
-router.post('/addStock', async (req, res) => {
+router.post('/stock', async (req, res) => {
   const invalidInput = Object.keys(req.body).filter((key) => !req.body[key])
 
   if (invalidInput.length !== 0) {
@@ -374,7 +443,6 @@ router.post('/addStock', async (req, res) => {
   try {
     // set tickers
     holdingsTemptickersRef.child(tempTicker).set(ticker)
-    newAddingTempRef.child(tempTicker).set(ticker)
 
     // set latestInfo
     const latestInfoSnapshot = await holdingsLatestInfoRef
@@ -407,7 +475,7 @@ router.post('/addStock', async (req, res) => {
     // set trade
     const stockInfo = holdingsTradeRef.child(tempTicker).push()
     const id = stockInfo.key
-    const tradeUnix = Math.floor(Date.parse(tradeInfo.tradeDate))
+    const tradeUnix = Date.parse(tradeInfo.tradeDate)
     const trade = {
       ...tradeInfo,
       id,
@@ -420,21 +488,17 @@ router.post('/addStock', async (req, res) => {
     stockInfo.set(trade)
 
     // set history
-    historyRef.child(tradeInfo.tradeDate).child(id).set({
+    const { shares, cost, tradeDate } = tradeInfo
+    historyRef.child(tradeDate).child(id).set({
       code,
       ticker,
       tempTicker,
-      shares: tradeInfo.shares,
-      cost: tradeInfo.cost
+      shares,
+      cost
     })
-    testRef.child(`${tradeInfo.tradeDate}_${id}_${tempTicker}`).set({
-      id,
-      code,
-      ticker,
-      tempTicker,
-      shares: tradeInfo.shares,
-      cost: tradeInfo.cost
-    })
+
+    // set newAdding
+    newAddingTempRef.child(`${tradeDate}_${tempTicker}`).set(ticker)
 
     // 計算 stats
     const holdingsSnapshot = await holdingsTradeRef
@@ -563,7 +627,6 @@ router.get('/fxRates', async (req, res) => {
 router.get('/history', async (req, res) => {
   try {
     const resPromise = await Promise.allSettled([
-      testRef.once('value'),
       holdingsLatestInfoRef.once('value'),
       historyRef.once('value'),
       holdingsTemptickersRef.once('value'),
@@ -571,12 +634,10 @@ router.get('/history', async (req, res) => {
       closeCacheRef.once('value')
     ])
     const [
-      testSnapshot,
       latestInfoSnapshot,
       historySnapshot,
       tempTickerSnapshot,
-      fxToTWDSnapshot,
-      closeCacheSnapshot
+      fxToTWDSnapshot
     ] = resPromise
 
     if (!historySnapshot.value.val()) {
@@ -606,10 +667,7 @@ router.get('/history', async (req, res) => {
     // })
 
     const pricesAndFxRates = await Promise.allSettled([
-      getHistoricalClosePrices(
-        tempTickerSnapshot.value.val(),
-        closeCacheSnapshot.value.val()
-      ),
+      getHistoricalClosePrices(tempTickerSnapshot.value.val()),
       getFxRates(fxToTWDSnapshot.value)
     ])
 
@@ -684,7 +742,7 @@ router.get('/history', async (req, res) => {
       console.log('今天是假日，下次更新為', nextUpdate.toLocaleString())
 
       // 檢查下週一是否為假日
-      const nextUpdateISODate = getISODate(nextUpdate)
+      const nextUpdateISODate = getFormattedDate(0, nextUpdate)
       const isNextUpdateTWHoliday = holiday['TW'][nextUpdateISODate]
       const isNextUpdateUSHoliday = holiday['US'][nextUpdateISODate]
 
@@ -719,7 +777,7 @@ router.get('/history', async (req, res) => {
     const twUpdateThreshold = new Date(year, month, date, 13, 30, 0)
     const startOfDay = new Date(year, month, date, 0, 0, 0)
     const endOfDay = new Date(year, month, date, 23, 59, 59)
-    const ISODate = getISODate(now)
+    const ISODate = getFormattedDate(0, now)
 
     const isTodayTWHoliday = holiday['TW'][ISODate]
     const isTodayUSHoliday = holiday['US'][ISODate]
@@ -814,83 +872,126 @@ router.get('/history', async (req, res) => {
     return map
   }
 
-  async function getHistoricalClosePrices(tempTickerObj, closeCache) {
-    // 沒 cache
-    if (!closeCache) {
-      console.log('========沒 cache========')
-      await createPriceCache()
-      return await getPriceCache()
-    }
-
-    const { closePrice, nextUpdateTime, latestUpdateTime } = closeCache
-
-    // 檢查新增標的
-    console.log('========檢查新增標的========')
-    const newAddingSnapshot = await newAddingTempRef.once('value')
-    const newAddingTemptickers = newAddingSnapshot.val()
-    if (newAddingTemptickers) {
-      const newClosePriceMap = await getClosePrices({
-        tempTickerObj: newAddingTemptickers,
-        customEndDate: new Date(latestUpdateTime)
-          .toLocaleDateString()
-          .replace(/\//g, '-')
+  async function checkCloseCacheExists() {
+    const cachePromises = []
+    const cacheObj = {}
+    // 檢查新增標的是否已經有 cache price
+    await newAddingTempRef.once('value').then((snapshot) => {
+      snapshot.forEach((childSnapshot) => {
+        const ticker = childSnapshot.val()
+        const key = childSnapshot.key
+        const cacheSnapshot = closeCacheRef
+          .child('closePrice')
+          .child(key)
+          .once('value')
+        cachePromises.push(cacheSnapshot)
+        cacheObj[key] = ticker
       })
-      newAddingTempRef.remove()
-      console.log('只有新增的標的 newClosePriceMap', newClosePriceMap)
+    })
 
-      await updatePriceCache(newClosePriceMap)
-    }
+    const result = await Promise.allSettled(cachePromises)
+    const noCacheSnapshot = result.filter((item) => !item.value.val())
 
-    // 檢查更新日
-    console.log('========檢查更新日========')
-    console.log('下個更新日為：', new Date(nextUpdateTime).toLocaleString())
-    const now = Date.now()
+    if (noCacheSnapshot.length === 0) return null
 
-    // 還沒到更新時間
-    if (now < nextUpdateTime) {
-      console.log('========還沒到更新時間========')
+    const newAddCache = noCacheSnapshot.reduce((obj, item) => {
+      const key = item.value.key
+      const ticker = cacheObj[key]
+      const addTempTicker = key.split('_')[1]
+      obj[addTempTicker] = ticker
+      return obj
+    }, {})
 
-      if (newAddingTemptickers) {
-        console.log('========也有新增標的========')
+    return newAddCache
+  }
+
+  async function getHistoricalClosePrices(tempTickerObj) {
+    try {
+      const result = await Promise.allSettled([
+        closeCacheRef.child('nextUpdateTime').once('value'),
+        closeCacheRef.child('latestUpdateTime').once('value')
+      ])
+
+      const [nextUpdateTime, latestUpdateTime] = result.map((item) =>
+        item.value.val()
+      )
+
+      // 沒 cache
+      if (!latestUpdateTime) {
+        console.log('========沒 cache========')
+        newAddingTempRef.remove()
+        await createPriceCache()
         return await getPriceCache()
       }
 
-      console.log('========也沒有新增標的========')
-      return convertObjectToMap(closePrice)
-    }
+      // 檢查新增標的
+      console.log('========檢查新增標的========')
+      const newAddingCachedItems = await checkCloseCacheExists()
+      console.log('newAddingCachedItems', newAddingCachedItems)
 
-    // 超過更新時間
-    console.log('========超過更新時間========')
-    let startDate = new Date(latestUpdateTime)
+      if (newAddingCachedItems) {
+        const newClosePriceMap = await getClosePrices({
+          tempTickerObj: newAddingCachedItems,
+          customEndDate: new Date(latestUpdateTime)
+            .toLocaleDateString()
+            .replace(/\//g, '-')
+        })
+        newAddingTempRef.remove()
+        console.log('有新增標的 newClosePriceMap', newClosePriceMap)
 
-    if (startDate.getDay() === 6) {
-      startDate = new Date(latestUpdateTime - 86400000)
-    }
-    if (startDate.getDay() === 0) {
-      startDate = new Date(latestUpdateTime - 86400000 * 2)
-    }
+        await updatePriceCache(newClosePriceMap)
+      }
 
-    const endDate = new Date(now)
-    const newClosePriceMap = await getClosePrices({
-      tempTickerObj,
-      customStartDate: startDate,
-      customEndDate: endDate
-    })
-    console.log('超過更新時間，更新後 closePriceMap', newClosePriceMap)
+      // 檢查更新日
+      console.log('========檢查更新日========')
+      console.log('下個更新日為：', new Date(nextUpdateTime).toLocaleString())
+      const now = Date.now()
 
-    const newNextUpdateTime = await scheduleNextUpdateStock()
-    const newCurrentUpdateTime = Date.now()
-    closeCacheRef.update({
-      nextUpdateTime: newNextUpdateTime,
-      latestUpdateTime: newCurrentUpdateTime
-    })
+      // 還沒到更新時間
+      if (now < nextUpdateTime) {
+        console.log('========還沒到更新時間========')
 
-    try {
+        if (newAddingCachedItems) {
+          console.log('========有新增標的且需新增 cache price========')
+          return await getPriceCache()
+        }
+
+        console.log('========不需新增 cache price========')
+        const snapshot = await closeCacheRef.child('closePrice').once('value')
+        const closePrice = snapshot.val()
+        return convertObjectToMap(closePrice)
+      }
+
+      // 超過更新時間
+      console.log('========超過更新時間========')
+      let startDate = new Date(latestUpdateTime)
+
+      if (startDate.getDay() === 6) {
+        startDate = new Date(latestUpdateTime - 86400000)
+      }
+      if (startDate.getDay() === 0) {
+        startDate = new Date(latestUpdateTime - 86400000 * 2)
+      }
+
+      const endDate = new Date(now)
+      const newClosePriceMap = await getClosePrices({
+        tempTickerObj,
+        customStartDate: startDate,
+        customEndDate: endDate
+      })
+      console.log('超過更新時間，更新後 closePriceMap', newClosePriceMap)
+
+      const newNextUpdateTime = await scheduleNextUpdateStock()
+      const newCurrentUpdateTime = Date.now()
+      closeCacheRef.update({
+        nextUpdateTime: newNextUpdateTime,
+        latestUpdateTime: newCurrentUpdateTime
+      })
       await updatePriceCache(newClosePriceMap)
       console.log('========超過更新時間，資料庫新增完成========')
       return await getPriceCache()
     } catch (error) {
-      console.log('update failed', error)
+      console.log('getHistoricalClosePrices error', error)
     }
 
     /*
@@ -953,20 +1054,23 @@ router.get('/history', async (req, res) => {
   }
 
   async function createPriceCache() {
-    const tempTickerSnapshot = await holdingsTemptickersRef.once('value')
-    const closePriceMap = await getClosePrices({
-      tempTickerObj: tempTickerSnapshot.val()
-    })
-    const closePrice = Object.fromEntries(closePriceMap)
-    const nextUpdateTime = await scheduleNextUpdateStock()
-    const currentUpdateTime = Date.now()
-    closeCacheRef.set({
-      closePrice,
-      nextUpdateTime,
-      latestUpdateTime: currentUpdateTime
-    })
-
-    return closePriceMap
+    try {
+      const tempTickerSnapshot = await holdingsTemptickersRef.once('value')
+      const closePriceMap = await getClosePrices({
+        tempTickerObj: tempTickerSnapshot.val()
+      })
+      const closePrice = Object.fromEntries(closePriceMap)
+      const nextUpdateTime = await scheduleNextUpdateStock()
+      const currentUpdateTime = Date.now()
+      await closeCacheRef.set({
+        closePrice,
+        nextUpdateTime,
+        latestUpdateTime: currentUpdateTime
+      })
+      return closePriceMap
+    } catch (error) {
+      console.log('createPriceCache error', error)
+    }
   }
 
   async function getPriceCache() {
@@ -1514,7 +1618,7 @@ router.get('/history', async (req, res) => {
       const twMarketOpen = new Date(nowYear, nowMonth, nowDate, 9, 30, 0)
 
       let notYetOpenTotal = 0
-      if (marketOpenDate === getISODate(now)) {
+      if (marketOpenDate === getFormattedDate(0, now)) {
         sharesEachDate.forEach((value, tradeDayTempTicker) => {
           const isUsMarketOpen =
             value.code === 'us' && now.getTime() < usMarketOpen.getTime()
@@ -1694,13 +1798,6 @@ router.get('/history', async (req, res) => {
     }, {})
 
     holidaysRef.set(holidays)
-  }
-
-  function getISODate(dateObj) {
-    const dd = String(dateObj.getDate()).padStart(2, '0')
-    const mm = String(dateObj.getMonth() + 1).padStart(2, '0')
-    const yyyy = dateObj.getFullYear()
-    return yyyy + '-' + mm + '-' + dd
   }
 
   function adjustDate(yyyymmdd, sign, multiplier = 1) {

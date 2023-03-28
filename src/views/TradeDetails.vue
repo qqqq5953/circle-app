@@ -146,7 +146,7 @@ export default {
       const tempTicker = route.query.tempTicker;
       const res = await http.get(`/api/tradeDetails/${tempTicker}`);
 
-      if (!res.data.result) {
+      if (!res.data?.result) {
         return router.replace({ name: "Holdings1" });
       }
 
@@ -269,22 +269,22 @@ export default {
     ]);
 
     const setSnackbarMessage = inject("setSnackbarMessage");
-    let count = 0;
+    // let count = 0;
     async function deleteTrade(id, date) {
-      count++;
-      setSnackbarMessage({
-        success: true,
-        content: "title" + count,
-        errorMessage: null,
-        result: null,
-        routeName: null,
-      });
-      // const res = await http.post(
-      //   `/api/delete/${basicInfo.value.tempTicker}/${id}/${date}`
-      // );
+      // count++;
+      // setSnackbarMessage({
+      //   success: true,
+      //   content: "title" + count,
+      //   errorMessage: null,
+      //   result: null,
+      //   routeName: null,
+      // });
+      const res = await http.delete(
+        `/api/stock/${basicInfo.value.tempTicker}/${id}/${date}`
+      );
 
-      // setSnackbarMessage(res.data);
-      // await getTradeDetails();
+      setSnackbarMessage(res.data);
+      await getTradeDetails();
     }
 
     return {

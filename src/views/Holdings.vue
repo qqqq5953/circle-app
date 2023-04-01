@@ -24,39 +24,27 @@
       </InputModal>
     </Teleport>
 
-    <!-- totalStats -->
-    <section class="md:px-0 lg:px-4 text-xs" v-if="holdings">
-      <!-- skeleton -->
-      <div class="flex items-center" v-if="loading">
-        <div class="w-40 h-6 bg-gray-300 rounded"></div>
-        <div class="w-[83px] h-6 bg-gray-300 rounded-full ml-auto"></div>
-      </div>
+    <HoldingSkeleton v-if="loading">
+      <template #cardSkeleton v-if="topThreePerformance.length >= 3">
+        <div>
+          <div class="w-40 h-6 bg-gray-300 rounded mb-4"></div>
+          <div class="sm:flex gap-3">
+            <CardSkeleton />
+          </div>
+        </div>
+      </template>
+    </HoldingSkeleton>
 
+    <!-- totalStats -->
+    <section class="md:px-0 lg:px-4 text-xs" v-if="!loading && holdings">
       <!-- title -->
-      <div class="flex items-center" v-if="!loading && totalStats">
+      <div class="flex items-center">
         <h2 class="font-semibold text-lg inline">Total stats</h2>
         <p class="ml-1 pt-1 tracking-wider">(TWD)</p>
       </div>
 
-      <!-- skeleton -->
-      <div class="animate-pulse" v-if="!totalStats || !fxRates">
-        <div class="text-right pt-1.5" v-if="fxRatesUsedTwoDecimals">
-          <span class="w-28 h-3 bg-gray-300 rounded-full inline-block"></span>
-        </div>
-        <ul class="flex flex-wrap -m-1 md:-m-2 pt-1.5">
-          <li class="w-1/2 p-1 sm:w-1/4 md:p-2" v-for="i in 4" :key="i">
-            <div
-              class="flex flex-col items-center justify-center gap-y-2 bg-slate-100 h-12 w-full rounded shadow"
-            >
-              <div class="bg-gray-300 rounded-full w-2/3 h-3"></div>
-              <div class="bg-gray-300 rounded-full w-2/3 h-3"></div>
-            </div>
-          </li>
-        </ul>
-      </div>
-
       <!-- stats -->
-      <div v-if="totalStats && !loading">
+      <div>
         <TotalStats
           :fxRatesUsedTwoDecimals="fxRatesUsedTwoDecimals"
           :totalStats="totalStats"
@@ -65,23 +53,16 @@
     </section>
 
     <!-- Top 3 Performance -->
-    <section class="md:px-0 lg:px-4" v-if="topThreePerformance.length >= 3">
-      <div class="flex items-center mb-4">
-        <div class="w-40 h-6 bg-gray-300 rounded" v-if="loading"></div>
-        <h2
-          class="font-semibold text-lg"
-          v-if="!loading && topThreePerformance.length"
-        >
-          Top 3 Performance
-        </h2>
-      </div>
+    <section
+      class="md:px-0 lg:px-4"
+      v-if="!loading && topThreePerformance.length >= 3"
+    >
+      <h2 class="font-semibold text-lg mb-4">Top 3 Performance</h2>
       <div class="sm:flex gap-3">
-        <CardSkeleton v-if="loading" />
         <div
           class="sm:w-1/3"
           v-for="item in topThreePerformance"
           :key="item.latestInfo.ticker"
-          v-else
         >
           <Card>
             <template #card-title>
@@ -165,20 +146,11 @@
     </section>
 
     <!-- Holdings -->
-    <section class="md:px-0 lg:px-4">
-      <!-- skeleton -->
-      <div class="flex items-center" v-if="loading">
-        <div class="w-40 h-6 bg-gray-300 rounded"></div>
-        <div class="w-[83px] h-6 bg-gray-300 rounded-full ml-auto"></div>
-      </div>
-
-      <div
-        class="flex items-center justify-between mb-4"
-        v-if="!loading && holdings"
-      >
+    <section class="md:px-0 lg:px-4" v-if="!loading">
+      <div class="flex items-center justify-between mb-4" v-if="holdings">
         <h2 class="font-semibold text-lg">Holdings</h2>
         <button
-          class="border border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-full font-semibold py-1 text-xs w-[83px]"
+          class="border border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-full font-bold py-1 text-xs w-[83px]"
           @click="toggleModal({ open: true, type: 'invest' })"
           v-if="holdings"
         >
@@ -187,14 +159,13 @@
         </button>
       </div>
 
-      <TableSkeleton v-if="loading" />
       <NewTable1
-        v-if="!loading && holdings"
+        v-if="holdings"
         :holdings="holdings"
         @toggleModal="toggleModal"
       />
 
-      <div class="pt-[40%] md:pt-[20%] text-center" v-if="!holdings">
+      <div class="py-[20%] text-center" v-if="!holdings">
         <button
           class="bg-indigo-700 text-white hover:bg-indigo-600 rounded-full px-3 py-1.5 text-xs"
           @click="toggleModal({ open: true, type: 'invest' })"
@@ -211,8 +182,7 @@
 import NewTable1 from "@/components/NewTable1.vue";
 import Card from "@/components/Card.vue";
 import CardSkeleton from "@/components/skeleton/CardSkeleton.vue";
-import TableSkeleton from "@/components/skeleton/TableSkeleton.vue";
-import InputSkeleton from "@/components/skeleton/InputSkeleton.vue";
+import HoldingSkeleton from "@/components/skeleton/HoldingSkeleton.vue";
 import TradePanel from "@/components/TradePanel.vue";
 import TotalStats from "@/components/Holdings/TotalStats.vue";
 
@@ -238,8 +208,7 @@ export default {
     NewTable1,
     Card,
     CardSkeleton,
-    TableSkeleton,
-    InputSkeleton,
+    HoldingSkeleton,
     InputModal: defineAsyncComponent(() =>
       import("@/components/InputModal.vue")
     ),
@@ -375,7 +344,7 @@ export default {
 
         console.log("stockObj", stockObj);
 
-        const res = await http.post(`/api/addStock`, stockObj);
+        const res = await http.post(`/api/stock`, stockObj);
 
         await updateHoldings(res.data);
       } catch (error) {

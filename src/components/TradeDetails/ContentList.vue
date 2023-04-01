@@ -1,7 +1,7 @@
 <template>
   <ul>
     <li
-      class="flex items-center gap-x-1.5 py-2 text-xs border-b hover:bg-slate-100"
+      class="flex items-center gap-x-1.5 py-2 text-xs border-b hover:bg-slate-100 group"
       :class="fontWeight"
       v-for="item in list"
       :key="item.id"

@@ -114,7 +114,10 @@
           <span>${{ value }}</span>
         </template>
         <template #delete="{ id, date }">
-          <button class="sm:mx-2" @click="deleteTrade(id, date)">
+          <button
+            class="sm:mx-2 lg:invisible lg:group-hover:visible"
+            @click="deleteTrade(id, date)"
+          >
             <i class="fa-regular fa-trash-can"></i>
           </button>
         </template>
@@ -161,7 +164,7 @@ export default {
           price: close,
           shares: totalShares,
           date: new Date().toLocaleDateString("zh-TW").replace(/\//g, "-"),
-          value: close * totalShares,
+          value: (close * totalShares).toFixed(2),
           profitOrLossPercentage,
           profitOrLossValue,
         };
@@ -269,16 +272,8 @@ export default {
     ]);
 
     const setSnackbarMessage = inject("setSnackbarMessage");
-    // let count = 0;
+
     async function deleteTrade(id, date) {
-      // count++;
-      // setSnackbarMessage({
-      //   success: true,
-      //   content: "title" + count,
-      //   errorMessage: null,
-      //   result: null,
-      //   routeName: null,
-      // });
       const res = await http.delete(
         `/api/stock/${basicInfo.value.tempTicker}/${id}/${date}`
       );

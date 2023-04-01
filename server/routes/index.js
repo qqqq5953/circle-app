@@ -23,6 +23,7 @@ const calculateStats = require('../functions/holdings/calculateStats')
 const updateDb = require('../functions/holdings/updateDb')
 
 const getFormattedDate = require('../tools/getFormattedDate')
+const getISODate = require('../tools/getISODate')
 const parseFloatByDecimal = require('../tools/parseFloatByDecimal')
 const formatNumber = require('../tools/formatNumber')
 const getFxRates = require('../tools/getFxRates')
@@ -310,7 +311,7 @@ router.delete('/stock/:tempTicker/:tradeId/:tradeDate', async (req, res) => {
 
       console.log('numberOfTrades', numberOfTrades)
 
-      if (numberOfTrades.length >= 1) return console.log('該日有多筆交易')
+      if (numberOfTrades.length > 1) return console.log('該日有多筆交易')
 
       // 該交易是否只有於一個日期交易
       console.log(deletedTradeDate, '只有一筆交易')
@@ -329,7 +330,7 @@ router.delete('/stock/:tempTicker/:tradeId/:tradeDate', async (req, res) => {
         })
 
       const isSingleTradeDate = tradeDateSet.size === 1
-      const todayDate = getFormattedDate()
+      const todayDate = getISODate()
 
       // 標的只有於一個日期交易
       if (isSingleTradeDate) {
@@ -373,10 +374,10 @@ router.delete('/stock/:tempTicker/:tradeId/:tradeDate', async (req, res) => {
           '間的 cache'
         )
         while (!hasDeleteAll) {
-          const toDeleteDate = getFormattedDate(
-            countBack,
-            new Date(secondTradeDate)
-          )
+          const oneDay = 86400000
+          const toDeleteUnix =
+            new Date(secondTradeDate).getTime() - oneDay * countBack
+          const toDeleteDate = getISODate(new Date(toDeleteUnix))
           const key = `${toDeleteDate}_${tempTicker}`
           const deletePromise = closeCacheRef
             .child('closePrice')
@@ -742,7 +743,7 @@ router.get('/history', async (req, res) => {
       console.log('今天是假日，下次更新為', nextUpdate.toLocaleString())
 
       // 檢查下週一是否為假日
-      const nextUpdateISODate = getFormattedDate(0, nextUpdate)
+      const nextUpdateISODate = getISODate(nextUpdate)
       const isNextUpdateTWHoliday = holiday['TW'][nextUpdateISODate]
       const isNextUpdateUSHoliday = holiday['US'][nextUpdateISODate]
 
@@ -777,7 +778,7 @@ router.get('/history', async (req, res) => {
     const twUpdateThreshold = new Date(year, month, date, 13, 30, 0)
     const startOfDay = new Date(year, month, date, 0, 0, 0)
     const endOfDay = new Date(year, month, date, 23, 59, 59)
-    const ISODate = getFormattedDate(0, now)
+    const ISODate = getISODate(now)
 
     const isTodayTWHoliday = holiday['TW'][ISODate]
     const isTodayUSHoliday = holiday['US'][ISODate]
@@ -1618,7 +1619,7 @@ router.get('/history', async (req, res) => {
       const twMarketOpen = new Date(nowYear, nowMonth, nowDate, 9, 30, 0)
 
       let notYetOpenTotal = 0
-      if (marketOpenDate === getFormattedDate(0, now)) {
+      if (marketOpenDate === getISODate(now)) {
         sharesEachDate.forEach((value, tradeDayTempTicker) => {
           const isUsMarketOpen =
             value.code === 'us' && now.getTime() < usMarketOpen.getTime()

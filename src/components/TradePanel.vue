@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col gap-6">
+  <div class="flex flex-col gap-8">
     <div class="relative w-full pb-14 mb-6" v-if="!isBuyMore">
       <SearchBar />
 

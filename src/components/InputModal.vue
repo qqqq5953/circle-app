@@ -9,22 +9,12 @@
       <slot name="inputs"></slot>
     </template>
     <template #footer>
-      <div class="absolute text-right bottom-6 right-0 mr-5">
-        <button class="text-blue-600 px-2 py-1.5 mr-2" @click="closeModal">
+      <div class="text-right">
+        <button class="text-indigo-600 px-2 py-1.5 mr-2" @click="closeModal">
           Close
         </button>
         <button
-          class="
-            border
-            rounded
-            px-2
-            py-1.5
-            bg-blue-600
-            text-white
-            disabled:bg-gray-200
-            disabled:text-gray-400
-            disabled:cursor-not-allowed
-          "
+          class="border rounded px-2 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
           @click="confirmFunc"
           v-if="confirmFunc"
           :disabled="isDisabled"

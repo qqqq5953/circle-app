@@ -73,6 +73,8 @@ export default {
     function closeBar(id) {
       const idx = messages.value.findIndex((message) => message.id === id);
       const [message] = messages.value.splice(idx, 1);
+      // snackbar 消失之際 message 已消失但畫面仍可以按打叉會
+      if (!message) return;
       clearTimeout(message.timer);
     }
 

@@ -159,7 +159,7 @@
         </button>
       </div>
 
-      <NewTable1
+      <HoldingsTable
         v-if="holdings"
         :holdings="holdings"
         @toggleModal="toggleModal"
@@ -179,7 +179,7 @@
 </template>
 
 <script>
-import NewTable1 from "@/components/NewTable1.vue";
+import HoldingsTable from "@/components/HoldingsTable.vue";
 import Card from "@/components/Card.vue";
 import CardSkeleton from "@/components/skeleton/CardSkeleton.vue";
 import HoldingSkeleton from "@/components/skeleton/HoldingSkeleton.vue";
@@ -205,7 +205,7 @@ export default {
   components: {
     TotalStats,
     TradePanel,
-    NewTable1,
+    HoldingsTable,
     Card,
     CardSkeleton,
     HoldingSkeleton,

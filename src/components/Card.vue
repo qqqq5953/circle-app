@@ -1,20 +1,9 @@
 <template>
   <div
-    class="
-      flex flex-col flex-auto
-      gap-y-4
-      p-4
-      border
-      rounded
-      shadow-lg
-      bg-white
-      mb-2.5
-      xl:mb-0
-      relative
-    "
+    class="flex flex-col flex-auto gap-y-4 p-4 border rounded shadow-lg bg-white mb-2.5 xl:mb-0 relative"
   >
     <!-- card-header -->
-    <section>
+    <section class="flex flex-col space-y-2">
       <slot name="card-title"></slot>
       <slot name="card-sub-title"></slot>
     </section>

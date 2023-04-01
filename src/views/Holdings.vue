@@ -116,7 +116,7 @@
                   </span>
                 </p>
                 <router-link
-                  class="hover:text-indigo-500 text-indigo-600 ml-auto block"
+                  class="hover:text-indigo-500 text-indigo-600 font-bold ml-auto block"
                   :to="{
                     name: 'TradeDetails',
                     params: {
@@ -125,7 +125,7 @@
                   }"
                 >
                   <span class="text-xs flex items-center gap-x-1">
-                    <span class="sm:hidden">details</span>
+                    <span class="sm:hidden">Details</span>
                     <i class="fa-solid fa-chevron-right"></i
                   ></span>
                 </router-link>

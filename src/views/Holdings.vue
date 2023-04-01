@@ -24,16 +24,7 @@
       </InputModal>
     </Teleport>
 
-    <HoldingSkeleton v-if="loading">
-      <template #cardSkeleton v-if="topThreePerformance.length >= 3">
-        <div>
-          <div class="w-40 h-6 bg-gray-300 rounded mb-4"></div>
-          <div class="sm:flex gap-3">
-            <CardSkeleton />
-          </div>
-        </div>
-      </template>
-    </HoldingSkeleton>
+    <HoldingSkeleton v-if="loading" />
 
     <!-- totalStats -->
     <section class="md:px-0 lg:px-4 text-xs" v-if="!loading && holdings">
@@ -181,7 +172,6 @@
 <script>
 import HoldingsTable from "@/components/HoldingsTable.vue";
 import Card from "@/components/Card.vue";
-import CardSkeleton from "@/components/skeleton/CardSkeleton.vue";
 import HoldingSkeleton from "@/components/skeleton/HoldingSkeleton.vue";
 import TradePanel from "@/components/TradePanel.vue";
 import TotalStats from "@/components/Holdings/TotalStats.vue";
@@ -207,7 +197,6 @@ export default {
     TradePanel,
     HoldingsTable,
     Card,
-    CardSkeleton,
     HoldingSkeleton,
     InputModal: defineAsyncComponent(() =>
       import("@/components/InputModal.vue")

@@ -20,9 +20,6 @@
       </ul>
     </div>
 
-    <!-- CardSkeleton -->
-    <slot name="cardSkeleton"></slot>
-
     <!-- Holdings -->
     <section class="">
       <div class="flex items-center mb-4">

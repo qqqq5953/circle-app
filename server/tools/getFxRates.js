@@ -2,9 +2,9 @@ const firebaseDb = require('../firebase/index.js')
 const axios = require('axios')
 const fxToTWDRef = firebaseDb.ref('/fxToTWD/')
 
-async function getFxRates(fxToTWDSnapshot) {
-  if (fxToTWDSnapshot.val()) {
-    const { fxRates, nextUpdateTime } = fxToTWDSnapshot.val()
+async function getFxRates(fxToTWD) {
+  if (fxToTWD) {
+    const { fxRates, nextUpdateTime } = fxToTWD
     return await checkFxUpdate(fxRates, nextUpdateTime)
   } else {
     return await checkFxUpdate()

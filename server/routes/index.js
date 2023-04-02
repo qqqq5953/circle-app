@@ -94,7 +94,7 @@ router.get('/quote/:ticker', async (req, res) => {
 
 router.get('/holdings', async (req, res) => {
   try {
-    let latestInfoSnapshot = await holdingsLatestInfoRef.once('value')
+    const latestInfoSnapshot = await holdingsLatestInfoRef.once('value')
     let latestInfoObj = latestInfoSnapshot.val()
     if (!latestInfoObj) {
       return res.send({
@@ -110,7 +110,7 @@ router.get('/holdings', async (req, res) => {
     const quoteResult = await Promise.allSettled(quotePromises)
 
     // checkUpdate
-    let holdingsStatsSnapshot = await holdingsStatsRef.once('value')
+    const holdingsStatsSnapshot = await holdingsStatsRef.once('value')
     let holdingsStats = holdingsStatsSnapshot.val()
 
     const hasUpdate = await checkUpdate(
@@ -172,6 +172,87 @@ router.get('/holdings', async (req, res) => {
     const msg = {
       success: false,
       content: '獲得標的失敗',
+      errorMessage: error.message,
+      result: null
+    }
+
+    res.send(msg)
+  }
+})
+
+router.get('/totalStats', async (req, res) => {
+  try {
+    const latestInfoSnapshot = await holdingsLatestInfoRef.once('value')
+    const latestInfoObj = latestInfoSnapshot.val()
+    if (!latestInfoObj) {
+      return res.send({
+        success: true,
+        content: '無標的',
+        errorMessage: null,
+        result: null
+      })
+    }
+
+    // fetch new quotes
+    const { tempTickers, quotePromises } = await fetchNewQuotes(latestInfoObj)
+    const quoteResult = await Promise.allSettled(quotePromises)
+    const quotes = quoteResult.reduce((obj, item, index) => {
+      const tempTicker = tempTickers[index]
+      obj[tempTicker] = item.value.price.regularMarketPrice
+      return obj
+    }, {})
+
+    // get Fx and stats
+    const result = await Promise.allSettled([
+      fxToTWDRef.once('value'),
+      holdingsStatsRef.once('value')
+    ])
+    const [fxToTWD, stats] = result.map((item) => item.value.val())
+    const fxRates = await getFxRates(fxToTWD)
+
+    // calculate total stats
+    const { accTotalCost, accTotalValue } = Object.entries(stats).reduce(
+      (obj, item) => {
+        const [tempTicker, stats] = item
+        const { totalCost, totalShares } = stats
+        const close = quotes[tempTicker]
+        const code = latestInfoObj[tempTicker].code
+        const exchangeRate = fxRates[code]
+        const totalValue = totalShares * close
+
+        obj.accTotalCost += totalCost * exchangeRate
+        obj.accTotalValue += totalValue * exchangeRate
+        return obj
+      },
+      {
+        accTotalCost: 0,
+        accTotalValue: 0
+      }
+    )
+
+    const totalStats = {
+      'P / L': formatNumber({ number: accTotalValue - accTotalCost }),
+      'P / L %':
+        (((accTotalValue - accTotalCost) * 100) / accTotalCost).toFixed(2) +
+        '%',
+      'Total cost': formatNumber({ number: accTotalCost }),
+      'Total value': formatNumber({ number: accTotalValue })
+    }
+
+    console.log('totalStats', totalStats)
+
+    const msg = {
+      success: true,
+      content: 'Total stats fetched',
+      errorMessage: null,
+      result: totalStats
+    }
+
+    res.send(msg)
+  } catch (error) {
+    const msg = {
+      success: false,
+      content: 'Failed to fetch total stats',
       errorMessage: error.message,
       result: null
     }
@@ -669,7 +750,7 @@ router.get('/history', async (req, res) => {
 
     const pricesAndFxRates = await Promise.allSettled([
       getHistoricalClosePrices(tempTickerSnapshot.value.val()),
-      getFxRates(fxToTWDSnapshot.value)
+      getFxRates(fxToTWDSnapshot.value.val())
     ])
 
     const [closePricesMap, fxRates] = pricesAndFxRates.map((item) => item.value)

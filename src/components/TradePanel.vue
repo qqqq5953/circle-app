@@ -229,7 +229,7 @@ export default {
       return maxDate;
     }
 
-    function getMaxDate(code, multiplier) {
+    function getMaxDate(code, multiplier = 0) {
       const ISODate = getISODate(multiplier);
       const finaldMaxDate = checkHoliday(code, ISODate, multiplier);
 

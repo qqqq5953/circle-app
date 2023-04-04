@@ -37,8 +37,9 @@
       <!-- stats -->
       <div>
         <TotalStats
-          :fxRatesUsedTwoDecimals="fxRatesUsedTwoDecimals"
+          :fxRates="fxRates"
           :totalStats="totalStats"
+          :latestInfo="latestInfo"
         />
       </div>
     </section>
@@ -238,79 +239,25 @@ export default {
     }
 
     // totalStats
-    const codeToCurrencyMap = ref({
-      tw: "TWD",
-      us: "USDTWD",
-      mf: "USDTWD",
-      uk: "GBPTWD",
-      hk: "HKDTWD",
-      ks: "KRWTWD",
-    });
-    const fxRates = ref(null);
-    const totalCodesInHoldings = ref([]);
-    const fxRatesUsedTwoDecimals = computed(() => {
-      if (!fxRates.value) return {};
+    const fxRates = ref({});
+    const totalStats = ref({});
+    const latestInfo = ref({});
 
-      const { tw, ...restCode } = fxRates.value;
-      const obj = {};
+    (async () => {
+      const result = await Promise.allSettled([
+        http.get("/api/fxRates"),
+        http.get("/api/totalStats"),
+        http.get("/api/holdingLatestInfo"),
+      ]);
 
-      for (let i = 0; i < totalCodesInHoldings.value.length; i++) {
-        const code = totalCodesInHoldings.value[i];
-        const currency = codeToCurrencyMap.value[code];
-        const rate = +(+restCode[code]).toFixed(2);
-        obj[currency] = rate;
-      }
-
-      return obj;
-    });
-    const totalStats = computed(() => {
-      if (!data.value?.result || !fxRates.value) return {};
-      totalCodesInHoldings.value.length = 0;
-      const stats = getTotalStats();
-      return stats;
-    });
-
-    function getTotalStats() {
-      // 計算總成本、總市值
-      const stats = Object.values(data.value.result).reduce(
-        (obj, item) => {
-          const { latestInfo, totalStats } = item;
-          const { totalValue, totalCost } = totalStats;
-          const { code } = latestInfo;
-          const exchangeRate = fxRates.value[code];
-
-          if (code !== "tw" && !totalCodesInHoldings.value.includes(code)) {
-            totalCodesInHoldings.value.push(code);
-          }
-
-          obj["Total value"] += totalValue * parseFloat(exchangeRate);
-          obj["Total cost"] += totalCost * parseFloat(exchangeRate);
-
-          return obj;
-        },
-        { "Total cost": 0, "Total value": 0 }
+      const [fxRatesObj, stats, holdingLatestInfo] = result.map(
+        (item) => item.value.data.result
       );
 
-      // 計算總損益、總報酬率
-      const totalValue = stats["Total value"];
-      const totalCost = stats["Total cost"];
-      stats["Total value"] = formatNumber({ number: totalValue });
-      stats["Total cost"] = formatNumber({ number: totalCost });
-      stats["P / L"] = formatNumber({
-        number: totalValue - totalCost,
-      });
-      stats["P / L %"] =
-        (((totalValue - totalCost) * 100) / totalCost).toFixed(2) + "%";
-
-      return stats;
-    }
-
-    // fx rate
-    async function getExchangeRate() {
-      const res = await http.get(`/api/fxRates`);
-      fxRates.value = res.data.result;
-    }
-    getExchangeRate();
+      fxRates.value = fxRatesObj;
+      totalStats.value = stats;
+      latestInfo.value = holdingLatestInfo;
+    })();
 
     // addStock
     const isAllValid = computed(() => {
@@ -472,9 +419,7 @@ export default {
       holdings,
       totalStats,
       fxRates,
-      fxRatesUsedTwoDecimals,
-      totalCodesInHoldings,
-      getExchangeRate,
+      latestInfo,
 
       inputValidity,
       setInputValidity,

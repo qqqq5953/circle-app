@@ -18,39 +18,39 @@ const useSearchStore = defineStore('search', () => {
       maxLength: '9',
       style: 'bg-slate-700',
       rule: /^\d{4,6}\.tw$/i
-    },
-    {
-      code: 'uk',
-      name: 'UK Stocks',
-      placeholder: 'Ex: SHEL.L',
-      maxLength: '6',
-      style: 'bg-red-500',
-      rule: /^[a-z]{4}\.l$/i
-    },
-    {
-      code: 'hk',
-      name: 'HK Stocks',
-      placeholder: 'Ex: 1299.HK',
-      maxLength: '7',
-      style: 'bg-teal-600/70',
-      rule: /^\d{4}\.hk$/i
-    },
-    {
-      code: 'ks',
-      name: 'KR Stocks',
-      placeholder: 'Ex: 005930.KS',
-      maxLength: '9',
-      style: 'bg-yellow-500',
-      rule: /^\d{6}\.ks$/i
-    },
-    {
-      code: 'mf',
-      name: 'Mutual Funds',
-      placeholder: 'Ex: TRGIX',
-      maxLength: '5',
-      style: 'bg-indigo-600',
-      rule: /^[a-z]{5}$/i
     }
+    // {
+    //   code: 'uk',
+    //   name: 'UK Stocks',
+    //   placeholder: 'Ex: SHEL.L',
+    //   maxLength: '6',
+    //   style: 'bg-red-500',
+    //   rule: /^[a-z]{4}\.l$/i
+    // },
+    // {
+    //   code: 'hk',
+    //   name: 'HK Stocks',
+    //   placeholder: 'Ex: 1299.HK',
+    //   maxLength: '7',
+    //   style: 'bg-teal-600/70',
+    //   rule: /^\d{4}\.hk$/i
+    // },
+    // {
+    //   code: 'ks',
+    //   name: 'KR Stocks',
+    //   placeholder: 'Ex: 005930.KS',
+    //   maxLength: '9',
+    //   style: 'bg-yellow-500',
+    //   rule: /^\d{6}\.ks$/i
+    // },
+    // {
+    //   code: 'mf',
+    //   name: 'Mutual Funds',
+    //   placeholder: 'Ex: TRGIX',
+    //   maxLength: '5',
+    //   style: 'bg-indigo-600',
+    //   rule: /^[a-z]{5}$/i
+    // }
   ])
 
   const searchList = ref([])

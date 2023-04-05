@@ -29,6 +29,31 @@ const formatNumber = require('../tools/formatNumber')
 const getFxRates = require('../tools/getFxRates')
 
 // HOLDINNGS PAGE
+// Overview
+router.get('/holdingLatestInfo', async (req, res) => {
+  try {
+    const snapshot = await holdingsLatestInfoRef.once('value')
+    const latestInfo = snapshot.val()
+    const msg = {
+      success: true,
+      content: 'Latest info fetched',
+      errorMessage: null,
+      result: latestInfo
+    }
+
+    res.send(msg)
+  } catch (error) {
+    const msg = {
+      success: false,
+      content: 'Failed to fetch latest info',
+      errorMessage: error.message,
+      result: null
+    }
+
+    res.send(msg)
+  }
+})
+
 router.get('/', function (req, res, next) {
   res.render('index', { title: 'Express' })
 })

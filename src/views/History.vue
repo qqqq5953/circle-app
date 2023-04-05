@@ -61,7 +61,7 @@
 
 <script>
 import http from "../api/index";
-import MultiLineChart from "@/components/MultiLineChart.vue";
+import MultiLineChart from "@/components/Charts/MultiLineChart.vue";
 import TitleList from "@/components/History/TitleList.vue";
 import DetailList from "@/components/History/DetailList.vue";
 import useAxios from "@/composables/useAxios.js";

@@ -15,8 +15,8 @@
 <script>
 import { ref, computed } from "vue";
 import Tabs from "@/components/Tabs.vue";
-import Quarterly from "@/components/BarChart.vue";
-import Yearly from "@/components/BarChart.vue";
+import Quarterly from "@/components/Charts/BarChart.vue";
+import Yearly from "@/components/Charts/BarChart.vue";
 
 export default {
   components: { Tabs, Quarterly, Yearly },

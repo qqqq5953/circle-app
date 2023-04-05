@@ -10,17 +10,7 @@
       />
     </div>
     <div
-      class="
-        relative
-        top-12
-        flex
-        items-center
-        gap-2
-        max-w-fit
-        text-xs
-        py-3
-        font-medium
-      "
+      class="relative top-12 flex items-center gap-2 max-w-fit text-xs py-3 font-medium"
       :class="closeChange > 0 ? 'text-red-600' : 'text-green-600'"
       v-if="closeChange"
     >
@@ -58,7 +48,7 @@
 import { ref, computed, watch } from "vue";
 import http from "@/api/index";
 import Tabs from "@/components/Tabs.vue";
-import LineChart from "@/components/LineChart.vue";
+import LineChart from "@/components/Charts/LineChart.vue";
 
 export default {
   components: {

@@ -6,7 +6,7 @@
 </template>
 
 <script>
-import BarChart from "@/components/BarChart.vue";
+import BarChart from "@/components/Charts/BarChart.vue";
 import { ref } from "vue";
 
 export default {

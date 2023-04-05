@@ -1,13 +1,10 @@
 <template>
   <main>
-    <section class="md:px-0 lg:px-4 text-xs">
-      <!-- title -->
+    <section class="md:px-0 lg:px-4">
       <div class="flex items-center">
         <h2 class="font-semibold text-lg inline">Total stats</h2>
         <p class="ml-1 pt-1 tracking-wider">(TWD)</p>
       </div>
-
-      <!-- stats -->
       <div>
         <TotalStats
           :fxRates="fxRates"
@@ -16,6 +13,28 @@
         />
       </div>
     </section>
+
+    <div class="relative -mt-12 h-[360px]">
+      <PieChart
+        class="absolute left-0 top-0"
+        :seriesData="holdingsTotalValue"
+      />
+      <div
+        class="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 flex flex-col justify-center items-center w-full space-y-1"
+        v-if="totalStats"
+      >
+        <p class="font-light text-sm">Total value:</p>
+        <p
+          class="font-semibold text-lg break-words w-1/3 text-center leading-5"
+        >
+          {{ totalStats["Total value"] }}
+        </p>
+        <p class="font-semibold text-sm text-red-600">
+          {{ totalStats["P / L %"] }}
+        </p>
+      </div>
+    </div>
+
     <div class="flex flex-wrap">
       <!-- Rate of Return Since last month-->
       <div
@@ -54,15 +73,18 @@
 <script>
 import { ref } from "vue";
 import TotalStats from "@/components/Holdings/TotalStats.vue";
+import PieChart from "@/components/Charts/PieChart.vue";
 import http from "../api/index";
 
 export default {
   components: {
     TotalStats,
+    PieChart,
   },
   setup() {
     const fxRates = ref({});
-    const totalStats = ref({});
+    const totalStats = ref(null);
+    const holdingsTotalValue = ref(null);
     const latestInfo = ref({});
 
     (async () => {
@@ -77,14 +99,19 @@ export default {
       );
 
       fxRates.value = fxRatesObj;
-      totalStats.value = stats;
+      totalStats.value = stats.totalStats;
+      holdingsTotalValue.value = stats.holdingsTotalValue;
       latestInfo.value = holdingLatestInfo;
+
+      console.log("totalStats", totalStats.value);
+      console.log("holdingsTotalValue", holdingsTotalValue.value);
     })();
 
     return {
       fxRates,
       totalStats,
       latestInfo,
+      holdingsTotalValue,
     };
   },
 };

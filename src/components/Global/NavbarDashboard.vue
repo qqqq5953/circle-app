@@ -68,8 +68,8 @@ export default {
     const menuList = ref(false);
     const menu = ref([
       {
-        name: "Portfolio",
-        routeName: "Portfolio",
+        name: "Overview",
+        routeName: "Overview",
       },
       {
         name: "Holdings",

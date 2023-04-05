@@ -27,7 +27,7 @@
     <HoldingSkeleton v-if="loading" />
 
     <!-- totalStats -->
-    <section class="md:px-0 lg:px-4 text-xs" v-if="!loading && holdings">
+    <section class="md:px-0 lg:px-4" v-if="!loading && holdings">
       <!-- title -->
       <div class="flex items-center">
         <h2 class="font-semibold text-lg inline">Total stats</h2>
@@ -255,7 +255,7 @@ export default {
       );
 
       fxRates.value = fxRatesObj;
-      totalStats.value = stats;
+      totalStats.value = stats.totalStats;
       latestInfo.value = holdingLatestInfo;
     })();
 

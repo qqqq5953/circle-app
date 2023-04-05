@@ -12,12 +12,12 @@ const routes = [
     path: '/admin/dashboard',
     name: 'Dashboard',
     component: () => import('../views/Dashboard.vue'),
-    redirect: { name: 'Portfolio' },
+    redirect: { name: 'Overview' },
     children: [
       {
-        path: 'portfolio',
-        name: 'Portfolio',
-        component: () => import('../views/Portfolio.vue')
+        path: 'overview',
+        name: 'Overview',
+        component: () => import('../views/Overview.vue')
       },
       {
         path: 'holdings',

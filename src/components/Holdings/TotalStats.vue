@@ -25,9 +25,9 @@
         :key="key"
       >
         <div
-          class="flex flex-col space-y-1 items-center bg-slate-100 text-slate-700 rounded shadow p-2 lg:p-1.5"
+          class="flex flex-col space-y-1 items-center bg-slate-100 text-slate-700 rounded shadow p-2 md:p-3"
         >
-          <span class="font-light">{{ key }}</span>
+          <span class="font-light text-xs md:text-sm">{{ key }}</span>
           <span
             class="font-medium text-sm md:text-base"
             :class="

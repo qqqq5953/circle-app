@@ -211,7 +211,9 @@ router.get('/totalStats', async (req, res) => {
     const fxRates = await getFxRates(fxToTWD)
 
     // calculate total stats
-    const { accTotalCost, accTotalValue } = Object.entries(stats).reduce(
+    const { accTotalCost, accTotalValue, holdingsTotalValue } = Object.entries(
+      stats
+    ).reduce(
       (obj, item) => {
         const [tempTicker, stats] = item
         const { totalCost, totalShares } = stats
@@ -222,11 +224,16 @@ router.get('/totalStats', async (req, res) => {
 
         obj.accTotalCost += totalCost * exchangeRate
         obj.accTotalValue += totalValue * exchangeRate
+        obj.holdingsTotalValue.push({
+          name: tempTicker,
+          value: +(totalValue * exchangeRate).toFixed(2)
+        })
         return obj
       },
       {
         accTotalCost: 0,
-        accTotalValue: 0
+        accTotalValue: 0,
+        holdingsTotalValue: []
       }
     )
 
@@ -245,7 +252,7 @@ router.get('/totalStats', async (req, res) => {
       success: true,
       content: 'Total stats fetched',
       errorMessage: null,
-      result: totalStats
+      result: { totalStats, holdingsTotalValue }
     }
 
     res.send(msg)

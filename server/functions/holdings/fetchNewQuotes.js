@@ -5,14 +5,14 @@ async function fetchNewQuotes(latestInfoObj) {
     const tempTickers = []
     const quotePromises = []
 
-    for (const tempTicker in latestInfoObj) {
+    Object.keys(latestInfoObj).forEach((tempTicker) => {
       const ticker = latestInfoObj[tempTicker].ticker
       const quoteOptions = { symbol: ticker, modules: ['price'] }
       const quotePromise = yahooFinance.quote(quoteOptions)
 
       tempTickers.push(tempTicker)
       quotePromises.push(quotePromise)
-    }
+    })
 
     return { tempTickers, quotePromises }
   } catch (error) {

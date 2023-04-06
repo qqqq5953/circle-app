@@ -28,7 +28,6 @@ const parseFloatByDecimal = require('../tools/parseFloatByDecimal')
 const formatNumber = require('../tools/formatNumber')
 const getFxRates = require('../tools/getFxRates')
 
-// HOLDINNGS PAGE
 // Overview
 router.get('/holdingLatestInfo', async (req, res) => {
   try {
@@ -46,6 +45,46 @@ router.get('/holdingLatestInfo', async (req, res) => {
     const msg = {
       success: false,
       content: 'Failed to fetch latest info',
+      errorMessage: error.message,
+      result: null
+    }
+
+    res.send(msg)
+  }
+})
+
+router.get('/topThreePerformance', async (req, res) => {
+  try {
+    const result = await Promise.allSettled([
+      holdingsStatsRef
+        .orderByChild('profitOrLossPercentage')
+        .limitToLast(3)
+        .once('value'),
+      holdingsLatestInfoRef.once('value')
+    ])
+    const [stats, latestInfo] = result.map((item) => item.value.val())
+
+    const final = Object.entries(stats)
+      .map(([tempTicker, item]) => {
+        const { style, ticker, name } = latestInfo[tempTicker]
+
+        return { ...item, style, ticker, name }
+      })
+      .reverse()
+
+    console.log('stats', stats)
+    const msg = {
+      success: true,
+      content: 'Holding stats fetched',
+      errorMessage: null,
+      result: final
+    }
+
+    res.send(msg)
+  } catch (error) {
+    const msg = {
+      success: false,
+      content: 'Failed to fetch holding stats',
       errorMessage: error.message,
       result: null
     }
@@ -117,6 +156,7 @@ router.get('/quote/:ticker', async (req, res) => {
   }
 })
 
+// HOLDINNGS PAGE
 router.get('/holdings', async (req, res) => {
   try {
     const latestInfoSnapshot = await holdingsLatestInfoRef.once('value')

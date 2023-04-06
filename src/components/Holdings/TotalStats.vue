@@ -1,7 +1,7 @@
 <template>
   <div>
     <ul
-      class="flex flex-wrap justify-end gap-x-1.5 pt-1 pb-1.5 italic font-light text-slate-400"
+      class="flex flex-wrap justify-end gap-x-1.5 pt-1 pb-1.5 italic font-light text-slate-400 text-xs"
     >
       <li
         class="border-r last:border-none border-slate-300 pr-1.5 py-0.5 tracking-wider"
@@ -25,9 +25,9 @@
         :key="key"
       >
         <div
-          class="flex flex-col space-y-1 items-center bg-slate-100 text-slate-700 rounded shadow p-2 md:p-3"
+          class="flex flex-col space-y-1 items-center bg-slate-100 text-slate-700 rounded shadow-lg p-2 md:p-3"
         >
-          <span class="font-light text-xs md:text-sm">{{ key }}</span>
+          <span class="text-xs md:text-sm">{{ key }}</span>
           <span
             class="font-medium text-sm md:text-base"
             :class="

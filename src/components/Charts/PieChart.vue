@@ -29,7 +29,7 @@ export default {
   },
   setup(props) {
     const isLoading = computed(() => {
-      return !props.seriesData;
+      return props.seriesData.length === 0;
     });
     const defaultOption = ref({
       animation: false,
@@ -111,7 +111,7 @@ export default {
     watchEffect(async () => initPieChart());
 
     function initPieChart() {
-      if (!props.seriesData) return;
+      if (props.seriesData.length === 0) return;
 
       nextTick().then(() => setItemStyle());
       setSeriesData(props.seriesData);

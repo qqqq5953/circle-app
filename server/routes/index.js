@@ -145,6 +145,8 @@ router.get('/holdings', async (req, res) => {
       holdingsStats
     )
 
+    console.log('hasUpdate:', hasUpdate)
+
     // get updated info and stats
     if (hasUpdate) {
       const result = await Promise.allSettled([
@@ -154,7 +156,6 @@ router.get('/holdings', async (req, res) => {
 
       latestInfoObj = result[0].value.val()
       holdingsStats = result[1].value.val()
-      console.log('hasUpdate:', hasUpdate)
     }
 
     // 計算個別股票總市值
@@ -162,11 +163,14 @@ router.get('/holdings', async (req, res) => {
       (obj, entries, index) => {
         const [tempTicker, stat] = entries
         const { totalShares } = stat
-        const { regularMarketPrice } = quoteResult[index].value.price
+        const price =
+          quotePromises.length === 0
+            ? latestInfoObj[tempTicker].close
+            : quoteResult[index].value.price.regularMarketPrice
 
         obj[tempTicker] = {
           ...stat,
-          totalValue: parseFloatByDecimal(regularMarketPrice * totalShares, 2)
+          totalValue: parseFloatByDecimal(price * totalShares, 2)
         }
         return obj
       },
@@ -242,7 +246,10 @@ router.get('/totalStats', async (req, res) => {
       (obj, item) => {
         const [tempTicker, stats] = item
         const { totalCost, totalShares } = stats
-        const close = quotes[tempTicker]
+        const close =
+          quotePromises.length === 0
+            ? latestInfoObj[tempTicker].close
+            : quotes[tempTicker]
         const code = latestInfoObj[tempTicker].code
         const exchangeRate = fxRates[code]
         const totalValue = totalShares * close
@@ -727,7 +734,7 @@ router.get('/holidays', async (req, res) => {
 
 router.get('/fxRates', async (req, res) => {
   const fxToTWDSnapshot = await fxToTWDRef.once('value')
-  const fxRates = await getFxRates(fxToTWDSnapshot)
+  const fxRates = await getFxRates(fxToTWDSnapshot.val())
 
   return res.send({
     success: true,

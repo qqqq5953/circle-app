@@ -27,7 +27,7 @@
     <HoldingSkeleton v-if="loading" />
 
     <!-- totalStats -->
-    <section class="md:px-0 lg:px-4" v-if="!loading && holdings">
+    <section v-if="!loading && holdings">
       <!-- title -->
       <div class="flex items-center">
         <h2 class="font-semibold text-lg inline">Total stats</h2>
@@ -45,7 +45,7 @@
     </section>
 
     <!-- Holdings -->
-    <section class="md:px-0 lg:px-4" v-if="!loading">
+    <section v-if="!loading">
       <div class="flex items-center justify-between mb-4" v-if="holdings">
         <h2 class="font-semibold text-lg">Holdings</h2>
         <button
@@ -95,7 +95,6 @@ import useHoldingStore from "@/stores/holdingStore.js";
 import useSearchStore from "@/stores/searchStore.js";
 import { storeToRefs } from "pinia";
 import http from "../api/index";
-import useAxios from "@/composables/useAxios.js";
 
 export default {
   components: {
@@ -114,54 +113,50 @@ export default {
     const { stock } = storeToRefs($holdingStore);
     const setSnackbarMessage = inject("setSnackbarMessage");
 
-    const inputValidity = ref({
-      ticker: null,
-      cost: null,
-      shares: true,
-      date: null,
-    });
-
     // 跨頁面時重置 searchList
     onMounted(async () => {
       searchList.value = null;
     });
 
-    function setInputValidity(validityObj) {
-      const { name, validity } = validityObj;
-      inputValidity.value[name] = validity;
-    }
-
-    // holdings
-    const { data, error, loading } = useAxios("/api/holdings", "get");
-    const holdings = computed(() => {
-      if (!data.value) return;
-      return data.value?.result;
-    });
-
-    function toggleSkeleton(isLoading) {
-      loading.value = isLoading;
-    }
-
-    // totalStats
+    // call api
+    const loading = ref(false);
+    const error = ref(null);
+    const holdings = ref(null);
     const fxRates = ref({});
     const totalStats = ref({});
     const latestInfo = ref({});
 
     (async () => {
-      const result = await Promise.allSettled([
-        http.get("/api/fxRates"),
-        http.get("/api/totalStats"),
-        http.get("/api/holdingLatestInfo"),
-      ]);
+      toggleSkeleton(true);
 
-      const [fxRatesObj, stats, holdingLatestInfo] = result.map(
-        (item) => item.value.data.result
-      );
+      try {
+        const updateRes = await http.get("/api/checkUpdateInfoAndStats");
+        const { holdingLatestInfo } = updateRes.data.result;
 
-      fxRates.value = fxRatesObj;
-      totalStats.value = stats.totalStats;
-      latestInfo.value = holdingLatestInfo;
+        const result = await Promise.allSettled([
+          http.get("/api/holdings"),
+          http.get("/api/fxRates"),
+          http.get("/api/totalStats"),
+        ]);
+
+        const [holdingsObj, fxRatesObj, stats] = result.map(
+          (item) => item.value.data.result
+        );
+
+        holdings.value = holdingsObj;
+        fxRates.value = fxRatesObj;
+        totalStats.value = stats.totalStats;
+        latestInfo.value = holdingLatestInfo;
+      } catch (error) {
+        error.value = error.message;
+      } finally {
+        toggleSkeleton(false);
+      }
     })();
+
+    function toggleSkeleton(isLoading) {
+      loading.value = isLoading;
+    }
 
     // addStock
     const isAllValid = computed(() => {
@@ -273,8 +268,19 @@ export default {
       document.querySelector("body").style = style;
     }
 
+    const inputValidity = ref({
+      ticker: null,
+      cost: null,
+      shares: true,
+      date: null,
+    });
+
+    function setInputValidity(validityObj) {
+      const { name, validity } = validityObj;
+      inputValidity.value[name] = validity;
+    }
+
     return {
-      data,
       loading,
       error,
 

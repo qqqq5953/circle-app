@@ -6,15 +6,13 @@ async function fetchNewQuotes(latestInfoObj) {
     const quotePromises = []
 
     Object.keys(latestInfoObj).forEach((tempTicker) => {
-      const { ticker, marketState } = latestInfoObj[tempTicker]
+      const { ticker } = latestInfoObj[tempTicker]
 
-      if (marketState === 'REGULAR') {
-        const quoteOptions = { symbol: ticker, modules: ['price'] }
-        const quotePromise = yahooFinance.quote(quoteOptions)
+      const quoteOptions = { symbol: ticker, modules: ['price'] }
+      const quotePromise = yahooFinance.quote(quoteOptions)
 
-        tempTickers.push(tempTicker)
-        quotePromises.push(quotePromise)
-      }
+      tempTickers.push(tempTicker)
+      quotePromises.push(quotePromise)
     })
 
     return { tempTickers, quotePromises }

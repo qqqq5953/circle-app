@@ -17,7 +17,7 @@ async function checkFxUpdate(ratesFromDB, nextUpdateTime) {
 
   if (!hasPassedNextUpdateTime) {
     console.log(
-      '等待下一個更新',
+      'checkFxUpdate 等待下一個更新',
       new Date(nextUpdateTime).toLocaleString(),
       '現在用資料庫資料'
     )
@@ -25,15 +25,15 @@ async function checkFxUpdate(ratesFromDB, nextUpdateTime) {
   }
 
   if (!nextUpdateTime) {
-    console.log('第一次載入，準備更新')
+    console.log('checkFxUpdate 第一次載入，準備更新')
   } else {
-    console.log('尚未更新，準備更新')
+    console.log('checkFxUpdate 尚未更新，準備更新')
   }
 
   const fxRates = await fecthFxRates()
   const newNextUpdateTime = scheduleNextUpdateFxRates()
   updateFxToDB(fxRates, newNextUpdateTime)
-  console.log('更新完成')
+  console.log('checkFxUpdate 更新完成')
 
   return fxRates
 }

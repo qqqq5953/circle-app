@@ -18,9 +18,10 @@ const watchlistRef = firebaseDb.ref('/watchlist/')
 const tabsRef = firebaseDb.ref('/tabs/')
 
 const fetchNewQuotes = require('../functions/holdings/fetchNewQuotes')
-const checkUpdate = require('../functions/holdings/checkUpdate')
+const updateInfoAndStats = require('../functions/holdings/updateInfoAndStats')
 const calculateStats = require('../functions/holdings/calculateStats')
 const updateDb = require('../functions/holdings/updateDb')
+const scheduleNextUpdateStock = require('../functions/history/scheduleNextUpdateStock.js')
 
 const getFormattedDate = require('../tools/getFormattedDate')
 const getISODate = require('../tools/getISODate')
@@ -28,11 +29,80 @@ const parseFloatByDecimal = require('../tools/parseFloatByDecimal')
 const formatNumber = require('../tools/formatNumber')
 const getFxRates = require('../tools/getFxRates')
 
+router.get('/checkUpdateInfoAndStats', async (req, res) => {
+  try {
+    const result = await Promise.allSettled([
+      holdingsStatsRef.once('value'),
+      holdingsLatestInfoRef.once('value')
+    ])
+
+    let [holdingsStats, holdingLatestInfo] = result.map((item) =>
+      item.value.val()
+    )
+
+    const updateTimeSnapshot = await closeCacheRef
+      .child('nextUpdateTime')
+      .once('value')
+    const nextUpdateTime = updateTimeSnapshot.val()
+    const now = Date.now()
+    const passUpdateTime = now > nextUpdateTime
+
+    if (passUpdateTime) {
+      // 超過更新時間
+      console.log('========checkUpdateClose 超過更新時間========')
+
+      // fetch new quotes
+      const { tempTickers, quotePromises } = await fetchNewQuotes(
+        holdingLatestInfo
+      )
+      const quoteResult = await Promise.allSettled(quotePromises)
+
+      await updateInfoAndStats(tempTickers, quoteResult, holdingsStats)
+
+      // get updated info and stats
+      const result = await Promise.allSettled([
+        holdingsLatestInfoRef.once('value'),
+        holdingsStatsRef.once('value')
+      ])
+
+      holdingLatestInfo = result[0].value.val()
+      holdingsStats = result[1].value.val()
+
+      // schedule Next Update Stock
+      const newNextUpdateTime = await scheduleNextUpdateStock()
+      const newCurrentUpdateTime = Date.now()
+      closeCacheRef.update({
+        nextUpdateTime: newNextUpdateTime,
+        latestUpdateTime: newCurrentUpdateTime
+      })
+    } else {
+      // 還沒到更新時間
+      console.log('========checkUpdateClose 還沒到更新時間========')
+    }
+
+    res.send({
+      success: true,
+      content: passUpdateTime ? '超過更新時間' : '還沒到更新時間',
+      errorMessage: null,
+      result: { holdingsStats, holdingLatestInfo }
+    })
+  } catch (error) {
+    console.log('checkUpdateClose error', error)
+    res.send({
+      success: false,
+      content: 'Check update failed',
+      errorMessage: error.message,
+      result: null
+    })
+  }
+})
+
 // Overview
 router.get('/holdingLatestInfo', async (req, res) => {
   try {
     const snapshot = await holdingsLatestInfoRef.once('value')
     const latestInfo = snapshot.val()
+
     const msg = {
       success: true,
       content: 'Latest info fetched',
@@ -68,7 +138,7 @@ router.get('/topThreePerformance', async (req, res) => {
       .map(([tempTicker, item]) => {
         const { style, ticker, name } = latestInfo[tempTicker]
 
-        return { ...item, style, ticker, name }
+        return { ...item, style, ticker, name, tempTicker }
       })
       .reverse()
 
@@ -158,55 +228,29 @@ router.get('/quote/:ticker', async (req, res) => {
 
 // HOLDINNGS PAGE
 router.get('/holdings', async (req, res) => {
+  const result = await Promise.allSettled([
+    holdingsStatsRef.once('value'),
+    holdingsLatestInfoRef.once('value')
+  ])
+
+  const [holdingsStats, latestInfoObj] = result.map((item) => item.value.val())
+
+  if (!latestInfoObj) {
+    return res.send({
+      success: true,
+      content: '無標的',
+      errorMessage: null,
+      result: null
+    })
+  }
+
   try {
-    const latestInfoSnapshot = await holdingsLatestInfoRef.once('value')
-    let latestInfoObj = latestInfoSnapshot.val()
-    if (!latestInfoObj) {
-      return res.send({
-        success: true,
-        content: '無標的',
-        errorMessage: null,
-        result: null
-      })
-    }
-
-    // fetch new quotes
-    const { tempTickers, quotePromises } = await fetchNewQuotes(latestInfoObj)
-    const quoteResult = await Promise.allSettled(quotePromises)
-
-    // checkUpdate
-    const holdingsStatsSnapshot = await holdingsStatsRef.once('value')
-    let holdingsStats = holdingsStatsSnapshot.val()
-
-    const hasUpdate = await checkUpdate(
-      tempTickers,
-      quoteResult,
-      latestInfoObj,
-      holdingsStats
-    )
-
-    console.log('hasUpdate:', hasUpdate)
-
-    // get updated info and stats
-    if (hasUpdate) {
-      const result = await Promise.allSettled([
-        holdingsLatestInfoRef.once('value'),
-        holdingsStatsRef.once('value')
-      ])
-
-      latestInfoObj = result[0].value.val()
-      holdingsStats = result[1].value.val()
-    }
-
     // 計算個別股票總市值
-    holdingsStats = Object.entries(holdingsStats).reduce(
-      (obj, entries, index) => {
+    const statsWithTotalValue = Object.entries(holdingsStats).reduce(
+      (obj, entries) => {
         const [tempTicker, stat] = entries
         const { totalShares } = stat
-        const price =
-          quotePromises.length === 0
-            ? latestInfoObj[tempTicker].close
-            : quoteResult[index].value.price.regularMarketPrice
+        const price = latestInfoObj[tempTicker].close
 
         obj[tempTicker] = {
           ...stat,
@@ -221,7 +265,7 @@ router.get('/holdings', async (req, res) => {
     const holdings = {}
     for (const tempTicker in latestInfoObj) {
       const info = latestInfoObj[tempTicker]
-      const stats = holdingsStats[tempTicker]
+      const stats = statsWithTotalValue[tempTicker]
 
       holdings[tempTicker] = {
         latestInfo: info,
@@ -238,6 +282,7 @@ router.get('/holdings', async (req, res) => {
 
     res.send(msg)
   } catch (error) {
+    console.log('error', error)
     const msg = {
       success: false,
       content: '獲得標的失敗',
@@ -262,15 +307,6 @@ router.get('/totalStats', async (req, res) => {
       })
     }
 
-    // fetch new quotes
-    const { tempTickers, quotePromises } = await fetchNewQuotes(latestInfoObj)
-    const quoteResult = await Promise.allSettled(quotePromises)
-    const quotes = quoteResult.reduce((obj, item, index) => {
-      const tempTicker = tempTickers[index]
-      obj[tempTicker] = item.value.price.regularMarketPrice
-      return obj
-    }, {})
-
     // get Fx and stats
     const result = await Promise.allSettled([
       fxToTWDRef.once('value'),
@@ -286,10 +322,7 @@ router.get('/totalStats', async (req, res) => {
       (obj, item) => {
         const [tempTicker, stats] = item
         const { totalCost, totalShares } = stats
-        const close =
-          quotePromises.length === 0
-            ? latestInfoObj[tempTicker].close
-            : quotes[tempTicker]
+        const close = latestInfoObj[tempTicker].close
         const code = latestInfoObj[tempTicker].code
         const exchangeRate = fxRates[code]
         const totalValue = totalShares * close
@@ -884,143 +917,6 @@ router.get('/history', async (req, res) => {
     }
 
     res.send(msg)
-  }
-
-  async function scheduleNextUpdateStock() {
-    const holidaySnapshot = await holidaysRef.once('value')
-    const holiday = holidaySnapshot.val()
-
-    const now = new Date()
-    const nextUpdate = new Date(now)
-    nextUpdate.setSeconds(0)
-    nextUpdate.setMilliseconds(0)
-
-    const dayOfWeek = now.getDay()
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-      nextUpdate.setDate(nextUpdate.getDate() + ((7 - dayOfWeek + 1) % 7))
-      nextUpdate.setHours(13)
-      nextUpdate.setMinutes(30)
-      console.log('今天是假日，下次更新為', nextUpdate.toLocaleString())
-
-      // 檢查下週一是否為假日
-      const nextUpdateISODate = getISODate(nextUpdate)
-      const isNextUpdateTWHoliday = holiday['TW'][nextUpdateISODate]
-      const isNextUpdateUSHoliday = holiday['US'][nextUpdateISODate]
-
-      if (isNextUpdateTWHoliday && isNextUpdateUSHoliday) {
-        // 重設為星期二 13:30
-        nextUpdate.setDate(nextUpdate.getDate() + 1)
-        nextUpdate.setHours(13)
-        nextUpdate.setMinutes(30)
-        console.log('下週一台美股皆休市，重設為', nextUpdate.toLocaleString())
-      }
-      if (isNextUpdateTWHoliday) {
-        // 重設為最近的美股更新時間
-        nextUpdate.setDate(nextUpdate.getDate() + 1)
-        nextUpdate.setHours(5)
-        nextUpdate.setMinutes(0)
-        console.log('下週一台股休市，重設為', nextUpdate.toLocaleString())
-      }
-      if (isNextUpdateUSHoliday) {
-        // 重設為最近的台股更新時間(為13:30所以不用重設)
-        console.log('下週一美股休市，最近的台股更新時間為 13:30 所以不用重設')
-      }
-
-      return nextUpdate.getTime()
-    }
-
-    console.log('今天是平日')
-
-    const year = now.getFullYear()
-    const month = now.getMonth()
-    const date = now.getDate()
-    const usUpdateThreshold = new Date(year, month, date, 5, 0, 0)
-    const twUpdateThreshold = new Date(year, month, date, 13, 30, 0)
-    const startOfDay = new Date(year, month, date, 0, 0, 0)
-    const endOfDay = new Date(year, month, date, 23, 59, 59)
-    const ISODate = getISODate(now)
-
-    const isTodayTWHoliday = holiday['TW'][ISODate]
-    const isTodayUSHoliday = holiday['US'][ISODate]
-    console.log('isTodayTWHoliday', isTodayTWHoliday)
-    console.log('isTodayUSHoliday', isTodayUSHoliday)
-
-    // 現在介於 00:00 到 5:00，設為今日 5:00
-    if (
-      now.getTime() >= startOfDay.getTime() &&
-      now.getTime() <= usUpdateThreshold.getTime()
-    ) {
-      nextUpdate.setDate(nextUpdate.getDate())
-      nextUpdate.setHours(5)
-      nextUpdate.setMinutes(0)
-      console.log('下次更新設為今日清晨5點')
-    }
-
-    // 現在介於 5:00 到 13:30，設為今日 13:30
-    if (
-      now.getTime() >= usUpdateThreshold.getTime() &&
-      now.getTime() <= twUpdateThreshold.getTime()
-    ) {
-      nextUpdate.setDate(nextUpdate.getDate())
-      nextUpdate.setHours(13)
-      nextUpdate.setMinutes(30)
-      console.log('下次更新設為今日下午一點半')
-
-      if (isTodayTWHoliday) {
-        nextUpdate.setDate(nextUpdate.getDate() + 1)
-        nextUpdate.setHours(5)
-        nextUpdate.setMinutes(0)
-        console.log('但是因今日台股休市，改設隔日清晨5點')
-      }
-    }
-
-    // 現在介於 13:30 到 24:00，設為明日 5:00
-    if (
-      now.getTime() >= twUpdateThreshold.getTime() &&
-      now.getTime() <= endOfDay.getTime()
-    ) {
-      nextUpdate.setDate(nextUpdate.getDate() + 1)
-      nextUpdate.setHours(5)
-      nextUpdate.setMinutes(0)
-      console.log('下次更新設為隔日凌晨5點')
-
-      if (isTodayUSHoliday) {
-        nextUpdate.setDate(nextUpdate.getDate() + 1)
-        nextUpdate.setHours(13)
-        nextUpdate.setMinutes(30)
-        console.log('但是因今日美股休市，改設隔日 13:30')
-
-        if (nextUpdate.getDay() === 0 || nextUpdate.getDay() === 6) {
-          console.log('但隔日是，下次更新為下週一 13:30')
-          nextUpdate.setDate(nextUpdate.getDate() + ((7 - dayOfWeek + 1) % 7))
-          nextUpdate.setHours(13)
-          nextUpdate.setMinutes(30)
-          console.log(
-            'nextUpdateTime',
-            new Date(nextUpdate.getTime()).toLocaleString()
-          )
-        }
-      }
-    }
-
-    console.log('now', now.toLocaleString())
-    console.log('nextUpdate', nextUpdate.toLocaleString())
-    return nextUpdate.getTime()
-
-    // // Check if it's a weekend day
-    // const dayOfWeek = nextUpdate.getDay()
-    // const isNextUpdateWeekend = dayOfWeek === 0 || dayOfWeek === 6
-
-    // const holiday = holidaySnapshot.val()
-    // if (dayOfWeek === 0 || dayOfWeek === 6) {
-    //   console.log('下次更新是假日，重設為下週一')
-    //   nextUpdate.setDate(nextUpdate.getDate() + ((7 - dayOfWeek + 1) % 7))
-    // } else {
-    //   console.log('下次更新是平日')
-    // }
-
-    // const nextUpdateTime = nextUpdate.getTime()
-    // console.log('nextUpdateTime', new Date(nextUpdateTime).toLocaleString())
   }
 
   function convertObjectToMap(object) {

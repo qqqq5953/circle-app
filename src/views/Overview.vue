@@ -9,23 +9,34 @@
         class="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 flex flex-col justify-center items-center w-full space-y-1"
         v-if="totalStats"
       >
-        <p class="font-light text-sm">Total value:</p>
+        <p class="font-light text-sm">
+          Total value <span class="text-xs">(TWD):</span>
+        </p>
         <p
-          class="font-semibold text-lg break-words w-1/3 text-center leading-5"
+          class="font-semibold text-lg break-words w-2/5 text-center leading-5"
         >
           {{ totalStats["Total value"] }}
         </p>
-        <p class="font-semibold text-sm text-red-600">
+        <p
+          class="font-semibold text-base"
+          :class="
+            !totalStats['P / L %'].includes('-')
+              ? 'text-red-600'
+              : totalStats['P / L %'].includes('-')
+              ? 'text-green-700'
+              : null
+          "
+        >
           {{ totalStats["P / L %"] }}
         </p>
       </div>
     </section>
 
-    <section class="md:px-0 lg:px-4">
-      <div class="flex items-center">
+    <section>
+      <!-- <div class="flex items-center">
         <h2 class="font-semibold text-lg inline">Total stats</h2>
         <p class="ml-1 pt-1 tracking-wider text-xs">(TWD)</p>
-      </div>
+      </div> -->
       <div>
         <TotalStats
           :fxRates="fxRates"
@@ -36,9 +47,11 @@
     </section>
 
     <!-- Top 3 Performance -->
-    <section class="md:px-0 lg:px-4" v-if="topThreePerformance.length >= 3">
+    <section v-if="topThreePerformance.length >= 3">
       <h2 class="font-semibold text-lg mb-4">Top 3 Performance</h2>
-      <div class="sm:flex gap-3">
+      <div
+        class="flex flex-col space-y-6 sm:space-y-0 sm:flex-row sm:space-x-3"
+      >
         <div
           class="sm:w-1/3"
           v-for="item in topThreePerformance"
@@ -46,13 +59,16 @@
         >
           <Card>
             <template #card-title>
-              <h3 class="flex gap-3 items-center mb-2 sm:flex-col md:flex-row">
+              <h3
+                class="flex gap-x-3 gap-y-2 items-center mb-2 sm:flex-col md:flex-row"
+              >
                 <span class="ticker-badge" :class="item.style">
                   {{ item.ticker }}
                 </span>
-                <span class="font-bold text-xs truncate w-3/5 sm:w-auto">{{
-                  item.name
-                }}</span>
+                <span
+                  class="font-bold text-xs truncate w-3/5 sm:text-center sm:w-full md:text-left md:w-auto lg:text-sm"
+                  >{{ item.name }}</span
+                >
               </h3>
             </template>
             <template #card-sub-title>
@@ -108,13 +124,13 @@
                   class="hover:text-indigo-500 text-indigo-600 font-bold ml-auto block"
                   :to="{
                     name: 'TradeDetails',
-                    params: {
-                      holdings: JSON.stringify(item),
+                    query: {
+                      tempTicker: item.tempTicker,
                     },
                   }"
                 >
-                  <span class="text-xs flex items-center gap-x-1">
-                    <span class="sm:hidden">Details</span>
+                  <span class="text-xs flex items-center gap-x-1.5">
+                    <span class="sm:hidden lg:inline">Details</span>
                     <i class="fa-solid fa-chevron-right"></i
                   ></span>
                 </router-link>
@@ -126,16 +142,21 @@
     </section>
 
     <section>
-      <div class="flex justify-between items-center py-3">
+      <div class="flex justify-between items-end py-3">
         <h2>
           <span class="text-lg font-semibold">Market info</span>
           <!-- <span class="ml-3 text-slate-600">- market info</span> -->
         </h2>
+
         <router-link
-          class="text-sm text-indigo-600 underline px-2"
+          class="hover:text-indigo-500 text-indigo-600 font-bold block px-4"
           :to="{ name: 'Holdings' }"
-          >more</router-link
         >
+          <span class="text-xs flex items-center gap-x-1.5">
+            <span class="sm:hidden lg:inline">See all</span>
+            <i class="fa-solid fa-chevron-right"></i
+          ></span>
+        </router-link>
       </div>
       <TickerInfo
         :stockLists="holdingList"
@@ -235,14 +256,16 @@ export default {
     const topThreePerformance = ref([]);
 
     (async () => {
+      const updateRes = await http.get("/api/checkUpdateInfoAndStats");
+      const { holdingLatestInfo } = updateRes.data.result;
+
       const result = await Promise.allSettled([
         http.get("/api/fxRates"),
         http.get("/api/totalStats"),
-        http.get("/api/holdingLatestInfo"),
         http.get("/api/topThreePerformance"),
       ]);
 
-      const [fxRatesObj, stats, holdingLatestInfo, topThree] = result.map(
+      const [fxRatesObj, stats, topThree] = result.map(
         (item) => item.value.data.result
       );
 

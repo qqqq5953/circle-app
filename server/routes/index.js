@@ -92,7 +92,7 @@ router.get('/checkUpdateInfoAndStats', async (req, res) => {
       success: false,
       content: 'Check update failed',
       errorMessage: error.message,
-      result: null
+      result: { hasChecked: false }
     })
   }
 })
@@ -127,8 +127,8 @@ router.get('/topThreePerformance/:hasChecked', async (req, res) => {
   if (req.params.hasChecked !== 'true') {
     return res.send({
       success: false,
-      content: 'Failed to fetch holdings',
-      errorMessage: 'Must call "checkUpdateClose" api first',
+      content: 'Failed to fetch topThreePerformance',
+      errorMessage: 'Must call checkUpdateClose api first',
       result: null
     })
   }
@@ -241,7 +241,7 @@ router.get('/holdings/:hasChecked', async (req, res) => {
     return res.send({
       success: false,
       content: 'Failed to fetch holdings',
-      errorMessage: 'Must call "checkUpdateClose" api first',
+      errorMessage: 'Must call checkUpdateClose api first',
       result: null
     })
   }
@@ -316,8 +316,8 @@ router.get('/totalStats/:hasChecked', async (req, res) => {
   if (req.params.hasChecked !== 'true') {
     return res.send({
       success: false,
-      content: 'Failed to fetch holdings',
-      errorMessage: 'Must call "checkUpdateClose" api first',
+      content: 'Failed to fetch totalStats',
+      errorMessage: 'Must call checkUpdateClose api first',
       result: null
     })
   }

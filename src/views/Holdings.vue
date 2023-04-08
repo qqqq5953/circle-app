@@ -26,54 +26,74 @@
 
     <HoldingSkeleton v-if="loading" />
 
-    <!-- totalStats -->
-    <section v-if="!loading && holdings">
-      <!-- title -->
-      <div class="flex items-center">
-        <h2 class="font-semibold text-lg inline">Total stats</h2>
-        <p class="ml-1 pt-1 tracking-wider text-xs">(TWD)</p>
-      </div>
-
-      <!-- stats -->
-      <div>
-        <TotalStats
-          :fxRates="fxRates"
-          :totalStats="totalStats"
-          :latestInfo="latestInfo"
-        />
-      </div>
+    <section
+      class="flex flex-col justify-center items-center"
+      v-else-if="errors.length"
+    >
+      <p class="pb-4 font-medium text-center text-xl md:text-2xl">
+        Oops! Something went wrong!
+      </p>
+      <ul class="flex flex-col justify-center items-center space-y-4 list-disc">
+        <li v-for="(error, index) in errors" :key="index">
+          <p class="md:text-lg font-medium">
+            {{ error.content }}
+            <i class="fas fa-times text-red-600 ml-2"></i>
+          </p>
+          <p class="text-sm md:text-base text-slate-700">{{ error.message }}</p>
+        </li>
+      </ul>
     </section>
 
-    <!-- Holdings -->
-    <section v-if="!loading">
-      <div class="flex items-center justify-between mb-4" v-if="holdings">
-        <h2 class="font-semibold text-lg">Holdings</h2>
-        <button
-          class="border border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-full font-bold py-1 text-xs w-[83px]"
-          @click="toggleModal({ open: true, type: 'invest' })"
+    <template v-else>
+      <!-- totalStats -->
+      <section v-if="holdings">
+        <!-- title -->
+        <div class="flex items-center">
+          <h2 class="font-semibold text-lg inline">Total stats</h2>
+          <p class="ml-1 pt-1 tracking-wider text-xs">(TWD)</p>
+        </div>
+
+        <!-- stats -->
+        <div>
+          <TotalStats
+            :fxRates="fxRates"
+            :totalStats="totalStats"
+            :latestInfo="latestInfo"
+          />
+        </div>
+      </section>
+
+      <!-- Holdings -->
+      <section>
+        <div class="flex items-center justify-between mb-4" v-if="holdings">
+          <h2 class="font-semibold text-lg">Holdings</h2>
+          <button
+            class="border border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-full font-bold py-1 text-xs w-[83px]"
+            @click="toggleModal({ open: true, type: 'invest' })"
+            v-if="holdings"
+          >
+            <span>+</span>
+            <span class="mx-1">Invest</span>
+          </button>
+        </div>
+
+        <HoldingsTable
           v-if="holdings"
-        >
-          <span>+</span>
-          <span class="mx-1">Invest</span>
-        </button>
-      </div>
+          :holdings="holdings"
+          @toggleModal="toggleModal"
+        />
 
-      <HoldingsTable
-        v-if="holdings"
-        :holdings="holdings"
-        @toggleModal="toggleModal"
-      />
-
-      <div class="py-[20%] text-center" v-if="!holdings">
-        <button
-          class="bg-indigo-700 text-white hover:bg-indigo-600 rounded-full px-3 py-1.5 text-xs"
-          @click="toggleModal({ open: true, type: 'invest' })"
-        >
-          <span>+</span>
-          <span class="mx-1">Make your first investment</span>
-        </button>
-      </div>
-    </section>
+        <div class="py-[20%] text-center" v-if="!holdings">
+          <button
+            class="bg-indigo-700 text-white hover:bg-indigo-600 rounded-full px-3 py-1.5 text-xs"
+            @click="toggleModal({ open: true, type: 'invest' })"
+          >
+            <span>+</span>
+            <span class="mx-1">Make your first investment</span>
+          </button>
+        </div>
+      </section>
+    </template>
   </main>
 </template>
 
@@ -120,7 +140,7 @@ export default {
 
     // call api
     const loading = ref(false);
-    const error = ref(null);
+    const errors = ref([]);
     const holdings = ref(null);
     const fxRates = ref({});
     const totalStats = ref({});
@@ -131,6 +151,13 @@ export default {
 
       try {
         const updateRes = await http.get("/api/checkUpdateInfoAndStats");
+
+        if (updateRes.data.errorMessage) {
+          const { content, errorMessage } = updateRes.data;
+          errors.value.push({ content, message: errorMessage });
+          return;
+        }
+
         const { holdingLatestInfo, hasChecked } = updateRes.data.result;
 
         const result = await Promise.allSettled([
@@ -139,16 +166,25 @@ export default {
           http.get(`/api/totalStats/${hasChecked}`),
         ]);
 
-        const [fxRatesObj, holdingsObj, stats] = result.map(
-          (item) => item.value.data.result
-        );
+        errors.value = result
+          .filter((item) => item.value.data.errorMessage)
+          .map((item) => {
+            const { content, errorMessage } = item.value.data;
+            return { content, message: errorMessage };
+          });
 
-        holdings.value = holdingsObj;
-        fxRates.value = fxRatesObj;
-        totalStats.value = stats.totalStats;
-        latestInfo.value = holdingLatestInfo;
-      } catch (error) {
-        error.value = error.message;
+        if (errors.value.length === 0) {
+          const [fxRatesObj, holdingsObj, stats] = result.map(
+            (item) => item.value.data.result
+          );
+
+          holdings.value = holdingsObj;
+          fxRates.value = fxRatesObj;
+          totalStats.value = stats.totalStats;
+          latestInfo.value = holdingLatestInfo;
+        }
+      } catch (err) {
+        errors.value.push(err.message);
       } finally {
         toggleSkeleton(false);
       }
@@ -282,7 +318,7 @@ export default {
 
     return {
       loading,
-      error,
+      errors,
 
       isModalOpen,
       tickerToBeTraded,

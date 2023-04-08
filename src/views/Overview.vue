@@ -257,12 +257,12 @@ export default {
 
     (async () => {
       const updateRes = await http.get("/api/checkUpdateInfoAndStats");
-      const { holdingLatestInfo } = updateRes.data.result;
+      const { holdingLatestInfo, hasChecked } = updateRes.data.result;
 
       const result = await Promise.allSettled([
         http.get("/api/fxRates"),
-        http.get("/api/totalStats"),
-        http.get("/api/topThreePerformance"),
+        http.get(`/api/totalStats/${hasChecked}`),
+        http.get(`/api/topThreePerformance/${hasChecked}`),
       ]);
 
       const [fxRatesObj, stats, topThree] = result.map(

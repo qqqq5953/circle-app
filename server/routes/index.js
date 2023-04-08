@@ -84,7 +84,7 @@ router.get('/checkUpdateInfoAndStats', async (req, res) => {
       success: true,
       content: passUpdateTime ? '超過更新時間' : '還沒到更新時間',
       errorMessage: null,
-      result: { holdingsStats, holdingLatestInfo }
+      result: { holdingsStats, holdingLatestInfo, hasChecked: true }
     })
   } catch (error) {
     console.log('checkUpdateClose error', error)
@@ -98,7 +98,7 @@ router.get('/checkUpdateInfoAndStats', async (req, res) => {
 })
 
 // Overview
-router.get('/holdingLatestInfo', async (req, res) => {
+router.get('/holdingLatestInfo/', async (req, res) => {
   try {
     const snapshot = await holdingsLatestInfoRef.once('value')
     const latestInfo = snapshot.val()
@@ -123,7 +123,16 @@ router.get('/holdingLatestInfo', async (req, res) => {
   }
 })
 
-router.get('/topThreePerformance', async (req, res) => {
+router.get('/topThreePerformance/:hasChecked', async (req, res) => {
+  if (req.params.hasChecked !== 'true') {
+    return res.send({
+      success: false,
+      content: 'Failed to fetch holdings',
+      errorMessage: 'Must call "checkUpdateClose" api first',
+      result: null
+    })
+  }
+
   try {
     const result = await Promise.allSettled([
       holdingsStatsRef
@@ -227,7 +236,16 @@ router.get('/quote/:ticker', async (req, res) => {
 })
 
 // HOLDINNGS PAGE
-router.get('/holdings', async (req, res) => {
+router.get('/holdings/:hasChecked', async (req, res) => {
+  if (req.params.hasChecked !== 'true') {
+    return res.send({
+      success: false,
+      content: 'Failed to fetch holdings',
+      errorMessage: 'Must call "checkUpdateClose" api first',
+      result: null
+    })
+  }
+
   const result = await Promise.allSettled([
     holdingsStatsRef.once('value'),
     holdingsLatestInfoRef.once('value')
@@ -275,7 +293,7 @@ router.get('/holdings', async (req, res) => {
 
     const msg = {
       success: true,
-      content: '成功獲得所有標的',
+      content: 'Holdings fetched',
       errorMessage: null,
       result: holdings
     }
@@ -285,7 +303,7 @@ router.get('/holdings', async (req, res) => {
     console.log('error', error)
     const msg = {
       success: false,
-      content: '獲得標的失敗',
+      content: 'Failed to fetch holdings',
       errorMessage: error.message,
       result: null
     }
@@ -294,7 +312,16 @@ router.get('/holdings', async (req, res) => {
   }
 })
 
-router.get('/totalStats', async (req, res) => {
+router.get('/totalStats/:hasChecked', async (req, res) => {
+  if (req.params.hasChecked !== 'true') {
+    return res.send({
+      success: false,
+      content: 'Failed to fetch holdings',
+      errorMessage: 'Must call "checkUpdateClose" api first',
+      result: null
+    })
+  }
+
   try {
     const latestInfoSnapshot = await holdingsLatestInfoRef.once('value')
     const latestInfoObj = latestInfoSnapshot.val()

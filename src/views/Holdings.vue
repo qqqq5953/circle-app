@@ -131,15 +131,15 @@ export default {
 
       try {
         const updateRes = await http.get("/api/checkUpdateInfoAndStats");
-        const { holdingLatestInfo } = updateRes.data.result;
+        const { holdingLatestInfo, hasChecked } = updateRes.data.result;
 
         const result = await Promise.allSettled([
-          http.get("/api/holdings"),
           http.get("/api/fxRates"),
-          http.get("/api/totalStats"),
+          http.get(`/api/holdings/${hasChecked}`),
+          http.get(`/api/totalStats/${hasChecked}`),
         ]);
 
-        const [holdingsObj, fxRatesObj, stats] = result.map(
+        const [fxRatesObj, holdingsObj, stats] = result.map(
           (item) => item.value.data.result
         );
 

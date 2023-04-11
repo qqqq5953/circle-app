@@ -115,6 +115,7 @@ import useHoldingStore from "@/stores/holdingStore.js";
 import useSearchStore from "@/stores/searchStore.js";
 import { storeToRefs } from "pinia";
 import http from "../api/index";
+import { useClickPrevention } from "@/composables/useClickPrevention.js";
 
 export default {
   components: {
@@ -132,6 +133,7 @@ export default {
     const $holdingStore = useHoldingStore();
     const { stock } = storeToRefs($holdingStore);
     const setSnackbarMessage = inject("setSnackbarMessage");
+    const { isClickDisabled, preventMultipleClicks } = useClickPrevention();
 
     // 跨頁面時重置 searchList
     onMounted(async () => {
@@ -200,10 +202,11 @@ export default {
     });
 
     async function addStock() {
-      if (!isAllValid.value) return;
+      if (!isAllValid.value || isClickDisabled.value) return;
 
       toggleModal({ open: false, type: "invest" });
       toggleSkeleton(true);
+      preventMultipleClicks();
 
       try {
         const stockObj = {
@@ -216,11 +219,15 @@ export default {
         console.log("stockObj", stockObj);
 
         const res = await http.post(`/api/stock`, stockObj);
-
         await updateHoldings(res.data);
       } catch (error) {
         console.log("addStock error", error);
         toggleSkeleton(false);
+        setSnackbarMessage({
+          success: false,
+          content: error.toString(),
+          result: null,
+        });
       }
     }
 

@@ -4,6 +4,7 @@ const router = express.Router()
 const axios = require('axios')
 const yahooFinance = require('yahoo-finance')
 const firebaseDb = require('../firebase/index.js')
+const rateLimit = require('express-rate-limit')
 
 const holidaysRef = firebaseDb.ref('/holidays/')
 const historyRef = firebaseDb.ref('/history/')
@@ -623,7 +624,15 @@ router.delete('/stock/:tempTicker/:tradeId/:tradeDate', async (req, res) => {
   }
 })
 
-router.post('/stock', async (req, res) => {
+const addStoclLimiter = rateLimit({
+  windowMs: 5000, // 3 sec
+  max: 1,
+  message: 'Too many requests sent within a short period of time',
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false // Disable the `X-RateLimit-*` headers
+})
+
+router.post('/stock', addStoclLimiter, async (req, res) => {
   const invalidInput = Object.keys(req.body).filter((key) => !req.body[key])
 
   if (invalidInput.length !== 0) {

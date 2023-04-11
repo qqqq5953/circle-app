@@ -7,16 +7,23 @@ const useApiStore = defineStore('api', () => {
     return loadingQueue.value.length !== 0
   })
 
-  const axiosControllerQueue = ref([])
-
   watch(isLoading, (newVal) => {
     console.log('newVal', newVal)
   })
 
+  const axiosControllerQueue = ref([])
+  const axiosMessages = ref('')
+
+  function setAxiosMessage(msgObj) {
+    axiosMessages.value = msgObj
+  }
+
   return {
     loadingQueue,
     isLoading,
-    axiosControllerQueue
+    axiosControllerQueue,
+    axiosMessages,
+    setAxiosMessage
   }
 })
 

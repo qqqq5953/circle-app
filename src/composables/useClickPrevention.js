@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 
-export function useClickPrevention(delay = 1000) {
+export function useClickPrevention(delay = 3000) {
   const isClickDisabled = ref(false)
 
   function preventMultipleClicks() {

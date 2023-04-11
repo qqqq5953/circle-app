@@ -3,6 +3,7 @@ import { storeToRefs } from 'pinia'
 import useApiStore from '@/stores/apiStore.js'
 
 const $store = useApiStore()
+const { setAxiosMessage } = $store
 const { axiosControllerQueue } = storeToRefs($store)
 
 const http = axios.create({
@@ -27,6 +28,7 @@ http.interceptors.request.use(
   },
   (error) => {
     console.log('request error', error)
+    handleError(error)
   }
 )
 
@@ -37,7 +39,19 @@ http.interceptors.response.use(
   },
   (error) => {
     console.log('response error', error)
+    handleError(error)
   }
 )
+
+function handleError(error) {
+  const sentError = {
+    id: Date.now(),
+    title: error.response.data.includes('DOCTYPE')
+      ? `${error.message} (${error.response.status})`
+      : `${error.response.data} (${error.response.status})`,
+    status: false
+  }
+  setAxiosMessage(sentError)
+}
 
 export default http

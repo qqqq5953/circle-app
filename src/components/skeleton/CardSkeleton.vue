@@ -1,17 +1,6 @@
 <template>
   <div
-    class="
-      flex flex-col flex-auto
-      p-4
-      border
-      rounded
-      shadow-lg
-      bg-white
-      mb-2.5
-      xl:mb-0
-      animate-pulse
-      relative
-    "
+    class="flex flex-col flex-auto p-4 rounded shadow-lg bg-white animate-pulse relative sm:w-1/3"
     v-for="i in 3"
     :key="i"
   >

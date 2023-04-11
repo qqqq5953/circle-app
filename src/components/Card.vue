@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex flex-col flex-auto gap-y-4 p-4 rounded shadow-lg bg-white mb-6 xl:mb-0 relative h-full"
+    class="flex flex-col flex-auto gap-y-4 p-4 rounded shadow-lg bg-white relative"
   >
     <!-- card-header -->
     <section class="flex flex-col space-y-2">
@@ -13,10 +13,3 @@
     <slot name="card-icon"></slot>
   </div>
 </template>
-
-<script>
-import { computed } from "vue";
-export default {
-  setup() {},
-};
-</script>

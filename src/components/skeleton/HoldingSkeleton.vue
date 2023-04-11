@@ -1,7 +1,5 @@
 <template>
-  <div
-    class="animate-pulse flex flex-col grow space-y-10 w-full md:px-0 lg:px-4"
-  >
+  <div class="animate-pulse flex flex-col grow space-y-10 w-full">
     <!-- totalStats -->
     <div class="">
       <div class="w-40 h-6 bg-gray-300 rounded"></div>
@@ -152,11 +150,3 @@
     </section>
   </div>
 </template>
-
-<script>
-import CardSkeleton from "@/components/skeleton/CardSkeleton.vue";
-export default {
-  components: { CardSkeleton },
-  setup() {},
-};
-</script>

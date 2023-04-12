@@ -7,19 +7,7 @@
   <nav class="overflow-y-hidden h-16 lg:hidden" v-if="!isWatchlistLoading">
     <div class="flex gap-2.5 text-sm overflow-x-auto py-6" ref="navBelowLgRef">
       <button
-        class="
-          flex
-          items-center
-          border
-          rounded
-          p-2
-          min-w-[150px]
-          shrink-0
-          relative
-          text-slate-700
-          hover:shadow hover:shadow-slate-300
-          focus:shadow-none
-        "
+        class="flex items-center border rounded p-2 min-w-[150px] shrink-0 relative text-slate-700 hover:shadow hover:shadow-slate-300 focus:shadow-none"
         :class="{
           'after:absolute after:inset-x-0 after:bottom-0 after:h-1 after:bg-blue-500 after:rounded-b-lg':
             currentTab === tab.name,
@@ -29,14 +17,7 @@
         @click="showCurrentTab(tab.name)"
       >
         <i
-          class="
-            fa-solid fa-list-ul
-            mr-2.5
-            p-1
-            text-slate-500
-            bg-gray-100
-            rounded
-          "
+          class="fa-solid fa-list-ul mr-2.5 p-1 text-slate-500 bg-gray-100 rounded"
         ></i>
         <span class="mr-5">{{ tab.name }}</span>
         <span class="ml-auto text-slate-500 text-xs">{{ tab.listLength }}</span>
@@ -48,12 +29,7 @@
   </nav>
 
   <nav
-    class="
-      text-sm
-      hidden
-      lg:flex lg:items-center lg:h-14 lg:overflow-y-hidden
-      relative
-    "
+    class="text-sm hidden lg:flex lg:items-center lg:h-14 lg:overflow-y-hidden relative"
     v-if="!isWatchlistLoading"
   >
     <div
@@ -61,19 +37,7 @@
       ref="navLgRef"
     >
       <button
-        class="
-          flex
-          items-center
-          border
-          rounded
-          p-2
-          min-w-[150px]
-          shrink-0
-          relative
-          text-slate-700
-          hover:shadow hover:shadow-slate-300
-          focus:shadow-none
-        "
+        class="flex items-center border rounded p-2 min-w-[150px] shrink-0 relative text-slate-700 hover:shadow hover:shadow-slate-300 focus:shadow-none"
         :class="{
           'after:absolute after:inset-x-0 after:bottom-0 after:h-1 after:bg-blue-500 after:rounded-b-lg':
             currentTab === tab.name,
@@ -83,30 +47,14 @@
         @click="showCurrentTab(tab.name)"
       >
         <i
-          class="
-            fa-solid fa-list-ul
-            mr-2.5
-            p-1
-            text-slate-500
-            bg-gray-100
-            rounded
-          "
+          class="fa-solid fa-list-ul mr-2.5 p-1 text-slate-500 bg-gray-100 rounded"
         ></i>
         <span class="mr-5">{{ tab.name }}</span>
         <span class="ml-auto text-slate-500 text-xs">{{ tab.listLength }}</span>
       </button>
     </div>
     <button
-      class="
-        relative
-        -ml-6
-        bg-white
-        border
-        py-2
-        px-3.5
-        rounded-full
-        hover:shadow hover:shadow-slate-300
-      "
+      class="relative -ml-6 bg-white border py-2 px-3.5 rounded-full hover:shadow hover:shadow-slate-300"
       @click="setScrolling(navLgRef, 'right')"
       v-if="scrollWidthLg > offsetWidthLg"
     >
@@ -151,6 +99,7 @@ import BaseInput from "@/components/BaseInput.vue";
 import useWatchlistStore from "@/stores/watchlistStore.js";
 import { storeToRefs } from "pinia";
 import http from "@/api/index";
+import { useClickPrevention } from "@/composables/useClickPrevention.js";
 
 export default {
   components: {
@@ -176,6 +125,7 @@ export default {
     const baseInputRef = ref(null);
     const errorMessage = ref([]);
     const { currentTab, tabs } = storeToRefs($store);
+    const { isClickDisabled, preventMultipleClicks } = useClickPrevention(2000);
 
     const clearInput = () => (inputListName.value = null);
     const clearErrorMessage = () => errorMessage.value.pop();
@@ -190,7 +140,9 @@ export default {
     };
 
     const createWatchlist = async () => {
+      if (isClickDisabled.value) return;
       if (errorMessage.value.length) clearErrorMessage();
+      preventMultipleClicks();
 
       const res = await http.post(`/api/watchlist/${inputListName.value}`);
 

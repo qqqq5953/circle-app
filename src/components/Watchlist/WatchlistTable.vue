@@ -2,15 +2,7 @@
   <div class="flex flex-col break-words w-full rounded border">
     <div class="py-3 flex flex-col gap-1">
       <section
-        class="
-          relative
-          flex
-          items-center
-          justify-between
-          rounded-t
-          px-4
-          lg:px-8
-        "
+        class="relative flex items-center justify-between rounded-t px-4 lg:px-8"
       >
         <h3 class="text-xl font-semibold truncate w-3/4">
           {{ currentTab }}
@@ -23,17 +15,7 @@
         >
           <label
             for="selectAll"
-            class="
-              rounded
-              px-2
-              py-px
-              border border-slate-500
-              bg-white
-              text-slate-600 text-xs
-              flex
-              items-center
-              cursor-pointer
-            "
+            class="rounded px-2 py-px border border-slate-500 bg-white text-slate-600 text-xs flex items-center cursor-pointer"
           >
             <span v-if="deleteArrLength === listLength">Undo</span>
             <span v-else>Select all</span>
@@ -45,14 +27,7 @@
             v-model="selectAll"
           />
           <button
-            class="
-              rounded
-              px-2
-              py-px
-              border border-slate-500
-              text-slate-600 text-xs
-              font-semibold
-            "
+            class="rounded px-2 py-px border border-slate-500 text-slate-600 text-xs font-semibold"
             @click="openAlert($event, 'deleteTicker')"
           >
             Delete
@@ -69,17 +44,7 @@
           </button>
           <Transition>
             <ul
-              class="
-                absolute
-                -right-2
-                z-30
-                top-full
-                mt-2
-                p-3
-                shadow
-                rounded
-                bg-white
-              "
+              class="absolute -right-2 z-30 top-full mt-2 p-3 shadow rounded bg-white"
               v-if="isDropdownOpen"
               @click="toggleDropdown"
             >
@@ -104,15 +69,7 @@
       >
         <div class="relative flex flex-grow justify-end items-center">
           <button
-            class="
-              flex
-              justify-between
-              space-x-2
-              px-2
-              py-1
-              rounded-full
-              text-xs text-blue-500
-            "
+            class="flex justify-between space-x-2 px-2 py-1 rounded-full text-xs text-blue-500"
             :class="{ 'focus:bg-blue-50': isSortMenuOpen }"
             @click="toggleSortMenu($event)"
             @blur="toggleSortMenu($event, false)"
@@ -131,33 +88,13 @@
           </button>
           <Transition>
             <div
-              class="
-                absolute
-                top-full
-                -right-2
-                z-20
-                w-3/4
-                max-w-[184px]
-                mt-2
-                text-sm
-                rounded
-                border-2 border-blue-50
-                bg-white
-              "
+              class="absolute top-full -right-2 z-20 w-3/4 max-w-[184px] mt-2 text-sm rounded border-2 border-blue-50 bg-white"
               v-if="isSortMenuOpen"
               @click="toggleSortMenu(false)"
             >
               <ul>
                 <li
-                  class="
-                    flex
-                    gap-3
-                    items-center
-                    py-2
-                    px-3
-                    hover:bg-blue-50
-                    cursor-pointer
-                  "
+                  class="flex gap-3 items-center py-2 px-3 hover:bg-blue-50 cursor-pointer"
                   :class="{
                     'text-blue-500 font-semibold pointer-events-none cursor-auto':
                       selectedSortCategory === item.category,
@@ -172,15 +109,7 @@
               </ul>
               <ul class="border-t-2 border-blue-50">
                 <li
-                  class="
-                    flex
-                    gap-3
-                    items-center
-                    py-2
-                    px-3
-                    hover:bg-blue-50
-                    cursor-pointer
-                  "
+                  class="flex gap-3 items-center py-2 px-3 hover:bg-blue-50 cursor-pointer"
                   :class="{
                     'text-blue-500 font-semibold pointer-events-none cursor-auto':
                       selectedDirection === item.direction,
@@ -251,64 +180,22 @@
           <thead class="bg-gray-100 border-y hidden lg:table-header-group">
             <tr>
               <th
-                class="
-                  px-6
-                  py-3
-                  text-gray-700 text-center text-xs
-                  uppercase
-                  border-x-0
-                  whitespace-nowrap
-                  font-semibold
-                  w-6/12
-                  lg:w-5/12
-                "
+                class="px-6 py-3 text-gray-700 text-center text-xs uppercase border-x-0 whitespace-nowrap font-semibold w-6/12 lg:w-5/12"
               >
                 Stocks
               </th>
               <td
-                class="
-                  p-3
-                  lg:px-0
-                  text-gray-700 text-right text-xs
-                  uppercase
-                  border-x-0
-                  whitespace-nowrap
-                  font-semibold
-                  w-[16%]
-                  md:w-[10%]
-                  lg:w-auto
-                "
+                class="p-3 lg:px-0 text-gray-700 text-right text-xs uppercase border-x-0 whitespace-nowrap font-semibold w-[16%] md:w-[10%] lg:w-auto"
               >
                 Price
               </td>
               <td
-                class="
-                  pl-3
-                  py-3
-                  text-gray-700 text-right text-xs
-                  uppercase
-                  border-x-0
-                  whitespace-nowrap
-                  font-semibold
-                  w-[30%]
-                  md:w-1/6
-                  xl:pr-0
-                "
+                class="pl-3 py-3 text-gray-700 text-right text-xs uppercase border-x-0 whitespace-nowrap font-semibold w-[30%] md:w-1/6 xl:pr-0"
               >
                 Change %
               </td>
               <td
-                class="
-                  px-3
-                  text-gray-700 text-right text-xs
-                  uppercase
-                  border-x-0
-                  whitespace-nowrap
-                  font-semibold
-                  hidden
-                  md:w-[12%]
-                  lg:table-cell
-                "
+                class="px-3 text-gray-700 text-right text-xs uppercase border-x-0 whitespace-nowrap font-semibold hidden md:w-[12%] lg:table-cell"
               >
                 Change
               </td>
@@ -322,21 +209,11 @@
         <template #action-btn="{ ticker }">
           <label :for="ticker">
             <i
-              class="
-                fa-solid fa-square-check
-                text-lg text-slate-500
-                hover:text-blue-600 hover:cursor-pointer
-                md:text-xl
-              "
+              class="fa-solid fa-square-check text-lg text-slate-500 hover:text-blue-600 hover:cursor-pointer md:text-xl"
               v-if="deleteArr.includes(ticker)"
             ></i>
             <i
-              class="
-                fa-regular fa-square
-                text-lg text-slate-500
-                hover:text-blue-600 hover:cursor-pointer
-                md:text-xl
-              "
+              class="fa-regular fa-square text-lg text-slate-500 hover:text-blue-600 hover:cursor-pointer md:text-xl"
               v-else
             ></i>
           </label>
@@ -362,6 +239,7 @@ import InputModal from "@/components/InputModal.vue";
 import BaseInput from "@/components/BaseInput.vue";
 import DeleteAlert from "@/components/DeleteAlert.vue";
 import TickerInfo from "@/components/TickerInfo.vue";
+import { useClickPrevention } from "@/composables/useClickPrevention.js";
 
 export default {
   components: {
@@ -414,7 +292,7 @@ export default {
     const alertContent = ref(null);
     const alertAction = ref(null);
 
-    const switchAlert = () => {
+    function switchAlert() {
       switch (alertAction.value) {
         case "deleteWatchlist": {
           deleteWatchlist();
@@ -426,9 +304,9 @@ export default {
           break;
         }
       }
-    };
+    }
 
-    const openAlert = (e, action = "deleteWatchlist") => {
+    function openAlert(e, action = "deleteWatchlist") {
       isAlertOpen.value = true;
       alertAction.value = action;
 
@@ -461,9 +339,11 @@ export default {
           break;
         }
       }
-    };
+    }
 
-    const closeAlert = () => (isAlertOpen.value = false);
+    function closeAlert() {
+      isAlertOpen.value = false;
+    }
 
     // Modal & dropdown menu
     const isDropdownOpen = ref(false);
@@ -472,16 +352,20 @@ export default {
     const newListName = ref(null);
     const errorMessage = ref([]);
 
-    const clearErrorMessage = () => errorMessage.value.pop();
+    function clearErrorMessage() {
+      errorMessage.value.pop();
+    }
 
-    const toggleDropdown = () => (isDropdownOpen.value = !isDropdownOpen.value);
+    function toggleDropdown() {
+      isDropdownOpen.value = !isDropdownOpen.value;
+    }
 
-    const openRenameModal = async () => {
+    async function openRenameModal() {
       isModalOpen.value = true;
       newListName.value = currentTab.value;
       await nextTick();
       baseInputRef.value.$refs.renamelistRef.select();
-    };
+    }
 
     const dropdownMenu = ref([
       {
@@ -496,7 +380,13 @@ export default {
       },
     ]);
 
-    const deleteWatchlist = async () => {
+    const stopDeleteWatchlist = useClickPrevention(2000);
+    async function deleteWatchlist() {
+      const { isClickDisabled, preventMultipleClicks } = stopDeleteWatchlist;
+
+      if (isClickDisabled.value) return;
+      preventMultipleClicks();
+
       try {
         const res = await http.delete(`/api/watchlist/${currentTab.value}`);
 
@@ -506,9 +396,15 @@ export default {
       } catch (error) {
         console.log("error", error);
       }
-    };
+    }
 
-    const renameWatchlist = async () => {
+    const stopRenameWatchlist = useClickPrevention(2000);
+    async function renameWatchlist() {
+      const { isClickDisabled, preventMultipleClicks } = stopRenameWatchlist;
+
+      if (isClickDisabled.value) return;
+      preventMultipleClicks();
+
       if (errorMessage.value.length) clearErrorMessage();
       if (!newListName.value) {
         errorMessage.value.push("Input must not be empty");
@@ -539,7 +435,7 @@ export default {
         setTabs(tabsInfo);
         showCurrentTab(newName);
       }
-    };
+    }
 
     // delete ticker
     const deleteArr = ref([]);
@@ -565,8 +461,14 @@ export default {
         }
       },
     });
+    const stopDeleteTicker = useClickPrevention(2000);
 
-    const deleteTicker = async () => {
+    async function deleteTicker() {
+      const { isClickDisabled, preventMultipleClicks } = stopDeleteTicker;
+
+      if (isClickDisabled.value) return;
+      preventMultipleClicks();
+
       const rows = listLength.value - deleteArrLength.value;
 
       toggleLoadingEffect(true);
@@ -593,9 +495,11 @@ export default {
       } catch (error) {
         console.log("error", error);
       }
-    };
+    }
 
-    const clearDeleteArr = () => (deleteArrLength.value = 0);
+    function clearDeleteArr() {
+      deleteArrLength.value = 0;
+    }
 
     // 新增後tab顯示個數
     watch(

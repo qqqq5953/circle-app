@@ -132,6 +132,7 @@ import http from "../api/index";
 import TitleList from "@/components/TradeDetails/TitleList.vue";
 import ContentList from "@/components/TradeDetails/ContentList.vue";
 import { useRouter, useRoute } from "vue-router";
+import { useClickPrevention } from "@/composables/useClickPrevention.js";
 
 export default {
   components: {
@@ -144,6 +145,7 @@ export default {
     const tradeList = ref(null);
     const router = useRouter();
     const route = useRoute();
+    const setSnackbarMessage = inject("setSnackbarMessage");
 
     async function getTradeDetails() {
       const tempTicker = route.query.tempTicker;
@@ -271,9 +273,12 @@ export default {
       },
     ]);
 
-    const setSnackbarMessage = inject("setSnackbarMessage");
+    const { isClickDisabled, preventMultipleClicks } = useClickPrevention(700);
 
     async function deleteTrade(id, date) {
+      if (isClickDisabled.value) return;
+      preventMultipleClicks();
+
       const res = await http.delete(
         `/api/stock/${basicInfo.value.tempTicker}/${id}/${date}`
       );

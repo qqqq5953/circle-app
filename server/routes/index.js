@@ -420,219 +420,241 @@ router.post('/deleteAll', async (req, res) => {
     })
 })
 
-router.delete('/stock/:tempTicker/:tradeId/:tradeDate', async (req, res) => {
-  const { tradeId, tempTicker, tradeDate } = req.params
-
-  try {
-    // 讀取刪除前資料
-    const result = await Promise.allSettled([
-      holdingsLatestInfoRef.child(tempTicker).once('value'),
-      holdingsStatsRef.child(tempTicker).once('value'),
-      holdingsTradeRef.child(tempTicker).child(tradeId).once('value')
-    ])
-
-    // delete close cache
-    await deleteCachePrice(tradeDate, tempTicker)
-
-    // delete history trade
-    const deleteHistoryPromise = historyRef
-      .child(tradeDate)
-      .child(tradeId)
-      .remove()
-
-    // delete holdingsTrade
-    const deleteTradePromise = holdingsTradeRef
-      .child(tempTicker)
-      .child(tradeId)
-      .remove()
-
-    const [latestInfo, stats, trade] = result.map((item) => item.value.val())
-
-    const { close } = latestInfo
-    const { cost, shares } = trade
-    const { totalCost, totalShares } = stats
-    const newTotalShares = totalShares - shares
-
-    let updateStatsPromise
-    if (newTotalShares !== 0) {
-      // update holdingsStats
-      console.log('update holdingsStats')
-      const newTotalCost = totalCost - cost
-      const newAverageCost = newTotalCost / newTotalShares
-      const { profitOrLossPercentage, profitOrLossValue } = calculateStats(
-        close,
-        newAverageCost,
-        newTotalShares
-      )
-
-      updateStatsPromise = updateDb(holdingsStatsRef, tempTicker, {
-        totalCost: newTotalCost,
-        totalShares: newTotalShares,
-        averageCost: newAverageCost,
-        profitOrLossPercentage,
-        profitOrLossValue
-      })
-    } else {
-      console.log('該標的已全數刪除')
-      // 該標的已全數刪除
-      holdingsTemptickersRef.child(tempTicker).remove()
-      holdingsLatestInfoRef.child(tempTicker).remove()
-      holdingsStatsRef.child(tempTicker).remove()
-      newAddingTempRef.child(`${tradeDate}_${tempTicker}`).remove()
-    }
-
-    await Promise.allSettled([
-      deleteHistoryPromise,
-      deleteTradePromise,
-      updateStatsPromise
-    ])
-
-    // 如果 holding 已空則刪除 cachePrice
-    await holdingsTemptickersRef.once('value').then((snapshot) => {
-      if (!snapshot.exists()) closeCacheRef.remove()
-    })
-
-    res.send({
-      success: true,
-      content: 'trade deleted',
-      errorMessage: null,
-      result: null
-    })
-  } catch (error) {
-    console.log('error', error)
-    res.send({
-      success: false,
-      content: 'trade delete falied',
-      errorMessage: error.message,
-      result: null
-    })
-  }
-
-  async function deleteCachePrice(deletedTradeDate, tempTicker) {
-    try {
-      const hasCache = await closeCacheRef
-        .child('closePrice')
-        .child(`${deletedTradeDate}_${tempTicker}`)
-        .once('value')
-
-      if (!hasCache.exists()) return console.log('沒有 cache')
-
-      //檢查該日幾筆交易
-      const numberOfTrades = []
-      await historyRef
-        .child(deletedTradeDate)
-        .orderByChild('tempTicker')
-        .equalTo(tempTicker)
-        .once('value')
-        .then((snapshot) => {
-          snapshot.forEach((childSnapshot) => {
-            numberOfTrades.push(childSnapshot.val().tempTicker)
-          })
-        })
-
-      console.log('numberOfTrades', numberOfTrades)
-
-      if (numberOfTrades.length > 1) return console.log('該日有多筆交易')
-
-      // 該交易是否只有於一個日期交易
-      console.log(deletedTradeDate, '只有一筆交易')
-      const tradeDateSet = new Set()
-      await holdingsTradeRef
-        .child(tempTicker)
-        .orderByChild('tradeUnix')
-        .once('value')
-        .then((snapshot) => {
-          snapshot.forEach((childSnapshot) => {
-            const tradeDate = childSnapshot.val().tradeDate
-            if (!tradeDateSet.has(tradeDate)) {
-              tradeDateSet.add(tradeDate)
-            }
-          })
-        })
-
-      const isSingleTradeDate = tradeDateSet.size === 1
-      const todayDate = getISODate()
-
-      // 標的只有於一個日期交易
-      if (isSingleTradeDate) {
-        console.log('標的只有於一個日期交易')
-
-        await closeCacheRef
-          .child('closePrice')
-          .orderByKey()
-          .startAt(`${deletedTradeDate}_${tempTicker}`)
-          .endAt(`${todayDate}_${tempTicker}`)
-          .once('value')
-          .then((snapshot) => {
-            snapshot.forEach((childSnapshot) => {
-              if (childSnapshot.key.endsWith(`_${tempTicker}`)) {
-                console.log('刪除的日期', childSnapshot.key)
-                childSnapshot.ref.remove()
-              }
-            })
-          })
-
-        return
-      }
-
-      // 標的於多個日期交易
-      console.log('標的於多個日期交易')
-      const [firstTradeDate, secondTradeDate] = [...tradeDateSet.values()]
-
-      if (firstTradeDate === deletedTradeDate) {
-        // 刪除的標的為最早交易日
-        console.log('刪除的標的為最早交易日')
-        const deletePromises = []
-        let countBack = 1
-        let hasDeleteAll = false
-
-        // 刪除第二交易日至最早交易日間的 cache
-        console.log(
-          '刪除第二交易日',
-          secondTradeDate,
-          '至最早交易日',
-          firstTradeDate,
-          '間的 cache'
-        )
-        while (!hasDeleteAll) {
-          const oneDay = 86400000
-          const toDeleteUnix =
-            new Date(secondTradeDate).getTime() - oneDay * countBack
-          const toDeleteDate = getISODate(new Date(toDeleteUnix))
-          const key = `${toDeleteDate}_${tempTicker}`
-          const deletePromise = closeCacheRef
-            .child('closePrice')
-            .child(key)
-            .remove()
-          deletePromises.push(deletePromise)
-          countBack++
-          console.log('刪除的 cache', key)
-
-          // 已從第二交易日刪到最早交易日
-          if (toDeleteDate === firstTradeDate) {
-            console.log('已從第二交易日刪到最早交易日')
-            hasDeleteAll = true
-            break
-          }
-        }
-
-        await Promise.allSettled(deletePromises)
-      }
-    } catch (error) {
-      console.log('deleteCachePrice error', error)
-    }
-  }
-})
-
-const addStoclLimiter = rateLimit({
-  windowMs: 5000, // 3 sec
+const deleteHoldingLimiter = rateLimit({
+  windowMs: 700, // 0.7 sec
   max: 1,
   message: 'Too many requests sent within a short period of time',
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false // Disable the `X-RateLimit-*` headers
 })
+router.delete(
+  '/stock/:tempTicker/:tradeId/:tradeDate',
+  deleteHoldingLimiter,
+  async (req, res) => {
+    const { tradeId, tempTicker, tradeDate } = req.params
 
-router.post('/stock', addStoclLimiter, async (req, res) => {
+    // console.log('delete', req.params)
+
+    // res.send({
+    //   success: true,
+    //   content: 'trade deleted',
+    //   errorMessage: null,
+    //   result: null
+    // })
+
+    // return
+
+    try {
+      // 讀取刪除前資料
+      const result = await Promise.allSettled([
+        holdingsLatestInfoRef.child(tempTicker).once('value'),
+        holdingsStatsRef.child(tempTicker).once('value'),
+        holdingsTradeRef.child(tempTicker).child(tradeId).once('value')
+      ])
+
+      // delete close cache
+      await deleteCachePrice(tradeDate, tempTicker)
+
+      // delete history trade
+      const deleteHistoryPromise = historyRef
+        .child(tradeDate)
+        .child(tradeId)
+        .remove()
+
+      // delete holdingsTrade
+      const deleteTradePromise = holdingsTradeRef
+        .child(tempTicker)
+        .child(tradeId)
+        .remove()
+
+      const [latestInfo, stats, trade] = result.map((item) => item.value.val())
+
+      const { close } = latestInfo
+      const { cost, shares } = trade
+      const { totalCost, totalShares } = stats
+      const newTotalShares = totalShares - shares
+
+      let updateStatsPromise
+      if (newTotalShares !== 0) {
+        // update holdingsStats
+        console.log('update holdingsStats')
+        const newTotalCost = totalCost - cost
+        const newAverageCost = newTotalCost / newTotalShares
+        const { profitOrLossPercentage, profitOrLossValue } = calculateStats(
+          close,
+          newAverageCost,
+          newTotalShares
+        )
+
+        updateStatsPromise = updateDb(holdingsStatsRef, tempTicker, {
+          totalCost: newTotalCost,
+          totalShares: newTotalShares,
+          averageCost: newAverageCost,
+          profitOrLossPercentage,
+          profitOrLossValue
+        })
+      } else {
+        console.log('該標的已全數刪除')
+        // 該標的已全數刪除
+        holdingsTemptickersRef.child(tempTicker).remove()
+        holdingsLatestInfoRef.child(tempTicker).remove()
+        holdingsStatsRef.child(tempTicker).remove()
+        newAddingTempRef.child(`${tradeDate}_${tempTicker}`).remove()
+      }
+
+      await Promise.allSettled([
+        deleteHistoryPromise,
+        deleteTradePromise,
+        updateStatsPromise
+      ])
+
+      // 如果 holding 已空則刪除 cachePrice
+      await holdingsTemptickersRef.once('value').then((snapshot) => {
+        if (!snapshot.exists()) closeCacheRef.remove()
+      })
+
+      res.send({
+        success: true,
+        content: 'trade deleted',
+        errorMessage: null,
+        result: null
+      })
+    } catch (error) {
+      console.log('error', error)
+      res.send({
+        success: false,
+        content: 'trade delete falied',
+        errorMessage: error.message,
+        result: null
+      })
+    }
+
+    async function deleteCachePrice(deletedTradeDate, tempTicker) {
+      try {
+        const hasCache = await closeCacheRef
+          .child('closePrice')
+          .child(`${deletedTradeDate}_${tempTicker}`)
+          .once('value')
+
+        if (!hasCache.exists()) return console.log('沒有 cache')
+
+        //檢查該日幾筆交易
+        const numberOfTrades = []
+        await historyRef
+          .child(deletedTradeDate)
+          .orderByChild('tempTicker')
+          .equalTo(tempTicker)
+          .once('value')
+          .then((snapshot) => {
+            snapshot.forEach((childSnapshot) => {
+              numberOfTrades.push(childSnapshot.val().tempTicker)
+            })
+          })
+
+        console.log('numberOfTrades', numberOfTrades)
+
+        if (numberOfTrades.length > 1) return console.log('該日有多筆交易')
+
+        // 該交易是否只有於一個日期交易
+        console.log(deletedTradeDate, '只有一筆交易')
+        const tradeDateSet = new Set()
+        await holdingsTradeRef
+          .child(tempTicker)
+          .orderByChild('tradeUnix')
+          .once('value')
+          .then((snapshot) => {
+            snapshot.forEach((childSnapshot) => {
+              const tradeDate = childSnapshot.val().tradeDate
+              if (!tradeDateSet.has(tradeDate)) {
+                tradeDateSet.add(tradeDate)
+              }
+            })
+          })
+
+        const isSingleTradeDate = tradeDateSet.size === 1
+        const todayDate = getISODate()
+
+        // 標的只有於一個日期交易
+        if (isSingleTradeDate) {
+          console.log('標的只有於一個日期交易')
+
+          await closeCacheRef
+            .child('closePrice')
+            .orderByKey()
+            .startAt(`${deletedTradeDate}_${tempTicker}`)
+            .endAt(`${todayDate}_${tempTicker}`)
+            .once('value')
+            .then((snapshot) => {
+              snapshot.forEach((childSnapshot) => {
+                if (childSnapshot.key.endsWith(`_${tempTicker}`)) {
+                  console.log('刪除的日期', childSnapshot.key)
+                  childSnapshot.ref.remove()
+                }
+              })
+            })
+
+          return
+        }
+
+        // 標的於多個日期交易
+        console.log('標的於多個日期交易')
+        const [firstTradeDate, secondTradeDate] = [...tradeDateSet.values()]
+
+        if (firstTradeDate === deletedTradeDate) {
+          // 刪除的標的為最早交易日
+          console.log('刪除的標的為最早交易日')
+          const deletePromises = []
+          let countBack = 1
+          let hasDeleteAll = false
+
+          // 刪除第二交易日至最早交易日間的 cache
+          console.log(
+            '刪除第二交易日',
+            secondTradeDate,
+            '至最早交易日',
+            firstTradeDate,
+            '間的 cache'
+          )
+          while (!hasDeleteAll) {
+            const oneDay = 86400000
+            const toDeleteUnix =
+              new Date(secondTradeDate).getTime() - oneDay * countBack
+            const toDeleteDate = getISODate(new Date(toDeleteUnix))
+            const key = `${toDeleteDate}_${tempTicker}`
+            const deletePromise = closeCacheRef
+              .child('closePrice')
+              .child(key)
+              .remove()
+            deletePromises.push(deletePromise)
+            countBack++
+            console.log('刪除的 cache', key)
+
+            // 已從第二交易日刪到最早交易日
+            if (toDeleteDate === firstTradeDate) {
+              console.log('已從第二交易日刪到最早交易日')
+              hasDeleteAll = true
+              break
+            }
+          }
+
+          await Promise.allSettled(deletePromises)
+        }
+      } catch (error) {
+        console.log('deleteCachePrice error', error)
+      }
+    }
+  }
+)
+
+const addHoldingLimiter = rateLimit({
+  windowMs: 4000,
+  max: 1,
+  message: 'Too many requests sent within a short period of time',
+  standardHeaders: true,
+  legacyHeaders: false
+})
+
+router.post('/stock', addHoldingLimiter, async (req, res) => {
   const invalidInput = Object.keys(req.body).filter((key) => !req.body[key])
 
   if (invalidInput.length !== 0) {
@@ -1983,7 +2005,15 @@ router.post('/checkTicker', (req, res) => {
 
 // WATCHLIST PAGE
 // add ticker to watchlist
-router.post('/ticker/:listName', async (req, res) => {
+const watchlistLimiter = rateLimit({
+  windowMs: 2000,
+  max: 1,
+  message: 'Too many requests sent within a short period of time',
+  standardHeaders: true,
+  legacyHeaders: false
+})
+
+router.post('/ticker/:listName', watchlistLimiter, async (req, res) => {
   const { listName } = req.params
   const { tickerItem } = req.body
   const list = listName.toLowerCase() === 'watchlist' ? 'default' : listName
@@ -2010,40 +2040,44 @@ router.post('/ticker/:listName', async (req, res) => {
 })
 
 // delete ticker from watchlist
-router.delete('/ticker/:listName/:deleteInfoArr', async (req, res) => {
-  try {
-    const listName = req.params.listName
-    const deleteInfoArr = JSON.parse(req.params.deleteInfoArr)
+router.delete(
+  '/ticker/:listName/:deleteInfoArr',
+  watchlistLimiter,
+  async (req, res) => {
+    try {
+      const listName = req.params.listName
+      const deleteInfoArr = JSON.parse(req.params.deleteInfoArr)
 
-    if (deleteInfoArr.length === 0) return
+      if (deleteInfoArr.length === 0) return
 
-    const list = listName.toLowerCase() === 'watchlist' ? 'default' : listName
+      const list = listName.toLowerCase() === 'watchlist' ? 'default' : listName
 
-    for (let i = 0; i < deleteInfoArr.length; i++) {
-      const ticker = deleteInfoArr[i]
-      await watchlistRef.child(list).child(ticker).remove()
+      for (let i = 0; i < deleteInfoArr.length; i++) {
+        const ticker = deleteInfoArr[i]
+        await watchlistRef.child(list).child(ticker).remove()
+      }
+
+      const message = {
+        success: true,
+        content: '刪除成功',
+        errorMessage: null,
+        result: deleteInfoArr
+      }
+      res.send(message)
+    } catch (error) {
+      console.log('error', error)
+      const message = {
+        success: false,
+        content: '刪除失敗',
+        errorMessage: error.message,
+        result: null
+      }
+      res.send(message)
     }
-
-    const message = {
-      success: true,
-      content: '刪除成功',
-      errorMessage: null,
-      result: deleteInfoArr
-    }
-    res.send(message)
-  } catch (error) {
-    console.log('error', error)
-    const message = {
-      success: false,
-      content: '刪除失敗',
-      errorMessage: error.message,
-      result: null
-    }
-    res.send(message)
   }
-})
+)
 
-// update ticker info from watchlist
+// update ticker info in watchlist
 router.put('/ticker/:listName/:ticker', async (req, res) => {
   const { listName, ticker } = req.params
   const { newItem } = req.body
@@ -2183,7 +2217,7 @@ router.post('/watchlist/:listName', async (req, res) => {
 })
 
 // delete watchlist
-router.delete('/watchlist/:listName', async (req, res) => {
+router.delete('/watchlist/:listName', watchlistLimiter, async (req, res) => {
   try {
     const { listName } = req.params
     const tabs = await tabsRef.once('value')
@@ -2245,70 +2279,74 @@ router.get('/watchlist', async (req, res) => {
 })
 
 // rename watchlist
-router.put('/watchlist/:oldName/:newName', async (req, res) => {
-  const { oldName, newName } = req.params
-  const emptyInput = !newName || newName.length === 0
+router.put(
+  '/watchlist/:oldName/:newName',
+  watchlistLimiter,
+  async (req, res) => {
+    const { oldName, newName } = req.params
+    const emptyInput = !newName || newName.length === 0
 
-  let message = {
-    success: false,
-    content: '編輯失敗',
-    errorMessage: null,
-    result: null
-  }
+    let message = {
+      success: false,
+      content: '編輯失敗',
+      errorMessage: null,
+      result: null
+    }
 
-  if (oldName === newName) {
-    message.errorMessage = 'Please rename watchlist'
-    res.send(message)
-    return
-  }
-  if (emptyInput) {
-    message.errorMessage = 'Input must not be empty'
-    res.send(message)
-    return
-  }
-
-  try {
-    const tabs = await tabsRef.once('value')
-    const allTabs = tabs.val()
-    const isTabRepeated = allTabs.includes(newName)
-
-    if (isTabRepeated) {
-      message.errorMessage = 'Watchlist already exists'
+    if (oldName === newName) {
+      message.errorMessage = 'Please rename watchlist'
+      res.send(message)
+      return
+    }
+    if (emptyInput) {
+      message.errorMessage = 'Input must not be empty'
       res.send(message)
       return
     }
 
-    const idx = allTabs.indexOf(oldName)
-    allTabs.splice(idx, 1, newName)
-    await tabsRef.set(allTabs)
+    try {
+      const tabs = await tabsRef.once('value')
+      const allTabs = tabs.val()
+      const isTabRepeated = allTabs.includes(newName)
 
-    const targetList = await watchlistRef.child(oldName).once('value')
-    const isTargetListEmpty = targetList.val() == null
+      if (isTabRepeated) {
+        message.errorMessage = 'Watchlist already exists'
+        res.send(message)
+        return
+      }
 
-    if (!isTargetListEmpty) {
-      await watchlistRef.child(oldName).remove()
-      await watchlistRef.child(newName).set(targetList.val())
+      const idx = allTabs.indexOf(oldName)
+      allTabs.splice(idx, 1, newName)
+      await tabsRef.set(allTabs)
+
+      const targetList = await watchlistRef.child(oldName).once('value')
+      const isTargetListEmpty = targetList.val() == null
+
+      if (!isTargetListEmpty) {
+        await watchlistRef.child(oldName).remove()
+        await watchlistRef.child(newName).set(targetList.val())
+      }
+
+      const tabsInfo = await getTabsInfo(allTabs)
+      message = {
+        success: true,
+        content: '編輯成功',
+        errorMessage: null,
+        result: { newName, tabsInfo }
+      }
+
+      res.send(message)
+    } catch (error) {
+      const message = {
+        success: false,
+        content: '編輯失敗',
+        errorMessage: error.message,
+        result: null
+      }
+      res.send(message)
     }
-
-    const tabsInfo = await getTabsInfo(allTabs)
-    message = {
-      success: true,
-      content: '編輯成功',
-      errorMessage: null,
-      result: { newName, tabsInfo }
-    }
-
-    res.send(message)
-  } catch (error) {
-    const message = {
-      success: false,
-      content: '編輯失敗',
-      errorMessage: error.message,
-      result: null
-    }
-    res.send(message)
   }
-})
+)
 
 async function getTabsInfo(tabs) {
   const DEFAULT_TAB = 'Watchlist'

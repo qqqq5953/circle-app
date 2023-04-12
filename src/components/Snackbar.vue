@@ -84,7 +84,7 @@ export default {
     function activateBar(msg) {
       const timer = setTimeout(() => {
         closeBar(msg.id);
-      }, 60000);
+      }, 10000);
       messages.value.unshift({ ...msg, timer });
     }
 

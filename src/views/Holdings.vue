@@ -133,7 +133,7 @@ export default {
     const $holdingStore = useHoldingStore();
     const { stock } = storeToRefs($holdingStore);
     const setSnackbarMessage = inject("setSnackbarMessage");
-    const { isClickDisabled, preventMultipleClicks } = useClickPrevention();
+    const { isClickDisabled, preventMultipleClicks } = useClickPrevention(3000);
 
     // 跨頁面時重置 searchList
     onMounted(async () => {
@@ -147,6 +147,7 @@ export default {
     const fxRates = ref({});
     const totalStats = ref({});
     const latestInfo = ref({});
+    const hasCheckUpdate = ref(false);
 
     (async () => {
       toggleSkeleton(true);
@@ -161,6 +162,7 @@ export default {
         }
 
         const { holdingLatestInfo, hasChecked } = updateRes.data.result;
+        hasCheckUpdate.value = hasChecked;
 
         const result = await Promise.allSettled([
           http.get("/api/fxRates"),
@@ -245,8 +247,8 @@ export default {
 
       if (newData.success) {
         try {
-          const res = await http.get(`/api/holdings`);
-          data.value = res.data;
+          const res = await http.get(`/api/holdings/${hasCheckUpdate.value}`);
+          holdings.value = res.data.result;
         } catch (error) {
           console.log("updateHoldings error", error);
         }

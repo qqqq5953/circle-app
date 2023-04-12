@@ -84,6 +84,7 @@ import SearchList from "@/components/SearchList.vue";
 import SearchBar from "@/components/SearchBar.vue";
 import WatchlistNavbar from "@/components/Watchlist/WatchlistNavbar.vue";
 import WatchlistTable from "@/components/Watchlist/WatchlistTable.vue";
+import { useClickPrevention } from "@/composables/useClickPrevention.js";
 
 export default {
   components: {
@@ -128,6 +129,8 @@ export default {
       toggleLoadingEffect,
     } = $watchlistStore;
 
+    const { isClickDisabled, preventMultipleClicks } = useClickPrevention(2000);
+
     const isTickerInCachedList = computed(() => {
       const tempTicker = searchList.value[0]?.tempTicker;
       const isInCachedList =
@@ -139,12 +142,13 @@ export default {
     });
 
     async function addToWatchlist(ticker) {
-      if (isTickerInCachedList.value) return;
+      if (isTickerInCachedList.value || isClickDisabled.value) return;
 
       setSkeletonTableRow({
         rows: watchlistArr.value.length + 1,
       });
       toggleLoadingEffect(true);
+      preventMultipleClicks();
 
       try {
         const tempTicker = ticker.includes(".") ? ticker.split(".")[0] : ticker;

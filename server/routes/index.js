@@ -41,6 +41,15 @@ router.get('/checkUpdateInfoAndStats', async (req, res) => {
       item.value.val()
     )
 
+    if (!holdingsStats || !holdingLatestInfo) {
+      return res.send({
+        success: true,
+        content: 'The portfolio is empty',
+        errorMessage: null,
+        result: null
+      })
+    }
+
     const updateTimeSnapshot = await closeCacheRef
       .child('nextUpdateTime')
       .once('value')
@@ -399,25 +408,6 @@ router.get('/totalStats/:hasChecked', async (req, res) => {
 
     res.send(msg)
   }
-})
-
-router.post('/deleteAll', async (req, res) => {
-  Promise.all([
-    closeCacheRef.remove(),
-    historyRef.remove(),
-    holdingsTemptickersRef.remove(),
-    holdingsTradeRef.remove(),
-    holdingsStatsRef.remove(),
-    holdingsLatestInfoRef.remove()
-  ])
-    .then((resp) => {
-      console.log('delete success', resp)
-      res.send('delete success')
-    })
-    .catch((err) => {
-      console.log('delete failed', err)
-      res.send('delete failed')
-    })
 })
 
 const deleteHoldingLimiter = rateLimit({
@@ -782,6 +772,20 @@ router.post('/stock', addHoldingLimiter, async (req, res) => {
       profitOrLossPercentage,
       profitOrLossValue
     })
+
+    // schedule Next Update Stock
+    const cacheSnapshot = await closeCacheRef
+      .child('latestUpdateTime')
+      .once('value')
+
+    if (!cacheSnapshot.exists()) {
+      const newNextUpdateTime = await scheduleNextUpdateStock()
+      const newCurrentUpdateTime = Date.now()
+      closeCacheRef.update({
+        nextUpdateTime: newNextUpdateTime,
+        latestUpdateTime: newCurrentUpdateTime
+      })
+    }
 
     const message = {
       success: true,
@@ -2001,6 +2005,26 @@ router.post('/checkTicker', (req, res) => {
         ticker
       })
     })
+})
+
+router.delete('/closePrice', async (req, res) => {
+  try {
+    await closeCacheRef.remove()
+
+    res.send({
+      success: true,
+      content: 'deletion done',
+      errorMessage: null,
+      result: null
+    })
+  } catch (error) {
+    res.send({
+      success: false,
+      content: 'deletion failed',
+      errorMessage: error.message,
+      result: null
+    })
+  }
 })
 
 // WATCHLIST PAGE

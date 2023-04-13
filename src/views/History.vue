@@ -6,11 +6,27 @@
       <div class="rounded bg-gray-300 h-6 w-40"></div>
       <div class="rounded bg-gray-300 h-60"></div>
     </div>
-    <div v-else>
+
+    <section class="flex flex-col items-center space-y-2" v-else-if="error">
+      <h2 class="text-lg font-medium">
+        {{ error.content }}
+        <i class="fas fa-times text-red-600"></i>
+      </h2>
+      <p class="text-slate-700">{{ error.message }}</p>
+
+      <button
+        class="border rounded px-2 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
+        :disabled="loading"
+        @click="reolad"
+      >
+        reload
+      </button>
+    </section>
+
+    <template v-else>
       <!-- <button class="border border-black p-2" @click="deleteAll">
         delete all
       </button> -->
-
       <section v-if="source">
         <h2 class="font-semibold text-lg">History</h2>
         <MultiLineChart :source="source" />
@@ -44,18 +60,7 @@
           </details>
         </div>
       </section>
-
-      <section
-        class="flex flex-col items-center space-y-2"
-        v-if="!data.success"
-      >
-        <h2 class="text-lg font-medium">
-          {{ error.content }}
-          <i class="fas fa-times text-red-600"></i>
-        </h2>
-        <p class="text-slate-700">{{ error.message }}</p>
-      </section>
-    </div>
+    </template>
   </main>
 </template>
 
@@ -65,6 +70,7 @@ import MultiLineChart from "@/components/Charts/MultiLineChart.vue";
 import TitleList from "@/components/History/TitleList.vue";
 import DetailList from "@/components/History/DetailList.vue";
 import useAxios from "@/composables/useAxios.js";
+import { useRouter } from "vue-router";
 
 import { computed, ref } from "vue";
 export default {
@@ -110,10 +116,14 @@ export default {
       },
     ]);
 
-    function deleteAll() {
-      http.post("/api/deleteAll").then((res) => {
-        console.log("delete res", res);
-      });
+    const router = useRouter();
+    function reolad() {
+      if (!error.value) {
+        http.delete("/api/closePrice").then((res) => {
+          console.log("delete res", res);
+          router.go();
+        });
+      }
     }
 
     return {
@@ -123,7 +133,7 @@ export default {
       error,
       loading,
       childTitle,
-      deleteAll,
+      reolad,
     };
   },
 };

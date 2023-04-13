@@ -15,7 +15,10 @@ export default function useAxios(url, method, options = {}) {
       const response = await http[method](url, options)
       const { success, content, errorMessage, result = null } = response.data
       data.value = { success, content, errorMessage, result }
-      state.error = { content, message: errorMessage }
+
+      if (!success) {
+        state.error = { content, message: errorMessage }
+      }
 
       console.log('=========賦值完成==========')
     } catch (error) {

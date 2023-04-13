@@ -83,7 +83,7 @@
           @toggleModal="toggleModal"
         />
 
-        <div class="py-[20%] text-center" v-if="!holdings">
+        <div class="py-[20%] text-center" v-else>
           <button
             class="bg-indigo-700 text-white hover:bg-indigo-600 rounded-full px-3 py-1.5 text-xs"
             @click="toggleModal({ open: true, type: 'invest' })"
@@ -149,28 +149,34 @@ export default {
     const latestInfo = ref({});
     const hasCheckUpdate = ref(false);
 
-    (async () => {
+    loadHoldings();
+
+    async function loadHoldings() {
       toggleSkeleton(true);
 
       try {
         const updateRes = await http.get("/api/checkUpdateInfoAndStats");
 
-        if (updateRes.data.errorMessage) {
-          const { content, errorMessage } = updateRes.data;
+        const { success, content, errorMessage, result } = updateRes.data;
+
+        if (errorMessage) {
           errors.value.push({ content, message: errorMessage });
           return;
         }
 
+        // 投組為空
+        if (success && !result) return;
+
         const { holdingLatestInfo, hasChecked } = updateRes.data.result;
         hasCheckUpdate.value = hasChecked;
 
-        const result = await Promise.allSettled([
+        const promiseRes = await Promise.allSettled([
           http.get("/api/fxRates"),
           http.get(`/api/holdings/${hasChecked}`),
           http.get(`/api/totalStats/${hasChecked}`),
         ]);
 
-        errors.value = result
+        errors.value = promiseRes
           .filter((item) => item.value.data.errorMessage)
           .map((item) => {
             const { content, errorMessage } = item.value.data;
@@ -178,7 +184,7 @@ export default {
           });
 
         if (errors.value.length === 0) {
-          const [fxRatesObj, holdingsObj, stats] = result.map(
+          const [fxRatesObj, holdingsObj, stats] = promiseRes.map(
             (item) => item.value.data.result
           );
 
@@ -192,7 +198,7 @@ export default {
       } finally {
         toggleSkeleton(false);
       }
-    })();
+    }
 
     function toggleSkeleton(isLoading) {
       loading.value = isLoading;
@@ -217,13 +223,9 @@ export default {
           tempTicker: stock.value.tempTicker?.toUpperCase(),
           recordUnix: Date.now(),
         };
-
-        console.log("stockObj", stockObj);
-
         const res = await http.post(`/api/stock`, stockObj);
         await updateHoldings(res.data);
       } catch (error) {
-        console.log("addStock error", error);
         toggleSkeleton(false);
         setSnackbarMessage({
           success: false,
@@ -245,15 +247,7 @@ export default {
         "Record time": addDate.toLocaleString("zh-TW").replace(/\//g, "-"),
       };
 
-      if (newData.success) {
-        try {
-          const res = await http.get(`/api/holdings/${hasCheckUpdate.value}`);
-          holdings.value = res.data.result;
-        } catch (error) {
-          console.log("updateHoldings error", error);
-        }
-      }
-
+      await loadHoldings();
       toggleSkeleton(false);
       setSnackbarMessage({ ...newData, result, routeName: "TradeResult" });
     }

@@ -1,8 +1,13 @@
 <template>
   <ul>
     <li
-      class="flex items-center gap-x-1.5 py-2 text-xs border-b hover:bg-slate-100 group"
-      :class="fontWeight"
+      class="flex items-center gap-x-1.5 py-2 text-xs border-b hover:lg:bg-slate-100"
+      :class="[
+        fontWeight,
+        {
+          'animate-pulse bg-slate-100/80 text-slate-400': deleteId === item.id,
+        },
+      ]"
       v-for="item in list"
       :key="item.id"
     >
@@ -47,6 +52,9 @@ export default {
     fontWeight: {
       type: String,
       default: "font-normal",
+    },
+    deleteId: {
+      type: String,
     },
   },
 };

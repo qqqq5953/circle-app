@@ -70,7 +70,11 @@
     <section>
       <h2 class="text-lg font-medium pb-2">Trade Records</h2>
       <TitleList :titles="titles_Records" />
-      <ContentList :list="tradeList" fontWeight="font-light">
+      <ContentList
+        :list="tradeList"
+        :deleteId="deleteId"
+        fontWeight="font-light"
+      >
         <template #diff-percent="{ price }">
           <span
             class="inline-block font-medium"
@@ -117,8 +121,10 @@
           <button
             class="sm:mx-2 lg:invisible lg:group-hover:visible"
             @click="deleteTrade(id, date)"
+            :disabled="isDeleting"
           >
-            <i class="fa-regular fa-trash-can"></i>
+            <i class="fa-solid fa-spinner animate-spin" v-if="isDeleting"></i>
+            <i class="fa-regular fa-trash-can" v-else></i>
           </button>
         </template>
       </ContentList>
@@ -275,16 +281,28 @@ export default {
 
     const { isClickDisabled, preventMultipleClicks } = useClickPrevention(700);
 
+    const isDeleting = ref(false);
+    const deleteId = ref(null);
+
     async function deleteTrade(id, date) {
       if (isClickDisabled.value) return;
       preventMultipleClicks();
 
-      const res = await http.delete(
-        `/api/stock/${basicInfo.value.tempTicker}/${id}/${date}`
-      );
+      try {
+        isDeleting.value = true;
+        deleteId.value = id;
 
-      setSnackbarMessage(res.data);
-      await getTradeDetails();
+        const res = await http.delete(
+          `/api/stock/${basicInfo.value.tempTicker}/${id}/${date}`
+        );
+
+        setSnackbarMessage(res.data);
+        await getTradeDetails();
+      } catch (error) {
+        console.log("error", error);
+      } finally {
+        isDeleting.value = false;
+      }
     }
 
     return {
@@ -295,6 +313,9 @@ export default {
       titles_Total,
       titles_Records,
       deleteTrade,
+
+      isDeleting,
+      deleteId,
     };
   },
 };

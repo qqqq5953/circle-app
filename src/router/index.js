@@ -7,7 +7,24 @@ const routes = [
     path: '/',
     name: 'Home',
     component: () => import('../views/Home.vue'),
-    redirect: { name: 'Overview' }
+    redirect: { name: 'Intro' },
+    children: [
+      {
+        path: '',
+        name: 'Intro',
+        component: () => import('../views/Intro.vue')
+      },
+      {
+        path: 'about',
+        name: 'About',
+        component: () => import('../views/About.vue')
+      },
+      {
+        path: 'solution',
+        name: 'Solution',
+        component: () => import('../views/Solution.vue')
+      }
+    ]
   },
   {
     path: '/admin/dashboard',

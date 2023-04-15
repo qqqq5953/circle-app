@@ -1,88 +1,65 @@
 <template>
   <nav
-    class="top-0 absolute z-50 w-full flex flex-wrap items-center justify-between px-2 py-3 bg-green-600"
+    class="fixed top-0 z-10 w-full shadow-lg px-6 py-4 md:px-10"
+    :class="isShow ? 'bg-slate-50' : 'bg-slate-50/70 backdrop-blur-sm'"
   >
-    <div
-      class="container px-4 mx-auto flex flex-wrap items-center justify-between bg-gray-500"
-    >
-      <!-- logo -->
+    <div class="flex items-center justify-between max-w-[1200px] mx-auto">
+      <h1 class="inline-block uppercase font-semibold text-2xl text-indigo-700">
+        <router-link :to="{ name: 'Home' }">Circle App</router-link>
+      </h1>
+
+      <ul class="hidden md:flex font-light">
+        <li v-for="item in menu" :key="item.name">
+          <router-link class="block px-4 group" :to="{ name: item.routeName }">
+            <span class="relative group-hover:text-indigo-500">
+              {{ item.name }}
+              <span
+                class="absolute top-full left-1/2 -translate-x-1/2 bg-indigo-500 hidden md:inline transition-all duration-300 mt-1 h-1 w-0 md:group-hover:w-full"
+              ></span>
+            </span>
+          </router-link>
+        </li>
+      </ul>
+
+      <!-- menu -->
       <div
-        class="w-full relative flex justify-between lg:w-auto lg:static lg:block lg:justify-start"
+        class="flex items-center gap-x-6 md:hidden"
+        @click="isShow = !isShow"
       >
-        <a
-          class="text-sm font-bold leading-relaxed inline-block mr-4 py-2 whitespace-nowrap uppercase text-white"
-          href="#"
-          >Circle</a
-        >
-        <router-link :to="{ name: 'Portfolio' }" class="text-white"
-          >Dashboard</router-link
-        >
         <button
-          class="cursor-pointer text-xl leading-none px-3 py-1 border border-solid border-transparent rounded bg-transparent block lg:hidden outline-none focus:outline-none"
-          type="button"
-          @click="toggleNavbar"
+          class="inline-block rounded px-2 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white"
         >
-          <i class="text-white fas fa-bars"></i>
+          Get started
         </button>
-      </div>
-      <!-- 漢堡選單 -->
-      <div
-        class="lg:flex flex-grow items-center bg-white lg:bg-transparent lg:shadow-none hidden"
-        ref="collapseNavbar"
-      >
-        <!-- Docs -->
-        <ul class="flex flex-col lg:flex-row list-none mr-auto">
-          <li class="flex items-center">
-            <a
-              class="lg:text-white lg:hover:text-gray-300 text-gray-800 px-3 py-4 lg:py-2 flex items-center text-xs uppercase font-bold"
-              href="#"
-              ><i
-                class="lg:text-gray-300 text-gray-500 far fa-file-alt text-lg leading-lg mr-2"
-              ></i>
-              Docs</a
-            >
-          </li>
-        </ul>
-        <!-- Social media -->
-        <ul class="flex flex-col lg:flex-row list-none lg:ml-auto">
-          <li class="flex items-center">
-            <a
-              class="lg:text-white lg:hover:text-gray-300 text-gray-800 px-3 py-4 lg:py-2 flex items-center text-xs uppercase font-bold"
-              href="#pablo"
-              ><i
-                class="lg:text-gray-300 text-gray-500 fab fa-facebook text-lg leading-lg"
-              ></i
-              ><span class="lg:hidden inline-block ml-2">Share</span></a
-            >
-          </li>
-          <li class="flex items-center">
-            <a
-              class="lg:text-white lg:hover:text-gray-300 text-gray-800 px-3 py-4 lg:py-2 flex items-center text-xs uppercase font-bold"
-              href="#pablo"
-              ><i
-                class="lg:text-gray-300 text-gray-500 fab fa-twitter text-lg leading-lg"
-              ></i
-              ><span class="lg:hidden inline-block ml-2">Tweet</span></a
-            >
-          </li>
-          <li class="flex items-center">
-            <a
-              class="lg:text-white lg:hover:text-gray-300 text-gray-800 px-3 py-4 lg:py-2 flex items-center text-xs uppercase font-bold"
-              href="#pablo"
-              ><i
-                class="lg:text-gray-300 text-gray-500 fab fa-github text-lg leading-lg"
-              ></i
-              ><span class="lg:hidden inline-block ml-2">Star</span></a
-            >
-          </li>
-          <li class="flex items-center">
-            <button
-              class="bg-white text-gray-800 active:bg-gray-100 text-xs font-bold uppercase px-4 py-2 rounded shadow hover:shadow-md outline-none focus:outline-none lg:mr-1 lg:mb-0 ml-3 mb-3"
-              type="button"
-              style="transition: all 0.15s ease 0s"
-            >
-              <i class="fas fa-arrow-alt-circle-down"></i> Download
-            </button>
+        <button ref="menuBtn" class="flex flex-col space-y-1 text-indigo-700">
+          <span
+            class="w-6 h-[3px] rounded bg-indigo-700 transition duration-500 ease-in-out"
+            :class="{
+              'rotate-45 translate-y-[7px]': isShow,
+            }"
+          ></span>
+          <span
+            class="w-6 h-[3px] rounded bg-indigo-700 transition duration-500 ease-in-out"
+            :class="{ 'opacity-0 ': isShow }"
+          ></span>
+          <span
+            class="w-6 h-[3px] rounded bg-indigo-700 transition duration-500 ease-in-out"
+            :class="{
+              '-rotate-45 -translate-y-[7px]': isShow,
+            }"
+          ></span>
+        </button>
+        <ul
+          ref="menuList"
+          class="absolute z-50 mt-px top-full right-0 bg-slate-50 shadow-lg text-black text-xs py-1 w-full divide-y transition-all duration-300 ease-in-out"
+          :class="{
+            '-translate-y-5 opacity-0 invisible pointer-events-none': !isShow,
+          }"
+        >
+          <li class="text-center" v-for="item in menu" :key="item.name">
+            <router-link class="block px-4 py-3" :to="{ name: item.routeName }">
+              {{ item.name }}
+            </router-link>
           </li>
         </ul>
       </div>
@@ -91,12 +68,43 @@
 </template>
 
 <script>
+import { onMounted, ref } from "vue";
 export default {
-  methods: {
-    toggleNavbar() {
-      this.$refs.collapseNavbar.classList.toggle('hidden');
-      this.$refs.collapseNavbar.classList.toggle('block');
+  setup() {
+    const isShow = ref(false);
+    const menuBtn = ref(false);
+    const menuList = ref(false);
+    const menu = ref([
+      {
+        name: "About",
+        routeName: "About",
+      },
+      {
+        name: "Solution",
+        routeName: "Solution",
+      },
+    ]);
+
+    onMounted(() => clickOutsideToggle());
+
+    function clickOutsideToggle() {
+      document.addEventListener("click", (e) => {
+        if (
+          !menuBtn.value?.contains(e.target) &&
+          !menuList.value?.contains(e.target)
+        ) {
+          isShow.value = false;
+        }
+      });
     }
-  }
+
+    return {
+      menuBtn,
+      menuList,
+      isShow,
+      menu,
+      clickOutsideToggle,
+    };
+  },
 };
 </script>

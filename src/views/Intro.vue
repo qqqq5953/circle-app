@@ -1,17 +1,5 @@
 <template>
   <main>
-    <div id="carousel" class="flicking-viewport">
-      <div id="flick" class="flicking-viewport">
-        <div class="flicking-camera">
-          <div style="width: 120px">1</div>
-          <div style="width: 20%">2</div>
-          <div style="width: 500px">3</div>
-          <div style="width: 300px">4</div>
-          <div style="width: 100%">5</div>
-        </div>
-      </div>
-    </div>
-
     <section>
       <nav class="flex items-center border-b">
         <ul class="flex gap-x-1.5">
@@ -32,14 +20,25 @@
           </li>
         </ul>
       </nav>
-      <table class="w-full">
+      <table class="w-full table-fixed">
+        <thead class="hidden lg:table-header-group">
+          <tr class="text-slate-500 border-b">
+            <th class="py-4 font-light lg:w-16">#</th>
+            <th class="text-left font-light lg:w-1/2">Name</th>
+            <th class="text-right font-light lg:pr-4">Price</th>
+            <th class="text-right font-light">Change %</th>
+            <th class="text-right font-light lg:pr-4">Change</th>
+          </tr>
+        </thead>
         <tbody>
           <tr
             class="border-b"
-            v-for="item in selectedStocks"
+            v-for="(item, index) in selectedStocks"
             :key="item.ticker"
           >
-            <td class="py-3">
+            <td class="hidden text-center lg:table-cell">{{ index + 1 }}</td>
+
+            <td class="py-4 sm:w-1/2">
               <div class="flex flex-col lg:flex-row lg:gap-x-3">
                 <div
                   class="font-medium truncate max-w-[240px] sm:max-w-[360px] lg:max-w-none"
@@ -50,7 +49,7 @@
               </div>
             </td>
 
-            <td class="py-3 sm:px-2 lg:px-6">
+            <td class="py-4 lg:pr-4">
               <div class="flex flex-col items-end">
                 <div class="">${{ item.price }}</div>
                 <div class="sm:hidden">
@@ -69,7 +68,7 @@
               </div>
             </td>
 
-            <td class="hidden sm:table-cell sm:px-2 sm:py-3 lg:px-6">
+            <td class="hidden sm:table-cell sm:py-4">
               <div class="text-end font-medium">
                 <span
                   class=""
@@ -85,7 +84,7 @@
               </div>
             </td>
 
-            <td class="hidden sm:table-cell sm:pl-2 sm:py-3 lg:pl-6">
+            <td class="hidden sm:table-cell sm:py-4 lg:pr-4">
               <div class="text-end font-light">
                 <span
                   class=""
@@ -175,60 +174,66 @@
     </section>
 
     <section class="space-y-4">
-      <h2 class="text-center text-2xl font-semibold">
+      <h2 class="text-center text-2xl font-semibold pb-4">
         Feedback from our users
       </h2>
-      <ul class="flex gap-x-4">
+      <ul id="marquee-container" class="flex flex-col py-2 gap-y-4 lg:gap-y-8">
         <li
-          class="flex items-start flex-none gap-x-4 p-4 shadow-indigo-100 border rounded-xl w-[500px]"
-          v-for="text in userFeedback.slice(0, 3)"
-          :key="text"
+          id="marquee-content-upper"
+          class="flex flex-nowrap gap-x-4 lg:gap-x-8"
         >
-          <div class="shrink-0 grid place-items-center">
-            <img
-              class="w-20 h-20 inline-block rounded-full"
-              :src="text.picture"
-              alt="profile-picture"
-            />
-          </div>
-          <div class="flex flex-col gap-y-2">
-            <p class="text-lg font-medium">
-              {{ text.name }}
-            </p>
-            <p class="text-slate-500">{{ text.content }}</p>
+          <div
+            class="shrink-0 flex items-start gap-x-4 flex-none w-[500px] p-4 shadow-indigo-100 shadow rounded-xl"
+            v-for="text in feedbackUpper"
+            :key="text"
+          >
+            <div class="shrink-0 grid place-items-center">
+              <img
+                class="w-20 h-20 inline-block rounded-full"
+                :src="text.picture"
+                alt="profile-picture"
+              />
+            </div>
+            <div class="flex flex-col gap-y-2">
+              <p class="text-lg font-medium">
+                {{ text.name }}
+              </p>
+              <p class="text-slate-500">{{ text.content }}</p>
+            </div>
           </div>
         </li>
-      </ul>
 
-      <ul class="flex gap-x-4">
         <li
-          class="flex items-start flex-none gap-x-4 p-4 shadow-indigo-100 border rounded-xl w-[500px]"
-          v-for="text in userFeedback.slice(3, 6)"
-          :key="text"
+          id="marquee-content-lower"
+          class="flex flex-nowrap gap-x-4 lg:gap-x-8"
         >
-          <div class="shrink-0 grid place-items-center">
-            <img
-              class="w-20 h-20 inline-block rounded-full"
-              :src="text.picture"
-              alt="profile-picture"
-            />
-          </div>
-          <div class="flex flex-col gap-y-2">
-            <p class="text-lg font-medium">
-              {{ text.name }}
-            </p>
-            <p class="text-slate-500">{{ text.content }}</p>
+          <div
+            class="shrink-0 flex items-start gap-x-4 flex-none w-[500px] p-4 shadow-indigo-100 shadow rounded-xl"
+            v-for="text in feedbackLower"
+            :key="text"
+          >
+            <div class="shrink-0 grid place-items-center">
+              <img
+                class="w-20 h-20 inline-block rounded-full"
+                :src="text.picture"
+                alt="profile-picture"
+              />
+            </div>
+            <div class="flex flex-col gap-y-2">
+              <p class="text-lg font-medium">
+                {{ text.name }}
+              </p>
+              <p class="text-slate-500">{{ text.content }}</p>
+            </div>
           </div>
         </li>
       </ul>
     </section>
-
-    <!-- <flicking :plugins="plugins"> 123 </flicking> -->
   </main>
 </template>
 
 <script>
-import { computed, onMounted, ref } from "vue";
+import { computed, ref } from "vue";
 import http from "@/api";
 
 export default {
@@ -341,9 +346,27 @@ export default {
         picture: "https://randomuser.me/api/portraits/women/2.jpg",
         name: "Justine Singh",
         content:
-          "“Circle’s portfolio management tools are top-notch. It’s made it easy for me to monitor my performance and adjust my investments as needed.”",
+          "“Circle’s portfolio management tools are top-notch. It’s made easy to monitor performance and adjust investments as needed.”",
       },
     ]);
+
+    const feedbackUpper = computed(() => {
+      return [
+        ...userFeedback.value.slice(0, 3),
+        ...userFeedback.value.slice(3, 6),
+        ...userFeedback.value.slice(0, 3),
+        ...userFeedback.value.slice(3, 6),
+      ];
+    });
+
+    const feedbackLower = computed(() => {
+      return [
+        ...userFeedback.value.slice(3, 6),
+        ...userFeedback.value.slice(0, 3),
+        ...userFeedback.value.slice(3, 6),
+        ...userFeedback.value.slice(0, 3),
+      ];
+    });
 
     // http
     //   .get("https://randomuser.me/api/?inc=picture,name&results=6")
@@ -394,15 +417,7 @@ export default {
       });
     }
 
-    // getTop5Caps();
-
-    onMounted(() => {
-      const flicking = new Flicking("#carousel", {
-        align: "center",
-        circular: true,
-        renderOnlyVisible: true,
-      });
-    });
+    getTop5Caps();
 
     return {
       whyCircle,
@@ -411,8 +426,61 @@ export default {
       top5Tabs,
       selectedTab,
       selectedStocks,
-      userFeedback,
+      feedbackUpper,
+      feedbackLower,
     };
   },
 };
 </script>
+
+<style scoped>
+#marquee-container {
+  overflow: hidden;
+}
+
+#marquee-content-upper {
+  transform: translateX(-50%);
+  animation: marquee 180s linear infinite;
+}
+
+#marquee-content-lower {
+  padding-left: 100%;
+  animation: marquee 180s linear infinite reverse;
+}
+
+#marquee-container:hover #marquee-content-upper,
+#marquee-container:hover #marquee-content-lower {
+  animation-play-state: paused;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-900%);
+  }
+}
+
+@media (min-width: 640px) {
+  @keyframes marquee {
+    0% {
+      transform: translateX(0%);
+    }
+    100% {
+      transform: translateX(-600%);
+    }
+  }
+}
+
+@media (min-width: 1024px) {
+  @keyframes marquee {
+    0% {
+      transform: translateX(0%);
+    }
+    100% {
+      transform: translateX(-400%);
+    }
+  }
+}
+</style>

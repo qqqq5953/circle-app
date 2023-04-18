@@ -20,6 +20,7 @@
           </li>
         </ul>
       </nav>
+
       <table class="w-full table-fixed">
         <thead class="hidden lg:table-header-group">
           <tr class="text-slate-500 border-b">
@@ -30,7 +31,61 @@
             <th class="text-right font-light lg:pr-4">Change</th>
           </tr>
         </thead>
-        <tbody>
+
+        <!-- skeleton -->
+        <tbody class="animate-pulse" v-if="selectedStocks.length === 0">
+          <tr class="border-b" v-for="i in 5" :key="i">
+            <td class="hidden lg:table-cell">
+              <div class="grid place-items-center">
+                <div class="bg-gray-300 h-4 w-4 rounded-full"></div>
+              </div>
+            </td>
+
+            <td class="py-5 sm:w-1/2">
+              <div class="flex flex-col gap-y-3 lg:flex-row lg:gap-x-3">
+                <div
+                  class="bg-gray-300 h-4 rounded-full max-w-[240px] sm:max-w-[360px] lg:max-w-none lg:w-1/2"
+                >
+                  <!-- {{ item.name }} -->
+                </div>
+                <div class="bg-gray-300 h-4 w-16 rounded-full">
+                  <!-- {{ item.ticker }} -->
+                </div>
+              </div>
+            </td>
+
+            <td class="py-5 lg:pr-4">
+              <div class="flex flex-col gap-y-3 items-end">
+                <div class="bg-gray-300 h-4 w-16 rounded-full">
+                  <!-- ${{ item.price }} -->
+                </div>
+                <div class="sm:hidden">
+                  <div class="bg-gray-300 h-4 w-16 rounded-full">
+                    <!-- {{ item.previousCloseChangePercent }}% -->
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <td class="hidden sm:table-cell sm:py-5">
+              <div class="flex justify-end">
+                <div class="bg-gray-300 h-4 w-16 rounded-full">
+                  <!-- {{ item.previousCloseChangePercent }}% -->
+                </div>
+              </div>
+            </td>
+
+            <td class="hidden sm:table-cell sm:py-5 lg:pr-4">
+              <div class="flex justify-end">
+                <div class="bg-gray-300 h-4 w-16 rounded-full">
+                  <!-- {{ item.previousCloseChange }} -->
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+
+        <tbody v-else>
           <tr
             class="border-b"
             v-for="(item, index) in selectedStocks"
@@ -125,7 +180,7 @@
             :key="text"
           >
             <div
-              class="w-16 h-16 rounded-full shadow-lg grid place-items-center shrink-0"
+              class="w-16 h-16 bg-white/50 rounded-full shadow-lg grid place-items-center shrink-0"
             >
               <i class="fa-solid" :class="text.icon"></i>
             </div>
@@ -149,7 +204,7 @@
           :key="text"
         >
           <div
-            class="w-16 h-16 rounded-full shadow-lg grid place-items-center shrink-0"
+            class="w-16 h-16 bg-white/50 rounded-full shadow-lg grid place-items-center shrink-0"
           >
             <i class="fa-solid" :class="text.icon"></i>
           </div>
@@ -250,8 +305,10 @@
 <script>
 import { computed, ref } from "vue";
 import http from "@/api";
+import ListSkeleton from "@/components/skeleton/ListSkeleton.vue";
 
 export default {
+  components: { ListSkeleton },
   setup() {
     const whyCircle = ref([
       {

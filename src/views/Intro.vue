@@ -1,6 +1,6 @@
 <template>
   <main>
-    <section>
+    <section class="py-6 md:py-10">
       <nav class="flex items-center border-b">
         <ul class="flex gap-x-1.5">
           <li
@@ -104,34 +104,47 @@
       </table>
     </section>
 
-    <section class="space-y-4">
-      <h2 class="text-center text-2xl font-semibold">Why Circle</h2>
-      <ul class="flex flex-col gap-y-6">
-        <li
-          class="flex flex-col items-center gap-y-5 sm:flex-row sm:items-start sm:gap-x-8 shadow-indigo-100 py-4 text-center sm:text-left"
-          v-for="text in whyCircle"
-          :key="text"
-        >
-          <div
-            class="w-16 h-16 rounded-full shadow-lg grid place-items-center shrink-0"
+    <section
+      class="space-y-10 bg-indigo-50/50 -mx-6 px-6 py-10 md:-mx-16 md:p-16"
+    >
+      <h2 class="text-center font-semibold text-2xl lg:text-4xl lg:pb-8">
+        Why Circle
+      </h2>
+      <div class="flex flex-col gap-y-10 lg:gap-y-16 xl:flex-row xl:gap-x-16">
+        <div class="rounded-lg overflow-hidden xl:order-2">
+          <img
+            src="https://images.unsplash.com/photo-1556155092-490a1ba16284?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80"
+            alt=""
+            class="block h-full object-cover"
+          />
+        </div>
+        <ul class="flex flex-col gap-y-10 lg:gap-y-16 lg:order-1">
+          <li
+            class="flex flex-col items-center gap-y-5 shadow-indigo-100 text-center sm:flex-row sm:items-start sm:gap-x-8 sm:text-left"
+            v-for="text in whyCircle"
+            :key="text"
           >
-            <i class="fa-solid" :class="text.icon"></i>
-          </div>
-          <div>
-            <h3 class="text-lg font-medium pb-3">{{ text.title }}</h3>
-            <p class="text-slate-500">{{ text.content }}</p>
-          </div>
-        </li>
-      </ul>
+            <div
+              class="w-16 h-16 rounded-full shadow-lg grid place-items-center shrink-0"
+            >
+              <i class="fa-solid" :class="text.icon"></i>
+            </div>
+            <div>
+              <h3 class="text-lg font-medium pb-3">{{ text.title }}</h3>
+              <p class="text-slate-500">{{ text.content }}</p>
+            </div>
+          </li>
+        </ul>
+      </div>
     </section>
 
-    <section class="space-y-4">
-      <h2 class="text-center text-2xl font-semibold">
+    <section class="space-y-10 md:pt-6 md:pb-6">
+      <h2 class="text-center text-2xl font-semibold lg:text-4xl lg:pb-8">
         Create your portfolio today
       </h2>
-      <ul class="flex flex-col gap-y-6">
+      <ul class="flex flex-col gap-y-10 lg:gap-y-16 xl:flex-row xl:gap-x-16">
         <li
-          class="flex flex-col items-center gap-y-5 shadow-indigo-100 py-4 text-center sm:flex-row sm:items-start sm:gap-x-8 sm:text-left"
+          class="flex flex-col items-center gap-y-5 shadow-indigo-100 text-center sm:flex-row sm:items-start sm:gap-x-8 sm:text-left xl:flex-col xl:items-center xl:gap-y-5 xl:text-center xl:flex-1"
           v-for="text in createPortfolio"
           :key="text"
         >
@@ -148,13 +161,15 @@
       </ul>
     </section>
 
-    <section class="space-y-4">
-      <h2 class="text-center text-2xl font-semibold">
+    <section
+      class="space-y-10 bg-indigo-50/50 -mx-6 py-10 px-6 md:-mx-16 md:pt-16 md:pb-10"
+    >
+      <h2 class="text-center font-semibold text-2xl lg:text-4xl lg:pb-8">
         How market feels about Circle?
       </h2>
-      <ul class="flex flex-col gap-y-6 md:flex-row md:flex-wrap">
+      <ul class="flex flex-col gap-y-10 md:flex-row md:flex-wrap">
         <li
-          class="shadow-indigo-100 py-4 text-center md:w-1/2 md:px-4 md:py-8"
+          class="shadow-indigo-100 text-center md:w-1/2 md:px-10"
           v-for="text in marketFeel"
           :key="text"
         >
@@ -173,8 +188,8 @@
       </ul>
     </section>
 
-    <section class="space-y-4">
-      <h2 class="text-center text-2xl font-semibold pb-4">
+    <section class="space-y-4 md:pt-6 md:pb-10">
+      <h2 class="text-center font-semibold pb-4 text-2xl lg:text-4xl lg:pb-8">
         Feedback from our users
       </h2>
       <ul id="marquee-container" class="flex flex-col py-2 gap-y-4 lg:gap-y-8">
@@ -183,7 +198,7 @@
           class="flex flex-nowrap gap-x-4 lg:gap-x-8"
         >
           <div
-            class="shrink-0 flex items-start gap-x-4 flex-none w-[500px] p-4 shadow-indigo-100 shadow rounded-xl"
+            class="shrink-0 flex items-start gap-x-4 flex-none w-[500px] p-4 shadow-indigo-100 shadow rounded-xl bg-slate-100/20"
             v-for="text in feedbackUpper"
             :key="text"
           >
@@ -208,7 +223,7 @@
           class="flex flex-nowrap gap-x-4 lg:gap-x-8"
         >
           <div
-            class="shrink-0 flex items-start gap-x-4 flex-none w-[500px] p-4 shadow-indigo-100 shadow rounded-xl"
+            class="shrink-0 flex items-start gap-x-4 flex-none w-[500px] p-4 shadow-indigo-100 shadow rounded-xl bg-slate-100/20"
             v-for="text in feedbackLower"
             :key="text"
           >

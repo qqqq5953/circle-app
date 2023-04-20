@@ -4,22 +4,34 @@
     :class="isShow ? 'bg-slate-50' : 'bg-slate-50/70 backdrop-blur-sm'"
   >
     <div class="flex items-center justify-between max-w-[1200px] mx-auto">
-      <h1 class="inline-block uppercase font-semibold text-2xl text-indigo-700">
-        <router-link :to="{ name: 'Home' }">Circle App</router-link>
-      </h1>
+      <div
+        class="inline-block uppercase font-semibold text-2xl text-indigo-700"
+      >
+        <router-link :to="{ name: 'Home' }">Circle</router-link>
+      </div>
 
-      <ul class="hidden md:flex font-light">
-        <li v-for="item in menu" :key="item.name">
-          <router-link class="block px-4 group" :to="{ name: item.routeName }">
-            <span class="relative group-hover:text-indigo-500">
-              {{ item.name }}
-              <span
-                class="absolute top-full left-1/2 -translate-x-1/2 bg-indigo-500 hidden md:inline transition-all duration-300 mt-1 h-1 w-0 md:group-hover:w-full"
-              ></span>
-            </span>
-          </router-link>
-        </li>
-      </ul>
+      <div class="hidden md:flex md:items-center md:gap-x-6">
+        <ul class="hidden md:flex font-light">
+          <li v-for="item in menu" :key="item.name">
+            <router-link
+              class="block px-4 group"
+              :to="{ name: item.routeName }"
+            >
+              <span class="relative group-hover:text-indigo-500">
+                {{ item.name }}
+                <span
+                  class="absolute top-full left-1/2 -translate-x-1/2 bg-indigo-500 hidden md:inline transition-all duration-300 mt-1 h-1 w-0 md:group-hover:w-full"
+                ></span>
+              </span>
+            </router-link>
+          </li>
+        </ul>
+        <button
+          class="inline-block rounded px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white"
+        >
+          Get started
+        </button>
+      </div>
 
       <!-- menu -->
       <div
@@ -27,7 +39,7 @@
         @click="isShow = !isShow"
       >
         <button
-          class="inline-block rounded px-2 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white"
+          class="inline-block rounded px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white"
         >
           Get started
         </button>

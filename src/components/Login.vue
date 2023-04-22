@@ -39,7 +39,7 @@
               Don't have an account yet?
               <button
                 class="underline text-indigo-600"
-                @click="alreadySignUp = false"
+                @click="$emit('checkSignUp', false)"
               >
                 Sign up
               </button>
@@ -49,7 +49,7 @@
 
               <button
                 class="underline text-indigo-600"
-                @click="alreadySignUp = true"
+                @click="$emit('checkSignUp', true)"
               >
                 Log in
               </button>
@@ -82,10 +82,11 @@ export default {
   },
   props: {
     isModalOpen: Boolean,
+    alreadySignUp: Boolean,
     toggleModal: Function,
   },
-  emits: ["toggleModal"],
-  setup(_, { emit }) {
+  emits: ["toggleModal", "checkLogin", "checkSignUp"],
+  setup(props, { emit }) {
     const inputValidity = ref({
       email: null,
       password: null,
@@ -111,10 +112,10 @@ export default {
       password: "",
     });
 
-    const alreadySignUp = ref(true);
+    const hasLogin = ref(false);
 
     function confirm() {
-      const endPoint = alreadySignUp.value ? "login" : "signUp";
+      const endPoint = props.alreadySignUp ? "logIn" : "signUp";
 
       http
         .post(`/api/${endPoint}`, {
@@ -123,7 +124,7 @@ export default {
         })
         .then((res) => {
           console.log("res", res);
-          const { success, errorMessage } = res.data;
+          const { success, errorMessage, result } = res.data;
           const isEmailError = errorMessage?.includes("email");
           const isUserError = errorMessage?.includes("user");
           const isPasswordError = errorMessage
@@ -131,8 +132,10 @@ export default {
             .includes("password");
 
           if (success) {
+            hasLogin.value = result.hasLogin;
             resetForm();
             emit("toggleModal", { open: false });
+            emit("checkLogin", result.hasLogin);
           } else if (isEmailError || (isUserError && !isPasswordError)) {
             formError.value.email = errorMessage;
           } else if (isPasswordError) {
@@ -152,9 +155,12 @@ export default {
       inputPasswordRef.value.inputValue = null;
     }
 
-    watch(alreadySignUp, () => {
-      resetForm();
-    });
+    watch(
+      () => props.alreadySignUp,
+      () => {
+        resetForm();
+      }
+    );
 
     return {
       inputEmailRef,
@@ -162,7 +168,6 @@ export default {
       isAllValid,
       form,
       formError,
-      alreadySignUp,
       confirm,
       setInputValidity,
     };

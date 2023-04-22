@@ -31,7 +31,43 @@ const parseFloatByDecimal = require('../tools/parseFloatByDecimal')
 const formatNumber = require('../tools/formatNumber')
 const getFxRates = require('../tools/getFxRates')
 
-router.post('/signup', async (req, res) => {
+router.post('/checkAuth', async (req, res) => {
+  try {
+    let hasLogin
+    await firebaseAuth.onAuthStateChanged((user) => {
+      if (user) {
+        hasLogin = true
+      } else {
+        hasLogin = false
+      }
+    })
+
+    if (hasLogin) {
+      res.send({
+        success: true,
+        content: 'user logged in',
+        errorMessage: null,
+        result: { hasLogin: true }
+      })
+    } else {
+      res.send({
+        success: true,
+        content: 'user logged out',
+        errorMessage: null,
+        result: { hasLogin: false }
+      })
+    }
+  } catch (error) {
+    res.send({
+      success: false,
+      content: 'auth check failed',
+      errorMessage: error.message,
+      result: null
+    })
+  }
+})
+
+router.post('/signUp', async (req, res) => {
   console.log('req body', req.body)
 
   if (!req.body?.email) {
@@ -56,33 +92,31 @@ router.post('/signup', async (req, res) => {
 
   const { email, password } = req.body
 
-  await firebaseAuth
-    .createUserWithEmailAndPassword(email, password)
-    .then((userCredential) => {
-      res.send({
-        success: true,
-        content: 'signup success',
-        errorMessage: null,
-        result: null
-      })
+  try {
+    await firebaseAuth.createUserWithEmailAndPassword(email, password)
+    res.send({
+      success: true,
+      content: 'signup success',
+      errorMessage: null,
+      result: null
     })
-    .catch((error) => {
-      res.send({
-        success: false,
-        content: 'signup failed',
-        errorMessage: error.message,
-        result: null
-      })
+  } catch (error) {
+    res.send({
+      success: false,
+      content: 'signup failed',
+      errorMessage: error.message,
+      result: null
     })
+  }
 })
 
-router.post('/login', async (req, res) => {
+router.post('/logIn', async (req, res) => {
   if (!req.body?.email) {
     res.send({
       success: false,
       content: 'login failed',
       errorMessage: 'please provide email',
-      result: null
+      result: { hasLogin: false }
     })
     return
   }
@@ -92,31 +126,50 @@ router.post('/login', async (req, res) => {
       success: false,
       content: 'login failed',
       errorMessage: 'please provide password',
-      result: null
+      result: { hasLogin: false }
     })
     return
   }
 
   const { email, password } = req.body
 
-  await firebaseAuth
-    .signInWithEmailAndPassword(email, password)
-    .then((userCredential) => {
-      res.send({
-        success: true,
-        content: 'login success',
-        errorMessage: null,
-        result: null
-      })
+  try {
+    await firebaseAuth.signInWithEmailAndPassword(email, password)
+    res.send({
+      success: true,
+      content: 'login success',
+      errorMessage: null,
+      result: { hasLogin: true }
     })
-    .catch((error) => {
-      res.send({
-        success: false,
-        content: 'login failed',
-        errorMessage: error.message,
-        result: null
-      })
+  } catch (error) {
+    await firebaseAuth.signOut()
+    console.log('login error', error)
+    res.send({
+      success: false,
+      content: 'login failed',
+      errorMessage: error.message,
+      result: { hasLogin: false }
     })
+  }
+})
+
+router.post('/logOut', async (req, res) => {
+  try {
+    await firebaseAuth.signOut()
+    res.send({
+      success: true,
+      content: 'signOut success',
+      errorMessage: null,
+      result: { hasLogin: false }
+    })
+  } catch (error) {
+    res.send({
+      success: false,
+      content: 'signOut failed',
+      errorMessage: error.message,
+      result: { hasLogin: false }
+    })
+  }
 })
 
 router.get('/checkUpdateInfoAndStats', async (req, res) => {

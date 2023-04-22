@@ -28,6 +28,7 @@
         </ul>
         <button
           class="inline-block rounded px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white"
+          @click="isModalOpen = true"
         >
           Get started
         </button>
@@ -40,6 +41,7 @@
       >
         <button
           class="inline-block rounded px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white"
+          @click="isModalOpen = true"
         >
           Get started
         </button>
@@ -77,11 +79,21 @@
       </div>
     </div>
   </nav>
+
+  <!-- login -->
+  <Login
+    :isModalOpen="isModalOpen"
+    :toggleModal="toggleModal"
+    @toggleModal="toggleModal"
+  />
 </template>
 
 <script>
 import { onMounted, ref } from "vue";
+import Login from "@/components/Login.vue";
+
 export default {
+  components: { Login },
   setup() {
     const isShow = ref(false);
     const menuBtn = ref(false);
@@ -110,11 +122,18 @@ export default {
       });
     }
 
+    const isModalOpen = ref(true);
+    function toggleModal(params) {
+      isModalOpen.value = params.open;
+    }
+
     return {
       menuBtn,
       menuList,
       isShow,
       menu,
+      isModalOpen,
+      toggleModal,
       clickOutsideToggle,
     };
   },

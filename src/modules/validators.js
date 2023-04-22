@@ -43,13 +43,16 @@ const twoDecimal = ({ isPatternMatch, ref, inputValue }) => {
 }
 
 const isEmpty = ({ ref, inputValue }) => {
-  ref.setCustomValidity('')
-
-  if (inputValue === '') {
-    ref.setCustomValidity('required field')
+  // 只有當其他驗證為valid且input有值時才setCustomValidity，否會蓋掉其他驗證的invalid
+  if (ref.checkValidity() && inputValue) {
+    ref.setCustomValidity('')
+    return ref.validationMessage
   }
 
-  return ref.validationMessage
+  if (!inputValue) {
+    ref.setCustomValidity('required field')
+    return ref.validationMessage
+  }
 }
 
 const isPositive = ({ ref, inputValue }) => {
@@ -79,4 +82,32 @@ const isValidDate = ({ isPatternMatch, ref, inputValue }) => {
   return ref.validationMessage
 }
 
-export { tickerValidation, isPositive, isEmpty, twoDecimal, isValidDate }
+const isEmail = ({ isPatternMatch, ref, inputValue }) => {
+  ref.setCustomValidity('')
+
+  if (inputValue && !isPatternMatch) {
+    ref.setCustomValidity('invalid format')
+  }
+
+  return ref.validationMessage
+}
+
+const isPassword = ({ isPatternMatch, ref, inputValue }) => {
+  ref.setCustomValidity('')
+
+  if (inputValue && !isPatternMatch) {
+    ref.setCustomValidity('password must be at east six digit')
+  }
+
+  return ref.validationMessage
+}
+
+export {
+  tickerValidation,
+  isPositive,
+  isEmpty,
+  twoDecimal,
+  isValidDate,
+  isEmail,
+  isPassword
+}

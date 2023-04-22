@@ -15,7 +15,6 @@
             ref="newAddingRef"
             :tickerToBeTraded="tickerToBeTraded"
             :isBuyMore="isBuyMore"
-            :inputValidity="inputValidity"
             @setInputValidity="setInputValidity"
             v-show="!loading"
           />

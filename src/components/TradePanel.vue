@@ -99,9 +99,6 @@ export default {
       type: Boolean,
       default: false,
     },
-    inputValidity: {
-      type: Object,
-    },
   },
   setup(props, { emit }) {
     const $searchStore = useSearchStore();

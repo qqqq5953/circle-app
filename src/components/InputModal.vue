@@ -1,7 +1,7 @@
 <template>
   <BaseModal :isFullPage="isFullPage" v-show="isOpen">
     <template #header>
-      <h2 class="text-xl lg:text-2xl">
+      <h2 class="py-2 font-medium text-center text-xl md:text-2xl">
         <slot name="title"></slot>
       </h2>
     </template>

@@ -621,7 +621,7 @@ export default {
       });
     }
 
-    getTop5Caps();
+    // getTop5Caps();
 
     return {
       whyCircle,

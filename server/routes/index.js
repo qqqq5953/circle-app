@@ -4,6 +4,7 @@ const router = express.Router()
 const axios = require('axios')
 const yahooFinance = require('yahoo-finance')
 const firebaseDb = require('../firebase/index.js')
+const firebaseAuth = require('../firebase/auth.js')
 const rateLimit = require('express-rate-limit')
 
 const holidaysRef = firebaseDb.ref('/holidays/')
@@ -29,6 +30,94 @@ const getISODate = require('../tools/getISODate')
 const parseFloatByDecimal = require('../tools/parseFloatByDecimal')
 const formatNumber = require('../tools/formatNumber')
 const getFxRates = require('../tools/getFxRates')
+
+router.post('/signup', async (req, res) => {
+  console.log('req body', req.body)
+
+  if (!req.body?.email) {
+    res.send({
+      success: false,
+      content: 'signup failed',
+      errorMessage: 'please provide email',
+      result: null
+    })
+    return
+  }
+
+  if (!req.body?.password) {
+    res.send({
+      success: false,
+      content: 'signup failed',
+      errorMessage: 'please provide password',
+      result: null
+    })
+    return
+  }
+
+  const { email, password } = req.body
+
+  await firebaseAuth
+    .createUserWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      res.send({
+        success: true,
+        content: 'signup success',
+        errorMessage: null,
+        result: null
+      })
+    })
+    .catch((error) => {
+      res.send({
+        success: false,
+        content: 'signup failed',
+        errorMessage: error.message,
+        result: null
+      })
+    })
+})
+
+router.post('/login', async (req, res) => {
+  if (!req.body?.email) {
+    res.send({
+      success: false,
+      content: 'login failed',
+      errorMessage: 'please provide email',
+      result: null
+    })
+    return
+  }
+
+  if (!req.body?.password) {
+    res.send({
+      success: false,
+      content: 'login failed',
+      errorMessage: 'please provide password',
+      result: null
+    })
+    return
+  }
+
+  const { email, password } = req.body
+
+  await firebaseAuth
+    .signInWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      res.send({
+        success: true,
+        content: 'login success',
+        errorMessage: null,
+        result: null
+      })
+    })
+    .catch((error) => {
+      res.send({
+        success: false,
+        content: 'login failed',
+        errorMessage: error.message,
+        result: null
+      })
+    })
+})
 
 router.get('/checkUpdateInfoAndStats', async (req, res) => {
   try {

@@ -6,7 +6,7 @@
       :isOpen="isModalOpen"
       :closeFunc="toggleModal"
       :confirmFunc="confirm"
-      :isDisabled="!isAllValid"
+      :isDisabled="isProcessing"
     >
       <template #title>
         {{ alreadySignUp ? "Log in" : "Sign up" }}
@@ -35,25 +35,22 @@
             />
           </div>
           <div class="text-slate-600 text-sm font-light">
-            <p v-if="alreadySignUp">
-              Don't have an account yet?
-              <button
-                class="underline text-indigo-600"
-                @click="$emit('checkSignUp', false)"
-              >
-                Sign up
-              </button>
-            </p>
-            <p v-else>
-              Already have an account?
+            {{
+              alreadySignUp
+                ? "Don't have an account yet?"
+                : "Already have an account?"
+            }}
 
-              <button
-                class="underline text-indigo-600"
-                @click="$emit('checkSignUp', true)"
-              >
-                Log in
-              </button>
-            </p>
+            <button
+              class="underline text-indigo-600 focus:outline-none focus:font-normal rounded"
+              @click="
+                alreadySignUp
+                  ? $emit('toggleSignUp', false)
+                  : $emit('toggleSignUp', true)
+              "
+            >
+              {{ alreadySignUp ? "Sign up" : "Log in" }}
+            </button>
           </div>
         </div>
       </template>
@@ -71,6 +68,7 @@ import { ref, defineAsyncComponent, computed, watch } from "vue";
 import InputEmail from "@/components/forms/InputEmail.vue";
 import InputPassword from "@/components/forms/InputPassword.vue";
 import http from "@/api";
+import { useClickPrevention } from "@/composables/useClickPrevention.js";
 
 export default {
   components: {
@@ -85,8 +83,11 @@ export default {
     alreadySignUp: Boolean,
     toggleModal: Function,
   },
-  emits: ["toggleModal", "checkLogin", "checkSignUp"],
+  emits: ["toggleModal", "checkLogin", "toggleSignUp"],
   setup(props, { emit }) {
+    const { isClickDisabled, preventMultipleClicks } = useClickPrevention(3000);
+
+    // validity
     const inputValidity = ref({
       email: null,
       password: null,
@@ -97,9 +98,18 @@ export default {
       inputValidity.value[name] = validity;
     }
 
+    // loading
     const isAllValid = computed(() => {
       return Object.values(inputValidity.value).every((item) => !!item);
     });
+    const isLoading = ref(false);
+    const isProcessing = computed(() => {
+      return !isAllValid.value || isLoading.value;
+    });
+
+    function toggleLoading(val) {
+      isLoading.value = val;
+    }
 
     // sign up
     const form = ref({
@@ -115,6 +125,10 @@ export default {
     const hasLogin = ref(false);
 
     function confirm() {
+      if (!isAllValid.value || isClickDisabled.value) return;
+      preventMultipleClicks();
+      toggleLoading(true);
+
       const endPoint = props.alreadySignUp ? "logIn" : "signUp";
 
       http
@@ -123,7 +137,7 @@ export default {
           password: form.value.password,
         })
         .then((res) => {
-          console.log("res", res);
+          console.log("confirm res", res);
           const { success, errorMessage, result } = res.data;
           const isEmailError = errorMessage?.includes("email");
           const isUserError = errorMessage?.includes("user");
@@ -144,6 +158,9 @@ export default {
         })
         .catch((error) => {
           console.log("login error", error);
+        })
+        .finally(() => {
+          toggleLoading(false);
         });
     }
 
@@ -166,6 +183,7 @@ export default {
       inputEmailRef,
       inputPasswordRef,
       isAllValid,
+      isProcessing,
       form,
       formError,
       confirm,

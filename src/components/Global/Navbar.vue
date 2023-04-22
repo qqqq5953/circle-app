@@ -50,25 +50,26 @@
         <!-- dashboard -->
         <div class="relative" v-else>
           <button
-            class="rounded px-3 py-1.5 font-medium text-slate-800 hover:text-indigo-700 focus:text-indigo-700 hover:bg-slate-100 focus:bg-slate-100 peer"
+            class="rounded px-3 py-1.5 hover:bg-slate-100 focus:bg-slate-100 group"
           >
-            Dashboard
-          </button>
-          <ul
-            class="absolute inset-x-0 z-30 top-full mt-1 shadow rounded bg-white transition-opacity duration-300 ease-in-out p-0 opacity-0 invisible h-0 peer-focus:py-2 peer-focus:opacity-100 peer-focus:visible peer-focus:h-auto"
-          >
-            <li
-              class="flex gap-3 items-center px-3 py-1 cursor-pointer text-sm hover:text-indigo-700 hover:bg-slate-100"
-              v-for="list in dashboard"
-              :key="list.name"
+            <span
+              class="text-slate-800 hover:text-indigo-700 group-focus:text-indigo-700 font-medium"
+              >Dashboard</span
             >
-              <!-- <span>{{ list.name }}</span> -->
-              <button>{{ list.name }}</button>
-              <!-- <router-link :to="{ name: list.routeName }">{{
+            <ul
+              class="absolute inset-x-0 z-30 top-full mt-1 shadow rounded bg-white font-light transition-opacity duration-300 ease-in-out p-0 opacity-0 invisible h-0 group-focus-within:py-2 group-focus-within:opacity-100 group-focus-within:visible group-focus-within:h-auto"
+            >
+              <li
+                class="flex gap-3 items-center px-3 py-1 cursor-pointer text-sm hover:text-indigo-700 hover:bg-slate-100"
+                v-for="list in dashboard"
+                :key="list.name"
+              >
+                <router-link :to="{ name: list.routeName }">{{
                   list.name
-                }}</router-link> -->
-            </li>
-          </ul>
+                }}</router-link>
+              </li>
+            </ul>
+          </button>
         </div>
       </div>
 
@@ -88,25 +89,26 @@
         <!-- dashboard -->
         <div class="relative" v-else>
           <button
-            class="rounded px-3 py-1.5 font-medium text-slate-800 hover:text-indigo-700 focus:text-indigo-700 hover:bg-slate-100 focus:bg-slate-100 peer"
+            class="rounded px-3 py-1.5 hover:bg-slate-100 focus:bg-slate-100 group"
           >
-            Dashboard
-          </button>
-          <ul
-            class="absolute inset-x-0 z-30 top-full mt-1 shadow rounded bg-white transition-opacity duration-300 ease-in-out p-0 opacity-0 invisible h-0 peer-focus:py-2 peer-focus:opacity-100 peer-focus:visible peer-focus:h-auto"
-          >
-            <li
-              class="flex gap-3 items-center px-3 py-1 cursor-pointer text-sm hover:text-indigo-700 hover:bg-slate-100"
-              v-for="list in dashboard"
-              :key="list.name"
+            <span
+              class="text-slate-800 hover:text-indigo-700 group-focus:text-indigo-700 font-medium"
+              >Dashboard</span
             >
-              <!-- <span>{{ list.name }}</span> -->
-              <button>{{ list.name }}</button>
-              <!-- <router-link :to="{ name: list.routeName }">{{
+            <ul
+              class="absolute inset-x-0 z-30 top-full mt-1 shadow rounded bg-white font-light transition-opacity duration-300 ease-in-out p-0 opacity-0 invisible h-0 group-focus-within:py-2 group-focus-within:opacity-100 group-focus-within:visible group-focus-within:h-auto"
+            >
+              <li
+                class="flex gap-3 items-center px-3 py-1 cursor-pointer text-sm hover:text-indigo-700 hover:bg-slate-100"
+                v-for="list in dashboard"
+                :key="list.name"
+              >
+                <router-link :to="{ name: list.routeName }">{{
                   list.name
-                }}</router-link> -->
-            </li>
-          </ul>
+                }}</router-link>
+              </li>
+            </ul>
+          </button>
         </div>
 
         <button ref="menuBtn" class="flex flex-col space-y-1 text-indigo-700">
@@ -163,13 +165,13 @@
     :toggleModal="toggleModal"
     :alreadySignUp="alreadySignUp"
     @toggleModal="toggleModal"
+    @toggleSignUp="toggleSignUp"
     @checkLogin="checkLogin"
-    @checkSignUp="checkSignUp"
   />
 </template>
 
 <script>
-import { computed, onMounted, ref } from "vue";
+import { computed, nextTick, onMounted, ref } from "vue";
 import Login from "@/components/Login.vue";
 import http from "@/api";
 
@@ -239,7 +241,7 @@ export default {
 
     function logIn() {
       toggleModal({ open: true });
-      checkSignUp(true);
+      toggleSignUp(true);
     }
 
     function logOut() {
@@ -276,13 +278,13 @@ export default {
     }
 
     const alreadySignUp = ref(true);
-    function checkSignUp(val) {
+    function toggleSignUp(val) {
       alreadySignUp.value = val;
     }
 
     function handleGetStarted() {
       toggleModal({ open: true });
-      checkSignUp(false);
+      toggleSignUp(false);
     }
 
     return {
@@ -297,7 +299,7 @@ export default {
       toggleModal,
       clickOutsideToggle,
       checkLogin,
-      checkSignUp,
+      toggleSignUp,
       handleGetStarted,
     };
   },

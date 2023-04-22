@@ -10,11 +10,14 @@
     </template>
     <template #footer>
       <div class="text-right">
-        <button class="text-indigo-600 px-2 py-1.5 mr-2" @click="closeModal">
+        <button
+          class="text-indigo-600 px-2 py-1.5 mr-2 rounded hover:bg-slate-100 focus:bg-slate-100 focus:outline-none"
+          @click="closeModal"
+        >
           Close
         </button>
         <button
-          class="border rounded px-2 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
+          class="rounded px-2 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed focus:outline-none focus:bg-indigo-500"
           @click="confirmFunc"
           v-if="confirmFunc"
           :disabled="isDisabled"

@@ -67,7 +67,15 @@ router.post('/checkAuth', async (req, res) => {
   }
 })
 
-router.post('/signUp', async (req, res) => {
+const homePageLimiter = rateLimit({
+  windowMs: 3000, // 3 sec
+  max: 1,
+  message: 'Too many requests sent within a short period of time',
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false // Disable the `X-RateLimit-*` headers
+})
+
+router.post('/signUp', homePageLimiter, async (req, res) => {
   console.log('req body', req.body)
 
   if (!req.body?.email) {
@@ -110,7 +118,7 @@ router.post('/signUp', async (req, res) => {
   }
 })
 
-router.post('/logIn', async (req, res) => {
+router.post('/logIn', homePageLimiter, async (req, res) => {
   if (!req.body?.email) {
     res.send({
       success: false,
@@ -153,7 +161,7 @@ router.post('/logIn', async (req, res) => {
   }
 })
 
-router.post('/logOut', async (req, res) => {
+router.post('/logOut', homePageLimiter, async (req, res) => {
   try {
     await firebaseAuth.signOut()
     res.send({
@@ -553,11 +561,10 @@ router.get('/totalStats/:hasChecked', async (req, res) => {
 })
 
 const deleteHoldingLimiter = rateLimit({
-  windowMs: 700, // 0.7 sec
-  max: 1,
+  windowMs: 700,
   message: 'Too many requests sent within a short period of time',
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false // Disable the `X-RateLimit-*` headers
+  standardHeaders: true,
+  legacyHeaders: false
 })
 router.delete(
   '/stock/:tempTicker/:tradeId/:tradeDate',

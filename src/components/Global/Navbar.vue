@@ -171,9 +171,10 @@
 </template>
 
 <script>
-import { computed, nextTick, onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import Login from "@/components/Login.vue";
 import http from "@/api";
+import { useClickPrevention } from "@/composables/useClickPrevention.js";
 
 export default {
   components: { Login },
@@ -218,6 +219,7 @@ export default {
         routeName: "Watchlist",
       },
     ]);
+    const { isClickDisabled, preventMultipleClicks } = useClickPrevention(3000);
 
     checkAuth();
     onMounted(() => clickOutsideToggle());
@@ -245,6 +247,9 @@ export default {
     }
 
     function logOut() {
+      if (isClickDisabled.value) return;
+      preventMultipleClicks();
+
       http.post("/api/logOut").then((res) => {
         console.log("logOut", res.data);
         checkLogin(res.data.result.hasLogin);

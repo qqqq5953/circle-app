@@ -7,12 +7,14 @@
       @toggleModal="toggleModal"
       @toggleSignUp="toggleSignUp"
       @checkLogin="checkLogin"
+      @setSnackbarMessage="setSnackbarMessage"
     />
     <Navbar
       :hasLogin="hasLogin"
       @toggleModal="toggleModal"
       @toggleSignUp="toggleSignUp"
       @checkLogin="checkLogin"
+      @setSnackbarMessage="setSnackbarMessage"
     ></Navbar>
     <router-view
       class="flex flex-col justify-center grow space-y-10 pt-24 pb-10 px-6 md:px-16 md:pt-28 mx-auto w-full max-w-[1200px] container"
@@ -25,7 +27,7 @@
 </template>
 
 <script>
-import { ref, defineAsyncComponent } from "vue";
+import { ref, defineAsyncComponent, inject } from "vue";
 import http from "@/api";
 import Navbar from "@/components/Global/Navbar.vue";
 
@@ -35,6 +37,8 @@ export default {
     Login: defineAsyncComponent(() => import("@/components/Login.vue")),
   },
   setup() {
+    const setSnackbarMessage = inject("setSnackbarMessage");
+
     // modal
     const isModalOpen = ref(false);
     function toggleModal(params) {
@@ -67,6 +71,7 @@ export default {
       toggleSignUp,
       checkLogin,
       hasLogin,
+      setSnackbarMessage,
     };
   },
 };

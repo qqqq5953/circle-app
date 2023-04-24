@@ -101,7 +101,7 @@ export default {
     alreadySignUp: Boolean,
     toggleModal: Function,
   },
-  emits: ["toggleModal", "checkLogin", "toggleSignUp"],
+  emits: ["toggleModal", "checkLogin", "toggleSignUp", "setSnackbarMessage"],
   setup(props, { emit }) {
     const { isClickDisabled, preventMultipleClicks } = useClickPrevention(3000);
 
@@ -165,7 +165,7 @@ export default {
         })
         .then((res) => {
           console.log("confirm res", res);
-          const { success, errorMessage, result } = res.data;
+          const { success, errorMessage, result, content } = res.data;
           const isEmailError = errorMessage?.includes("email");
           const isUserError = errorMessage?.includes("user");
           const isPasswordError = errorMessage
@@ -177,6 +177,11 @@ export default {
             resetForm();
             emit("toggleModal", { open: false });
             emit("checkLogin", result.hasLogin);
+            emit("setSnackbarMessage", {
+              success,
+              content,
+              result: null,
+            });
           } else if (isEmailError || (isUserError && !isPasswordError)) {
             formError.value.email = errorMessage;
           } else if (isPasswordError) {
@@ -185,6 +190,11 @@ export default {
         })
         .catch((error) => {
           console.log("login error", error);
+          emit("setSnackbarMessage", {
+            success: false,
+            content: error.message,
+            result: null,
+          });
         })
         .finally(() => {
           toggleLoading(false);

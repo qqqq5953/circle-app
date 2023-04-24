@@ -166,14 +166,14 @@ router.post('/logOut', homePageLimiter, async (req, res) => {
     await firebaseAuth.signOut()
     res.send({
       success: true,
-      content: 'signOut success',
+      content: 'You have been logged out',
       errorMessage: null,
       result: { hasLogin: false }
     })
   } catch (error) {
     res.send({
       success: false,
-      content: 'signOut failed',
+      content: 'logout failed',
       errorMessage: error.message,
       result: { hasLogin: false }
     })

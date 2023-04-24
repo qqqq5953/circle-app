@@ -171,7 +171,7 @@ export default {
   props: {
     hasLogin: Boolean,
   },
-  emits: ["toggleModal", "toggleSignUp", "checkLogin"],
+  emits: ["toggleModal", "toggleSignUp", "checkLogin", "setSnackbarMessage"],
   setup(props, { emit }) {
     const menu = computed(() => {
       return [
@@ -234,10 +234,25 @@ export default {
       if (isClickDisabled.value) return;
       preventMultipleClicks();
 
-      http.post("/api/logOut").then((res) => {
-        console.log("logOut", res.data);
-        emit("checkLogin", res.data.result.hasLogin);
-      });
+      http
+        .post("/api/logOut")
+        .then((res) => {
+          console.log("logOut", res.data);
+          emit("checkLogin", res.data.result.hasLogin);
+          emit("setSnackbarMessage", {
+            success: res.data.success,
+            content: res.data.content,
+            result: null,
+          });
+        })
+        .catch((error) => {
+          console.log("log out error", error);
+          emit("setSnackbarMessage", {
+            success: false,
+            content: error.message,
+            result: null,
+          });
+        });
     }
 
     // menu

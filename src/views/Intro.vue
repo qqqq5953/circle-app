@@ -19,6 +19,7 @@
             <div class="flex-1 border sm:w-full">
               <button
                 class="w-full rounded px-2 py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-lg font-semibold lg:w-full"
+                @click="handleGetStarted"
               >
                 Get started
               </button>
@@ -411,13 +412,18 @@
 import { computed, ref, onMounted } from "vue";
 import http from "@/api";
 import ListSkeleton from "@/components/skeleton/ListSkeleton.vue";
-
+import { useRouter } from "vue-router";
 export default {
   components: { ListSkeleton },
-  setup() {
+  props: {
+    hasLogin: Boolean,
+  },
+  emits: ["toggleModal", "toggleSignUp"],
+  setup(props, { emit }) {
     onMounted(() => {
       observeSections();
     });
+    const router = useRouter();
 
     // intersection observer
     const marketMakerSection = ref(null);
@@ -623,6 +629,15 @@ export default {
 
     // getTop5Caps();
 
+    function handleGetStarted() {
+      if (props.hasLogin) {
+        router.push({ name: "Dashboard" });
+      } else {
+        emit("toggleModal", { open: true });
+        emit("toggleSignUp", false);
+      }
+    }
+
     return {
       whyCircle,
       createPortfolio,
@@ -638,6 +653,7 @@ export default {
       marketFeelSection,
       feedbackSection,
       isIntersecting,
+      handleGetStarted,
     };
   },
 };

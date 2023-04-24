@@ -158,16 +158,6 @@
       </div>
     </div>
   </nav>
-
-  <!-- login -->
-  <Login
-    :isModalOpen="isModalOpen"
-    :toggleModal="toggleModal"
-    :alreadySignUp="alreadySignUp"
-    @toggleModal="toggleModal"
-    @toggleSignUp="toggleSignUp"
-    @checkLogin="checkLogin"
-  />
 </template>
 
 <script>
@@ -178,7 +168,11 @@ import { useClickPrevention } from "@/composables/useClickPrevention.js";
 
 export default {
   components: { Login },
-  setup() {
+  props: {
+    hasLogin: Boolean,
+  },
+  emits: ["toggleModal", "toggleSignUp", "checkLogin"],
+  setup(props, { emit }) {
     const menu = computed(() => {
       return [
         {
@@ -191,9 +185,9 @@ export default {
         },
         {
           name:
-            hasLogin.value === null
+            props.hasLogin === null
               ? ""
-              : hasLogin.value === true
+              : props.hasLogin === true
               ? "Log out"
               : "Log in",
           routeName: "",
@@ -221,20 +215,10 @@ export default {
     ]);
     const { isClickDisabled, preventMultipleClicks } = useClickPrevention(3000);
 
-    checkAuth();
     onMounted(() => clickOutsideToggle());
 
-    const hasLogin = ref(null);
-
-    function checkAuth() {
-      http.post("/api/checkAuth").then((res) => {
-        console.log("checkAuth", res.data);
-        checkLogin(res.data.result.hasLogin);
-      });
-    }
-
     function toggleLogInAndOut() {
-      if (hasLogin.value) {
+      if (props.hasLogin) {
         logOut();
       } else {
         logIn();
@@ -242,8 +226,8 @@ export default {
     }
 
     function logIn() {
-      toggleModal({ open: true });
-      toggleSignUp(true);
+      emit("toggleModal", { open: true });
+      emit("toggleSignUp", true);
     }
 
     function logOut() {
@@ -252,19 +236,8 @@ export default {
 
       http.post("/api/logOut").then((res) => {
         console.log("logOut", res.data);
-        checkLogin(res.data.result.hasLogin);
+        emit("checkLogin", res.data.result.hasLogin);
       });
-    }
-
-    function checkLogin(val) {
-      console.log("checkLogin", val);
-      hasLogin.value = val;
-    }
-
-    // modal
-    const isModalOpen = ref(false);
-    function toggleModal(params) {
-      isModalOpen.value = params.open;
     }
 
     // menu
@@ -282,14 +255,9 @@ export default {
       });
     }
 
-    const alreadySignUp = ref(true);
-    function toggleSignUp(val) {
-      alreadySignUp.value = val;
-    }
-
     function handleGetStarted() {
-      toggleModal({ open: true });
-      toggleSignUp(false);
+      emit("toggleModal", { open: true });
+      emit("toggleSignUp", false);
     }
 
     return {
@@ -297,14 +265,8 @@ export default {
       menuBtn,
       menuList,
       isMenuShow,
-      isModalOpen,
-      hasLogin,
       dashboard,
-      alreadySignUp,
-      toggleModal,
       clickOutsideToggle,
-      checkLogin,
-      toggleSignUp,
       handleGetStarted,
     };
   },

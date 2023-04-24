@@ -22,13 +22,11 @@
             <span
               class="px-2 py-1 rounded"
               :class="
-                stock.price.previousCloseChangePercent > 0
-                  ? 'bg-red-100'
-                  : 'bg-green-100'
+                previousCloseChangePercent > 0 ? 'bg-red-100' : 'bg-green-100'
               "
               ><i
                 class="fas fa-arrow-up"
-                v-if="stock.price.previousCloseChangePercent > 0"
+                v-if="previousCloseChangePercent > 0"
               ></i>
               <i class="fas fa-arrow-down" v-else></i>
               <span class="ml-1.5">{{ previousCloseChangePercent }}%</span>

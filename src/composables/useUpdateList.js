@@ -39,7 +39,7 @@ export default function useUpdateList() {
     for (let i = 0; i < watchlist.length; i++) {
       const { price, tempTicker } = watchlist[i]
 
-      if (price === newMarketData[i].price) continue
+      if (price === newMarketData[i]?.price) continue
 
       newList[i] = { ...watchlist[i], ...newMarketData[i] }
 

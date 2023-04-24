@@ -83,7 +83,7 @@ router.post('/signUp', homePageLimiter, async (req, res) => {
       success: false,
       content: 'signup failed',
       errorMessage: 'please provide email',
-      result: null
+      result: { hasLogin: false }
     })
     return
   }
@@ -93,7 +93,7 @@ router.post('/signUp', homePageLimiter, async (req, res) => {
       success: false,
       content: 'signup failed',
       errorMessage: 'please provide password',
-      result: null
+      result: { hasLogin: false }
     })
     return
   }
@@ -106,14 +106,14 @@ router.post('/signUp', homePageLimiter, async (req, res) => {
       success: true,
       content: 'signup success',
       errorMessage: null,
-      result: null
+      result: { hasLogin: false }
     })
   } catch (error) {
     res.send({
       success: false,
       content: 'signup failed',
       errorMessage: error.message,
-      result: null
+      result: { hasLogin: false }
     })
   }
 })

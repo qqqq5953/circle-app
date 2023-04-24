@@ -15,7 +15,7 @@
       <template #inputs>
         <div class="space-y-8">
           <div class="space-y-2">
-            <label class="text-slate-600" for="email">Email</label>
+            <label class="text-slate-600">Email</label>
             <InputEmail
               :modelValue="form.email"
               :firebaseError="formError.email"
@@ -25,7 +25,7 @@
             />
           </div>
           <div class="space-y-2">
-            <label class="text-slate-600" for="password">Password</label>
+            <label class="text-slate-600">Password</label>
             <InputPassword
               :modelValue="form.password"
               :firebaseError="formError.password"
@@ -34,6 +34,21 @@
               ref="inputPasswordRef"
             />
           </div>
+          <div class="space-y-2" v-if="!alreadySignUp">
+            <label class="text-slate-600">Confirm Password</label>
+            <div class="relative">
+              <input
+                name="passwordConfirm"
+                type="password"
+                class="border border-slate-300 block px-4 py-3 rounded w-full text-sm text-left focus:outline-0 invalid:border-red-400 invalid:border valid:focus:outline-indigo-300/60 valid:focus:outline-2"
+                placeholder="Pleas confirm the password"
+                v-model="form.passwordConfirm"
+                ref="inputPasswordConfirmRef"
+              />
+              <ErrorDisplay :errors="[formError.passwordConfirm]" />
+            </div>
+          </div>
+
           <div class="text-slate-600 text-sm font-light">
             {{
               alreadySignUp
@@ -64,7 +79,7 @@
 </template>
 
 <script>
-import { ref, defineAsyncComponent, computed, watch } from "vue";
+import { ref, defineAsyncComponent, computed, watch, watchEffect } from "vue";
 import InputEmail from "@/components/forms/InputEmail.vue";
 import InputPassword from "@/components/forms/InputPassword.vue";
 import http from "@/api";
@@ -76,6 +91,9 @@ export default {
     InputPassword,
     InputModal: defineAsyncComponent(() =>
       import("@/components/InputModal.vue")
+    ),
+    ErrorDisplay: defineAsyncComponent(() =>
+      import("@/components/ErrorDisplay.vue")
     ),
   },
   props: {
@@ -91,12 +109,21 @@ export default {
     const inputValidity = ref({
       email: null,
       password: null,
+      passwordConfirm: null,
     });
 
     function setInputValidity(validityObj) {
       const { name, validity } = validityObj;
       inputValidity.value[name] = validity;
     }
+
+    watchEffect(() => {
+      // 切換註冊/登入時重設 inputValidity
+      setInputValidity({
+        name: "passwordConfirm",
+        validity: props.alreadySignUp,
+      });
+    });
 
     // loading
     const isAllValid = computed(() => {
@@ -111,18 +138,18 @@ export default {
       isLoading.value = val;
     }
 
-    // sign up
+    // sign up / log in
+    const hasLogin = ref(false);
     const form = ref({
       email: "",
       password: "",
+      passwordConfirm: "",
     });
-
     const formError = ref({
       email: "",
       password: "",
+      passwordConfirm: "",
     });
-
-    const hasLogin = ref(false);
 
     function confirm() {
       if (!isAllValid.value || isClickDisabled.value) return;
@@ -166,22 +193,40 @@ export default {
 
     const inputEmailRef = ref(null);
     const inputPasswordRef = ref(null);
+    const inputPasswordConfirmRef = ref(null);
 
     function resetForm() {
       inputEmailRef.value.inputValue = null;
       inputPasswordRef.value.inputValue = null;
+      form.value.passwordConfirm = "";
+    }
+
+    function confirmPassword(passwordConfirmed) {
+      const isPwdConfirmed = form.value.password === passwordConfirmed;
+      const msg = isPwdConfirmed ? "" : "Password are not matching";
+
+      formError.value.passwordConfirm = msg;
+      inputPasswordConfirmRef.value.setCustomValidity(msg);
+      setInputValidity({ name: "passwordConfirm", validity: isPwdConfirmed });
     }
 
     watch(
-      () => props.alreadySignUp,
-      () => {
-        resetForm();
+      () => form.value.passwordConfirm,
+      (newVal) => {
+        if (props.alreadySignUp) return;
+        confirmPassword(newVal);
       }
+    );
+
+    watch(
+      () => props.alreadySignUp,
+      () => resetForm()
     );
 
     return {
       inputEmailRef,
       inputPasswordRef,
+      inputPasswordConfirmRef,
       isAllValid,
       isProcessing,
       form,

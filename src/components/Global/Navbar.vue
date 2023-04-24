@@ -262,7 +262,7 @@ export default {
     }
 
     // modal
-    const isModalOpen = ref(true);
+    const isModalOpen = ref(false);
     function toggleModal(params) {
       isModalOpen.value = params.open;
     }

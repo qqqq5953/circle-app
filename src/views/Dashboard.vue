@@ -9,6 +9,7 @@
 </template>
 <script>
 import NavbarDashboard from "@/components/Global/NavbarDashboard.vue";
+
 export default {
   components: {
     NavbarDashboard,

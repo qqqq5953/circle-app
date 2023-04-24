@@ -1,6 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import useApiStore from '@/stores/apiStore.js'
+import axios from 'axios'
 
 const routes = [
   {
@@ -95,7 +96,7 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from) => {
+router.beforeEach(async (to, from, next) => {
   const $store = useApiStore()
   const { axiosControllerQueue } = storeToRefs($store)
 
@@ -105,7 +106,21 @@ router.beforeEach((to, from) => {
   }
 
   axiosControllerQueue.value.length = 0
-  return true
+
+  await checkDashboardAuth(to, next)
+  next()
 })
+
+async function checkDashboardAuth(to, next) {
+  if (to.fullPath.includes('dashboard')) {
+    const hasLogin = await checkAuth()
+    if (!hasLogin) router.replace({ name: 'Intro' })
+  }
+}
+
+async function checkAuth() {
+  const res = await axios.post('/api/checkAuth')
+  return res.data.result.hasLogin
+}
 
 export default router

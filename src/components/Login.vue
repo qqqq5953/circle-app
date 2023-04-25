@@ -84,6 +84,7 @@ import InputEmail from "@/components/forms/InputEmail.vue";
 import InputPassword from "@/components/forms/InputPassword.vue";
 import http from "@/api";
 import { useClickPrevention } from "@/composables/useClickPrevention.js";
+import { useRouter } from "vue-router";
 
 export default {
   components: {
@@ -104,6 +105,7 @@ export default {
   emits: ["toggleModal", "checkLogin", "toggleSignUp", "setSnackbarMessage"],
   setup(props, { emit }) {
     const { isClickDisabled, preventMultipleClicks } = useClickPrevention(3000);
+    const router = useRouter();
 
     // validity
     const inputValidity = ref({
@@ -182,6 +184,7 @@ export default {
               content,
               result: null,
             });
+            if (props.alreadySignUp) router.push({ name: "Overview" });
           } else if (isEmailError || (isUserError && !isPasswordError)) {
             formError.value.email = errorMessage;
           } else if (isPasswordError) {

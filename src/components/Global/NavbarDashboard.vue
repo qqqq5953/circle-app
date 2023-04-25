@@ -4,13 +4,19 @@
     :class="isShow ? 'bg-slate-50' : 'bg-slate-50/70 backdrop-blur-sm'"
   >
     <div class="flex items-center justify-between max-w-[1200px] mx-auto">
-      <h1 class="inline-block uppercase font-semibold text-2xl text-indigo-700">
-        Circle App
-      </h1>
+      <div
+        class="inline-block uppercase font-semibold text-2xl text-indigo-700"
+      >
+        <router-link :to="{ name: 'Home' }">Circle</router-link>
+      </div>
 
       <ul class="hidden md:flex font-light">
         <li v-for="item in menu" :key="item.name">
-          <router-link class="block px-4 group" :to="{ name: item.routeName }">
+          <router-link
+            class="block px-4 group"
+            :to="{ name: item.routeName }"
+            v-if="item.routeName"
+          >
             <span class="relative group-hover:text-indigo-500">
               {{ item.name }}
               <span
@@ -18,6 +24,18 @@
               ></span>
             </span>
           </router-link>
+          <button
+            class="block px-4 group"
+            v-else-if="item.event"
+            @click="item.event()"
+          >
+            <span class="relative group-hover:text-indigo-500">
+              {{ item.name }}
+              <span
+                class="absolute top-full left-1/2 -translate-x-1/2 bg-indigo-500 hidden md:inline transition-all duration-300 mt-1 h-1 w-0 md:group-hover:w-full"
+              ></span>
+            </span>
+          </button>
         </li>
       </ul>
 
@@ -49,9 +67,20 @@
           }"
         >
           <li class="text-center" v-for="item in menu" :key="item.name">
-            <router-link class="block px-4 py-3" :to="{ name: item.routeName }">
+            <router-link
+              class="block px-4 py-3"
+              :to="{ name: item.routeName }"
+              v-if="item.routeName"
+            >
               {{ item.name }}
             </router-link>
+            <button
+              class="block px-4 py-3 w-full"
+              v-else-if="item.event"
+              @click="item.event()"
+            >
+              {{ item.name }}
+            </button>
           </li>
         </ul>
       </div>
@@ -61,8 +90,12 @@
 
 <script>
 import { onMounted, ref } from "vue";
+import http from "@/api";
+import { useClickPrevention } from "@/composables/useClickPrevention.js";
+import { useRouter } from "vue-router";
+
 export default {
-  setup() {
+  setup(_, { emit }) {
     const isShow = ref(false);
     const menuBtn = ref(false);
     const menuList = ref(false);
@@ -83,6 +116,11 @@ export default {
         name: "Watchlist",
         routeName: "Watchlist",
       },
+      {
+        name: "Log out",
+        routeName: "",
+        event: logOut,
+      },
     ]);
 
     onMounted(() => clickOutsideToggle());
@@ -96,6 +134,32 @@ export default {
           isShow.value = false;
         }
       });
+    }
+
+    const { isClickDisabled, preventMultipleClicks } = useClickPrevention(3000);
+    const router = useRouter();
+
+    function logOut() {
+      if (isClickDisabled.value) return;
+      preventMultipleClicks();
+
+      http
+        .post("/api/logOut")
+        .then((res) => {
+          emit("setSnackbarMessage", {
+            success: res.data.success,
+            content: res.data.content,
+            result: null,
+          });
+          if (res.data.success) router.push({ name: "Intro" });
+        })
+        .catch((error) => {
+          emit("setSnackbarMessage", {
+            success: false,
+            content: error.message,
+            result: null,
+          });
+        });
     }
 
     return {

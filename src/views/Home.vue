@@ -51,10 +51,15 @@ export default {
     }
 
     function checkAuth() {
-      http.post("/api/checkAuth").then((res) => {
-        console.log("checkAuth", res.data);
-        checkLogin(res.data.result.hasLogin);
-      });
+      http
+        .post("/api/checkAuth")
+        .then((res) => {
+          console.log("checkAuth", res.data);
+          checkLogin(res.data.result.hasLogin);
+        })
+        .catch((error) => {
+          console.log("checkAuth error", error);
+        });
     }
     checkAuth();
 

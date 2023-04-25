@@ -237,7 +237,6 @@ export default {
       http
         .post("/api/logOut")
         .then((res) => {
-          console.log("logOut", res.data);
           emit("checkLogin", res.data.result.hasLogin);
           emit("setSnackbarMessage", {
             success: res.data.success,
@@ -246,7 +245,6 @@ export default {
           });
         })
         .catch((error) => {
-          console.log("log out error", error);
           emit("setSnackbarMessage", {
             success: false,
             content: error.message,

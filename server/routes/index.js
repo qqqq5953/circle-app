@@ -155,7 +155,7 @@ router.post('/logIn', homePageLimiter, async (req, res) => {
     res.send({
       success: false,
       content: 'login failed',
-      errorMessage: error.message,
+      errorMessage: error.code,
       result: { hasLogin: false }
     })
   }

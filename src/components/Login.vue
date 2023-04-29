@@ -186,9 +186,9 @@ export default {
             });
             if (props.alreadySignUp) router.push({ name: "Overview" });
           } else if (isEmailError || (isUserError && !isPasswordError)) {
-            formError.value.email = errorMessage;
+            formError.value.email = errorMessage.substring(5);
           } else if (isPasswordError) {
-            formError.value.password = errorMessage;
+            formError.value.password = errorMessage.substring(5);
           }
         })
         .catch((error) => {

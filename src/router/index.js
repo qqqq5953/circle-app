@@ -1,7 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { storeToRefs } from 'pinia'
+import http from '@/api'
 import useApiStore from '@/stores/apiStore.js'
-import axios from 'axios'
 
 const routes = [
   {
@@ -83,7 +83,7 @@ const routes = [
   },
   {
     path: '/:pathMatch(.*)*',
-    redirect: '/admin/dashboard'
+    redirect: '/'
   }
 ]
 
@@ -119,7 +119,7 @@ async function checkDashboardAuth(to, next) {
 }
 
 async function checkAuth() {
-  const res = await axios.post('/api/checkAuth')
+  const res = await http.post('/api/checkAuth')
   return res.data.result.hasLogin
 }
 

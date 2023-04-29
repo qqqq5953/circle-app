@@ -2,16 +2,15 @@ import axios from 'axios'
 import { storeToRefs } from 'pinia'
 import useApiStore from '@/stores/apiStore.js'
 
-const $store = useApiStore()
-const { setAxiosMessage } = $store
-const { axiosControllerQueue } = storeToRefs($store)
-
 const http = axios.create({
   baseURL: 'http://localhost:8080'
 })
 
 http.interceptors.request.use(
   (config) => {
+    const $store = useApiStore()
+    const { axiosControllerQueue } = storeToRefs($store)
+
     // console.log('url', config.url)
     // const url = config.url
     // const apiName = url.split('api')[1]
@@ -44,6 +43,9 @@ http.interceptors.response.use(
 )
 
 function handleError(error) {
+  const $store = useApiStore()
+  const { setAxiosMessage } = $store
+
   const sentError = {
     id: Date.now(),
     title: error.response.data.includes('DOCTYPE')

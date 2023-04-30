@@ -627,7 +627,7 @@ export default {
       });
     }
 
-    // getTop5Caps();
+    getTop5Caps();
 
     function handleGetStarted() {
       if (props.hasLogin) {

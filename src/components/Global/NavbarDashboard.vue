@@ -151,7 +151,7 @@ export default {
             content: res.data.content,
             result: null,
           });
-          if (res.data.success) router.push({ name: "Intro" });
+          if (res.data.success) router.replace({ name: "Intro" });
         })
         .catch((error) => {
           emit("setSnackbarMessage", {

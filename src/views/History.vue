@@ -72,7 +72,7 @@ import DetailList from "@/components/History/DetailList.vue";
 import useAxios from "@/composables/useAxios.js";
 import { useRouter } from "vue-router";
 
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 export default {
   components: {
     MultiLineChart,
@@ -125,6 +125,11 @@ export default {
         });
       }
     }
+
+    watch(loading, (newVal) => {
+      if (newVal) return;
+      if (!data.value?.result) router.replace({ name: "Init" });
+    });
 
     return {
       source,

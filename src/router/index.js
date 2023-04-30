@@ -34,6 +34,11 @@ const routes = [
     redirect: { name: 'Overview' },
     children: [
       {
+        path: 'init',
+        name: 'Init',
+        component: () => import('../views/Init.vue')
+      },
+      {
         path: 'overview',
         name: 'Overview',
         component: () => import('../views/Overview.vue')

@@ -60,13 +60,15 @@ export default {
     const option = ref({
       tooltip: {
         trigger: "item",
+        // formatter(param) {
+        //   return `${param.name}: ${param.value}$ / ${param.percent}%`;
+        // },
       },
       legend: {
         bottom: "0%",
         left: "center",
       },
       color: [
-        "#6d28d9", // Violet
         "#4338ca", // Indigo
         "#1e40af", // Blue
         "#0369a1", // Sky
@@ -77,6 +79,7 @@ export default {
         "#dc2626", // Red
         "#db2777", // Pink
         "#a21caf", // Fuchsia
+        "#6d28d9", // Violet
       ],
       series: [
         {
@@ -95,6 +98,10 @@ export default {
             formatter(param) {
               return param.percent + "%";
             },
+          },
+          labelLine: {
+            length: 5,
+            length2: 5,
           },
           emphasis: {
             label: {
@@ -115,13 +122,13 @@ export default {
 
       nextTick().then(() => setItemStyle());
       setSeriesData(props.seriesData);
+      setPosition("5%");
 
       if (props.seriesData.length <= 4) {
-        setPosition();
         setLabel();
+        setPosition("0%");
       }
     }
-
     function setSeriesData(seriesData) {
       option.value.series[0].data = seriesData;
     }
@@ -130,8 +137,8 @@ export default {
       option.value.series[0].itemStyle.color = null;
     }
 
-    function setPosition() {
-      option.value.series[0].bottom = "0%";
+    function setPosition(fromBottom) {
+      option.value.series[0].bottom = fromBottom;
     }
 
     function setLabel() {

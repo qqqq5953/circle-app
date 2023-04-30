@@ -5,7 +5,7 @@
       class="fixed right-6 left-6 bottom-6 z-10 sm:mx-auto sm:w-1/2 max-w-[400px] flex flex-col space-y-3"
     >
       <div
-        class="py-3 px-6 relative text-slate-100 bg-indigo-600 text-xs shadow-md shadow-indigo-200 rounded"
+        class="py-3 px-6 relative text-slate-100 bg-indigo-600 text-xs rounded"
         :class="{ 'border-b border-slate-200': message.errorMessage }"
         v-for="message in messages"
         :key="message.title"

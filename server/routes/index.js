@@ -794,7 +794,10 @@ const addHoldingLimiter = rateLimit({
 })
 
 router.post('/stock', addHoldingLimiter, async (req, res) => {
-  const invalidInput = Object.keys(req.body).filter((key) => !req.body[key])
+  const invalidInput = Object.keys(req.body).filter(
+    (key) => req.body[key] == null
+  )
+  console.log('invalidInput', invalidInput)
 
   if (invalidInput.length !== 0) {
     const reservedKey = ['ticker', 'cost', 'shares', 'tradeDate']

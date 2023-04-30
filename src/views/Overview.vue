@@ -25,49 +25,53 @@
     </template>
 
     <template v-else-if="holdingsTotalValue.length">
-      <!-- pie chart -->
-      <section class="relative -mt-12 h-[360px]">
-        <PieChart
-          class="absolute left-0 top-0"
-          :seriesData="holdingsTotalValue"
-        />
-        <div
-          class="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 flex flex-col justify-center items-center w-full space-y-1"
-          v-if="totalStats"
-        >
-          <p class="font-light text-sm">
-            Total value <span class="text-xs">(TWD):</span>
-          </p>
-          <p
-            class="font-semibold text-lg break-words w-2/5 text-center leading-5"
-          >
-            {{ totalStats["Total value"] }}
-          </p>
-          <p
-            class="font-semibold text-base"
-            :class="
-              !totalStats['P / L %'].includes('-')
-                ? 'text-red-600'
-                : totalStats['P / L %'].includes('-')
-                ? 'text-green-700'
-                : null
-            "
-          >
-            {{ totalStats["P / L %"] }}
-          </p>
-        </div>
-      </section>
-
-      <!-- total stats -->
-      <section>
-        <div>
-          <TotalStats
-            :fxRates="fxRates"
-            :totalStats="totalStats"
-            :latestInfo="latestInfo"
+      <div class="flex flex-col gap-y-10 lg:flex-row lg:justify-between">
+        <!-- pie chart -->
+        <section class="relative -mx-6 -mt-12 h-[360px] lg:mx-0 lg:w-1/2">
+          <PieChart
+            class="absolute inset-x-0 top-0"
+            :seriesData="holdingsTotalValue"
           />
-        </div>
-      </section>
+          <!-- border border-red-300 -->
+          <div
+            class="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 flex flex-col justify-center items-center w-full space-y-1"
+            v-if="totalStats"
+          >
+            <p class="font-light text-xs">
+              Total value <span class="text-xs">(TWD)</span>
+            </p>
+            <p
+              class="font-semibold text-lg break-words w-2/5 text-center leading-5"
+            >
+              {{ totalStats["Total value"] }}
+            </p>
+            <p
+              class="font-semibold text-base"
+              :class="
+                !totalStats['P / L %'].includes('-')
+                  ? 'text-red-600'
+                  : totalStats['P / L %'].includes('-')
+                  ? 'text-green-700'
+                  : null
+              "
+            >
+              {{ totalStats["P / L %"] }}
+            </p>
+          </div>
+        </section>
+
+        <!-- total stats -->
+        <section>
+          <div>
+            <TotalStats
+              :fxRates="fxRates"
+              :totalStats="totalStats"
+              :latestInfo="latestInfo"
+              customStyle="lg:w-1/2"
+            />
+          </div>
+        </section>
+      </div>
 
       <!-- Top 3 Performance -->
       <section v-if="topThreePerformance.length >= 3">

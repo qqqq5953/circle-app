@@ -2093,72 +2093,6 @@ router.get('/history', async (req, res) => {
   }
 })
 
-router.get('/historicalHolding/:period/:from/:to', async (req, res) => {
-  const tickerRef = await holdingsTradeRef.once('value')
-  const currentHoldings = tickerRef.val()
-  if (!currentHoldings) return res.send('invalid ticker name')
-
-  const tickers = Object.keys(currentHoldings)
-  const from = req.params.from
-  const to = req.params.to
-  const period = req.params.period
-
-  const quoteOptions = {
-    symbols: tickers,
-    from: getFormattedDate(from),
-    to: getFormattedDate(to),
-    period
-  }
-
-  try {
-    const historicalQuote = await yahooFinance.historical(quoteOptions)
-    // console.log('historicalQuote', historicalQuote)
-
-    // const obj = {}
-    // Object.entries(historicalQuote).forEach((item) => {
-    //   const [ticker, quote] = item
-    //   console.log('ticker', ticker)
-    //   console.log('quote', quote)
-
-    //   obj[ticker] = {
-    //     ticker,
-    //     date: quote[0].date,
-    //     close: quote[0].close
-    //   }
-    // })
-    res.send(historicalQuote)
-  } catch (err) {
-    console.log('err', err.message)
-  }
-})
-
-router.post('/checkTicker', (req, res) => {
-  const { ticker } = req.body
-  const checkTickerValid = yahooFinance.quote(ticker, ['summaryProfile'])
-
-  checkTickerValid
-    .then((response) => {
-      console.log('Ticker exists')
-      res.send({
-        success: true,
-        content: 'Ticker exists',
-        errorMessage: null,
-        ticker
-      })
-    })
-    .catch((error) => {
-      console.log('Ticker does not exists')
-
-      console.log('error', error)
-      res.send({
-        success: false,
-        content: 'Ticker does not exists',
-        errorMessage: error.message,
-        ticker
-      })
-    })
-})
-
 router.delete('/closePrice', async (req, res) => {
   try {
     await closeCacheRef.remove()
@@ -2428,11 +2362,12 @@ router.get('/watchlist', async (req, res) => {
     const DEFAULT_TAB = 'Watchlist'
     const initTabs = await tabsRef.once('value')
 
-    let tabsInfo = await getTabsInfo(initTabs.val())
-
+    let tabsInfo
     if (initTabs.val() == null) {
       await tabsRef.set([DEFAULT_TAB])
-      tabsInfo = { name: DEFAULT_TAB, listLength: 0 }
+      tabsInfo = [{ name: DEFAULT_TAB, listLength: 0 }]
+    } else {
+      tabsInfo = await getTabsInfo(initTabs.val())
     }
 
     const message = {

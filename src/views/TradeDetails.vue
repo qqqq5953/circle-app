@@ -1,134 +1,165 @@
 <template>
   <div
     class="flex flex-col space-y-10 py-2 px-6 md:px-10 md:pt-28 max-w-[800px] w-full mx-auto"
-    v-if="totalStats"
   >
-    <section>
-      <h1 class="flex items-center gap-x-3 pb-2" v-if="basicInfo">
-        <span class="ticker-badge" :class="basicInfo.style">
-          {{ basicInfo.ticker }}
-        </span>
-        <span class="font-medium text-lg text-wrap"> {{ basicInfo.name }}</span>
-      </h1>
+    <template v-if="!totalStats">
+      <div>
+        <div class="bg-gray-300 h-6 w-full rounded-full mb-5"></div>
+        <ul>
+          <li
+            class="flex items-center gap-x-1.5 py-3 border-b"
+            v-for="i in 1"
+            :key="i"
+          >
+            <div class="bg-gray-300 h-4 w-full rounded"></div>
+          </li>
+        </ul>
+      </div>
 
-      <TitleList :titles="titles_Total" />
-      <ContentList :list="totalStats" fontWeight="font-medium">
-        <template #diff-percent>
-          <span
-            class="inline-block px-2 py-1 rounded"
-            :class="
-              totalStats[0].profitOrLossPercentage > 0
-                ? 'text-red-600 bg-red-100/70'
-                : totalStats[0].profitOrLossPercentage < 0
-                ? 'text-green-700 bg-green-100'
-                : 'text-slate-500 bg-slate-200'
-            "
+      <div>
+        <div class="bg-gray-300 h-6 w-full rounded-full mb-5"></div>
+        <ul>
+          <li
+            class="flex items-center gap-x-1.5 py-3 border-b"
+            v-for="i in 3"
+            :key="i"
           >
-            <i
-              class="fas fa-arrow-up text-red-600"
-              v-if="totalStats[0].profitOrLossPercentage > 0"
-            ></i>
-            <i
-              class="fas fa-arrow-down text-green-700"
-              v-else-if="totalStats[0].profitOrLossPercentage < 0"
-            ></i>
-            <span v-else>--</span>
-            <span class="ml-1">
-              {{
-                totalStats[0].profitOrLossPercentage >= 0
-                  ? `${totalStats[0].profitOrLossPercentage}`
-                  : `${totalStats[0].profitOrLossPercentage * -1}`
-              }}%
-            </span>
-          </span>
-        </template>
-        <template #diff-value>
-          <span
-            class="inline-block"
-            :class="
-              totalStats[0].profitOrLossValue > 0
-                ? 'text-red-600'
-                : totalStats[0].profitOrLossValue < 0
-                ? 'text-green-700'
-                : 'text-slate-500'
-            "
-            >{{
-              totalStats[0].profitOrLossValue > 0
-                ? `+$${totalStats[0].profitOrLossValue}`
-                : totalStats[0].profitOrLossValue < 0
-                ? `-$${totalStats[0].profitOrLossValue * -1}`
-                : `${totalStats[0].profitOrLossValue}`
-            }}</span
-          >
-        </template>
-        <template #totlal-value="{ value }">
-          <span>${{ value }}</span>
-        </template>
-      </ContentList>
-    </section>
+            <div class="bg-gray-300 h-4 w-full rounded"></div>
+          </li>
+        </ul>
+      </div>
+    </template>
 
-    <section>
-      <h2 class="text-lg font-medium pb-2">Trade Records</h2>
-      <TitleList :titles="titles_Records" />
-      <ContentList
-        :list="tradeList"
-        :deleteId="deleteId"
-        fontWeight="font-light"
-      >
-        <template #diff-percent="{ price }">
-          <span
-            class="inline-block font-medium"
-            :class="
-              basicInfo.close > price
-                ? 'text-red-600'
-                : basicInfo.close < price
-                ? 'text-green-700'
-                : 'text-slate-500'
-            "
+    <template v-else>
+      <section>
+        <h1 class="flex items-center gap-x-3 pb-2" v-if="basicInfo">
+          <span class="ticker-badge" :class="basicInfo.style">
+            {{ basicInfo.ticker }}
+          </span>
+          <span class="font-medium text-lg text-wrap">
+            {{ basicInfo.name }}</span
           >
-            <i
-              class="fas fa-arrow-up text-red-600"
-              v-if="basicInfo.close > price"
-            ></i>
-            <i
-              class="fas fa-arrow-down text-green-700"
-              v-else-if="basicInfo.close < price"
-            ></i>
-            <span v-else>--</span>
-            <span class="ml-1"
-              >{{ calculatePerformance("percent", price) }}%
+        </h1>
+
+        <TitleList :titles="titles_Total" />
+        <ContentList :list="totalStats" fontWeight="font-medium">
+          <template #diff-percent>
+            <span
+              class="inline-block px-2 py-1 rounded"
+              :class="
+                totalStats[0].profitOrLossPercentage > 0
+                  ? 'text-red-600 bg-red-100/70'
+                  : totalStats[0].profitOrLossPercentage < 0
+                  ? 'text-green-700 bg-green-100'
+                  : 'text-slate-500 bg-slate-200'
+              "
+            >
+              <i
+                class="fas fa-arrow-up text-red-600"
+                v-if="totalStats[0].profitOrLossPercentage > 0"
+              ></i>
+              <i
+                class="fas fa-arrow-down text-green-700"
+                v-else-if="totalStats[0].profitOrLossPercentage < 0"
+              ></i>
+              <span v-else>--</span>
+              <span class="ml-1">
+                {{
+                  totalStats[0].profitOrLossPercentage >= 0
+                    ? `${totalStats[0].profitOrLossPercentage}`
+                    : `${totalStats[0].profitOrLossPercentage * -1}`
+                }}%
+              </span>
             </span>
-          </span>
-        </template>
-        <template #diff-value="{ price }">
-          <span
-            class="inline-block"
-            :class="
-              basicInfo.close > price
-                ? 'text-red-600'
-                : basicInfo.close < price
-                ? 'text-green-700'
-                : 'text-slate-500'
-            "
-          >
-            {{ calculatePerformance("value", price) }}
-          </span>
-        </template>
-        <template #totlal-value="{ value }">
-          <span>${{ value }}</span>
-        </template>
-        <template #delete="{ id, date }">
-          <button
-            class="sm:mx-2 lg:invisible lg:group-hover:visible"
-            @click="deleteTrade(id, date)"
-            :disabled="isDeleting"
-          >
-            <i class="fa-solid fa-spinner animate-spin" v-if="isDeleting"></i>
-            <i class="fa-regular fa-trash-can" v-else></i>
-          </button>
-        </template>
-      </ContentList>
-    </section>
+          </template>
+          <template #diff-value>
+            <span
+              class="inline-block"
+              :class="
+                totalStats[0].profitOrLossValue > 0
+                  ? 'text-red-600'
+                  : totalStats[0].profitOrLossValue < 0
+                  ? 'text-green-700'
+                  : 'text-slate-500'
+              "
+              >{{
+                totalStats[0].profitOrLossValue > 0
+                  ? `+$${totalStats[0].profitOrLossValue}`
+                  : totalStats[0].profitOrLossValue < 0
+                  ? `-$${totalStats[0].profitOrLossValue * -1}`
+                  : `${totalStats[0].profitOrLossValue}`
+              }}</span
+            >
+          </template>
+          <template #totlal-value="{ value }">
+            <span>${{ value }}</span>
+          </template>
+        </ContentList>
+      </section>
+
+      <section>
+        <h2 class="text-lg font-medium pb-2">Trade Records</h2>
+        <TitleList :titles="titles_Records" />
+        <ContentList
+          :list="tradeList"
+          :deleteId="deleteId"
+          fontWeight="font-light"
+        >
+          <template #diff-percent="{ price }">
+            <span
+              class="inline-block font-medium"
+              :class="
+                basicInfo.close > price
+                  ? 'text-red-600'
+                  : basicInfo.close < price
+                  ? 'text-green-700'
+                  : 'text-slate-500'
+              "
+            >
+              <i
+                class="fas fa-arrow-up text-red-600"
+                v-if="basicInfo.close > price"
+              ></i>
+              <i
+                class="fas fa-arrow-down text-green-700"
+                v-else-if="basicInfo.close < price"
+              ></i>
+              <span v-else>--</span>
+              <span class="ml-1"
+                >{{ calculatePerformance("percent", price) }}%
+              </span>
+            </span>
+          </template>
+          <template #diff-value="{ price }">
+            <span
+              class="inline-block"
+              :class="
+                basicInfo.close > price
+                  ? 'text-red-600'
+                  : basicInfo.close < price
+                  ? 'text-green-700'
+                  : 'text-slate-500'
+              "
+            >
+              {{ calculatePerformance("value", price) }}
+            </span>
+          </template>
+          <template #totlal-value="{ value }">
+            <span>${{ value }}</span>
+          </template>
+          <template #delete="{ id, date }">
+            <button
+              class="sm:mx-2 lg:invisible lg:group-hover:visible"
+              @click="deleteTrade(id, date)"
+              :disabled="isDeleting"
+            >
+              <i class="fa-solid fa-spinner animate-spin" v-if="isDeleting"></i>
+              <i class="fa-regular fa-trash-can" v-else></i>
+            </button>
+          </template>
+        </ContentList>
+      </section>
+    </template>
   </div>
 </template>
 

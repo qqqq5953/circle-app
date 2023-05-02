@@ -8,7 +8,7 @@
 </template>
 
 <script>
-import { use, graphic } from "echarts/core";
+import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { LineChart } from "echarts/charts";
 import { GridComponent } from "echarts/components";
@@ -20,7 +20,7 @@ import {
 import VChart from "vue-echarts";
 import { computed, ref, watchEffect } from "vue";
 
-use([
+echarts.use([
   CanvasRenderer,
   TitleComponent,
   TooltipComponent,
@@ -182,19 +182,19 @@ export default {
         ? areaColor.endHigher
         : areaColor.endLower;
 
-      option.value.series[0].itemStyle.color = endLineColor;
-      option.value.series[0].areaStyle.color = graphic.LinearGradient(
-        0,
-        0,
-        0,
-        1,
-        endAreaColor
-      );
+      try {
+        option.value.series[0].itemStyle.color = endLineColor;
+        option.value.series[0].areaStyle.color =
+          new echarts.graphic.LinearGradient(0, 0, 0, 1, endAreaColor);
+      } catch (error) {
+        console.log("error", error);
+      }
     }
 
     function setLineData(xAxisData, seriesData) {
       option.value.xAxis.data = xAxisData;
       option.value.series[0].data = seriesData;
+      console.log("setLineData series", [...option.value.series]);
     }
 
     function setZLevel(currentTab) {

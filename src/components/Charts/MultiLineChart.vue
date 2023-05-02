@@ -8,7 +8,7 @@
 </template>
 
 <script>
-import { use, graphic } from "echarts/core";
+import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { LineChart } from "echarts/charts";
 import { GridComponent } from "echarts/components";
@@ -21,7 +21,7 @@ import {
 import VChart from "vue-echarts";
 import { computed, ref, watchEffect } from "vue";
 
-use([
+echarts.use([
   CanvasRenderer,
   TitleComponent,
   TooltipComponent,
@@ -105,8 +105,6 @@ export default {
 
     function initLineChart() {
       const { source } = props;
-      console.log("source", source);
-
       if (!source) return;
 
       setLineData(source);
@@ -139,8 +137,6 @@ export default {
         };
         option.value.series.push(obj);
       }
-
-      console.log("series", option.value.series);
     }
 
     function setGraphColor(source) {
@@ -166,13 +162,9 @@ export default {
         : areaColor.endLower;
 
       option.value.series[0].itemStyle.color = endLineColor;
-      option.value.series[0].areaStyle.color = graphic.LinearGradient(
-        0,
-        0,
-        0,
-        1,
-        endAreaColor
-      );
+      if (source.date.length === 1) return;
+      option.value.series[0].areaStyle.color =
+        new echarts.graphic.LinearGradient(0, 0, 0, 1, endAreaColor);
     }
 
     function createAreaColor(offsetColor0, offsetColor1) {

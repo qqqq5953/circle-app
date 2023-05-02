@@ -3,70 +3,75 @@
     class="fixed top-0 z-10 w-full shadow-lg px-6 py-4 md:px-10"
     :class="isMenuShow ? 'bg-slate-50' : 'bg-slate-50/70 backdrop-blur-sm'"
   >
-    <div class="flex items-center justify-between max-w-[1200px] mx-auto">
+    <div class="flex items-center max-w-[1200px] mx-auto">
       <div
         class="inline-block uppercase font-semibold text-2xl text-indigo-700"
       >
         <router-link :to="{ name: 'Home' }">Circle</router-link>
       </div>
 
-      <div class="hidden md:flex md:items-center md:gap-x-6">
-        <ul class="hidden md:flex font-light">
-          <li v-for="item in menu" :key="item.name">
-            <router-link
-              class="block px-4 group"
-              :to="{ name: item.routeName }"
-              v-if="item.routeName"
-            >
-              <span class="relative group-hover:text-indigo-500">
+      <div class="flex items-center ml-auto">
+        <div class="hidden md:flex md:items-center md:gap-x-6">
+          <ul class="hidden md:flex font-light">
+            <li v-for="item in menu" :key="item.name">
+              <router-link
+                class="block px-4 group"
+                :to="{ name: item.routeName }"
+                v-if="item.routeName"
+              >
+                <span class="relative group-hover:text-indigo-500">
+                  {{ item.name }}
+                  <span
+                    class="absolute top-full left-1/2 -translate-x-1/2 bg-indigo-500 hidden md:inline transition-all duration-300 mt-1 h-1 w-0 md:group-hover:w-full"
+                  ></span>
+                </span>
+              </router-link>
+              <button
+                class="block px-4"
+                v-else-if="item.event && item.name === 'Log in'"
+                @click="item.event()"
+              >
                 {{ item.name }}
-                <span
-                  class="absolute top-full left-1/2 -translate-x-1/2 bg-indigo-500 hidden md:inline transition-all duration-300 mt-1 h-1 w-0 md:group-hover:w-full"
-                ></span>
-              </span>
-            </router-link>
-            <button
-              class="block px-4 group"
-              v-else-if="item.event"
-              @click="item.event()"
-            >
-              <span class="relative group-hover:text-indigo-500">
-                {{ item.name }}
-                <span
-                  class="absolute top-full left-1/2 -translate-x-1/2 bg-indigo-500 hidden md:inline transition-all duration-300 mt-1 h-1 w-0 md:group-hover:w-full"
-                ></span>
-              </span>
-            </button>
-          </li>
-        </ul>
-        <button
-          class="inline-block rounded px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white"
-          @click="handleGetStarted"
-          v-if="!hasLogin"
-        >
-          Get started
-        </button>
-
+              </button>
+            </li>
+          </ul>
+          <button
+            class="inline-block rounded px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white"
+            @click="handleGetStarted"
+            v-if="hasLogin === false"
+          >
+            Get started
+          </button>
+        </div>
         <!-- dashboard -->
-        <div class="relative" v-else>
+        <div class="relative mr-3" v-if="hasLogin === true">
           <button
             class="rounded px-3 py-1.5 hover:bg-slate-100 focus:bg-slate-100 group"
           >
             <span
               class="text-slate-800 hover:text-indigo-700 group-focus:text-indigo-700 font-medium"
-              >Dashboard</span
-            >
+              >Dashboard <i class="fa-solid fa-caret-down"></i
+            ></span>
             <ul
               class="absolute inset-x-0 z-30 top-full mt-1 shadow rounded bg-white font-light transition-opacity duration-300 ease-in-out p-0 opacity-0 invisible h-0 group-focus-within:py-2 group-focus-within:opacity-100 group-focus-within:visible group-focus-within:h-auto"
             >
               <li
-                class="flex gap-3 items-center px-3 py-1 cursor-pointer text-sm hover:text-indigo-700 hover:bg-slate-100"
+                class="flex gap-3 items-center px-3 py-1 cursor-pointer text-sm hover:text-indigo-700 hover:bg-slate-100 last:border-t last:hidden last:md:flex"
                 v-for="list in dashboard"
                 :key="list.name"
               >
-                <router-link :to="{ name: list.routeName }">{{
-                  list.name
-                }}</router-link>
+                <router-link
+                  :to="{ name: list.routeName }"
+                  v-if="list.routeName"
+                  >{{ list.name }}</router-link
+                >
+                <button
+                  class="font-medium"
+                  v-else-if="list.event && list.name === 'Log out'"
+                  @click="list.event()"
+                >
+                  {{ list.name }}
+                </button>
               </li>
             </ul>
           </button>
@@ -75,42 +80,17 @@
 
       <!-- menu -->
       <div
-        class="flex items-center gap-x-6 md:hidden"
+        class="flex items-center md:hidden"
+        :class="hasLogin ? 'gap-x-2' : 'gap-x-6'"
         @click="isMenuShow = !isMenuShow"
       >
         <button
           class="inline-block rounded px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white"
           @click="handleGetStarted"
-          v-if="!hasLogin"
+          v-if="hasLogin === false"
         >
           Get started
         </button>
-
-        <!-- dashboard -->
-        <div class="relative" v-else>
-          <button
-            class="rounded px-3 py-1.5 hover:bg-slate-100 focus:bg-slate-100 group"
-          >
-            <span
-              class="text-slate-800 hover:text-indigo-700 group-focus:text-indigo-700 font-medium"
-              >Dashboard</span
-            >
-            <ul
-              class="absolute inset-x-0 z-30 top-full mt-1 shadow rounded bg-white font-light transition-opacity duration-300 ease-in-out p-0 opacity-0 invisible h-0 group-focus-within:py-2 group-focus-within:opacity-100 group-focus-within:visible group-focus-within:h-auto"
-            >
-              <li
-                class="flex gap-3 items-center px-3 py-1 cursor-pointer text-sm hover:text-indigo-700 hover:bg-slate-100"
-                v-for="list in dashboard"
-                :key="list.name"
-              >
-                <router-link :to="{ name: list.routeName }">{{
-                  list.name
-                }}</router-link>
-              </li>
-            </ul>
-          </button>
-        </div>
-
         <button ref="menuBtn" class="flex flex-col space-y-1 text-indigo-700">
           <span
             class="w-6 h-[3px] rounded bg-indigo-700 transition duration-500 ease-in-out"
@@ -129,7 +109,6 @@
             }"
           ></span>
         </button>
-
         <ul
           ref="menuList"
           class="absolute z-50 mt-px top-full right-0 bg-slate-50 shadow-lg text-black text-xs py-1 w-full divide-y transition-all duration-300 ease-in-out"
@@ -195,24 +174,36 @@ export default {
         },
       ];
     });
-    const dashboard = ref([
-      {
-        name: "Overview",
-        routeName: "Overview",
-      },
-      {
-        name: "Holdings",
-        routeName: "Holdings1",
-      },
-      {
-        name: "History",
-        routeName: "History",
-      },
-      {
-        name: "Watchlist",
-        routeName: "Watchlist",
-      },
-    ]);
+    const dashboard = computed(() => {
+      return [
+        {
+          name: "Overview",
+          routeName: "Overview",
+        },
+        {
+          name: "Holdings",
+          routeName: "Holdings",
+        },
+        {
+          name: "History",
+          routeName: "History",
+        },
+        {
+          name: "Watchlist",
+          routeName: "Watchlist",
+        },
+        {
+          name:
+            props.hasLogin === null
+              ? ""
+              : props.hasLogin === true
+              ? "Log out"
+              : "Log in",
+          routeName: "",
+          event: toggleLogInAndOut,
+        },
+      ];
+    });
     const { isClickDisabled, preventMultipleClicks } = useClickPrevention(3000);
 
     onMounted(() => clickOutsideToggle());

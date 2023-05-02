@@ -3,7 +3,9 @@ import { storeToRefs } from 'pinia'
 import useApiStore from '@/stores/apiStore.js'
 
 const http = axios.create({
-  baseURL: 'http://localhost:8080'
+  baseURL: import.meta.env.DEV
+    ? 'http://localhost:8080'
+    : 'http://localhost:4173'
 })
 
 http.interceptors.request.use(

@@ -9,6 +9,7 @@ const useWatchlistStore = defineStore('watchlist', () => {
   const DEFAULT_TAB = ref('Watchlist')
   const tabs = ref([])
   const cachedList = ref({})
+  const isUnmounted = ref(false)
 
   onBeforeUnmount(() => {
     console.log('useWatchlistStore onBeforeUnmount')
@@ -268,6 +269,7 @@ const useWatchlistStore = defineStore('watchlist', () => {
   // 自動倒數計時更新
   function startTimer(watchlist, tabName, status) {
     console.log(`%c startTimer ${tabName}`, 'background:blue; color:#efefef')
+    if (isUnmounted.value) return
     return new Promise((resolve, reject) => {
       timeoutId.value = setTimeout(async () => {
         await resumeFlow(watchlist, tabName, status)
@@ -282,6 +284,7 @@ const useWatchlistStore = defineStore('watchlist', () => {
 
   async function resumeFlow(watchlist, tabName, status) {
     updatedTickers.value.length = 0
+    if (isUnmounted.value) return
 
     console.log(
       `%c resumeFlow ${currentStatus.value}`,
@@ -449,7 +452,8 @@ const useWatchlistStore = defineStore('watchlist', () => {
     loadWatchlist,
     displayWatchlist,
     updatedTickers,
-    renameCacheList
+    renameCacheList,
+    isUnmounted
   }
 })
 

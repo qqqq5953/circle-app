@@ -69,8 +69,8 @@
       >
         <div class="relative flex flex-grow justify-end items-center">
           <button
-            class="flex justify-between space-x-2 px-2 py-1 rounded-full text-xs text-blue-500"
-            :class="{ 'focus:bg-blue-50': isSortMenuOpen }"
+            class="flex justify-between space-x-2 px-2 py-1 rounded-full text-xs text-indigo-500"
+            :class="{ 'focus:bg-indigo-50/50': isSortMenuOpen }"
             @click="toggleSortMenu($event)"
             @blur="toggleSortMenu($event, false)"
           >
@@ -94,9 +94,9 @@
             >
               <ul>
                 <li
-                  class="flex gap-3 items-center py-2 px-3 hover:bg-blue-50 cursor-pointer"
+                  class="flex gap-3 items-center py-2 px-3 hover:bg-indigo-50/50 cursor-pointer"
                   :class="{
-                    'text-blue-500 font-semibold pointer-events-none cursor-auto':
+                    'text-indigo-500 font-semibold pointer-events-none cursor-auto':
                       selectedSortCategory === item.category,
                   }"
                   v-for="(item, key) in sortMenu"
@@ -109,9 +109,9 @@
               </ul>
               <ul class="border-t-2 border-blue-50">
                 <li
-                  class="flex gap-3 items-center py-2 px-3 hover:bg-blue-50 cursor-pointer"
+                  class="flex gap-3 items-center py-2 px-3 hover:bg-indigo-50/50 cursor-pointer"
                   :class="{
-                    'text-blue-500 font-semibold pointer-events-none cursor-auto':
+                    'text-indigo-500 font-semibold pointer-events-none cursor-auto':
                       selectedDirection === item.direction,
                   }"
                   v-for="(item, key) in sortDirection"

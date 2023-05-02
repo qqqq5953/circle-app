@@ -8,7 +8,8 @@ const useSearchStore = defineStore('search', () => {
       name: 'US Stocks',
       placeholder: 'Ex: AAPL',
       maxLength: '5',
-      style: 'bg-sky-500',
+      // style: 'bg-sky-500',
+      style: 'bg-slate-600 text-white',
       rule: /^[a-z\-?]{1,5}$/i
     },
     {
@@ -16,7 +17,8 @@ const useSearchStore = defineStore('search', () => {
       name: 'TW Stocks',
       placeholder: 'Ex: 0050.TW',
       maxLength: '9',
-      style: 'bg-slate-700',
+      // style: 'bg-slate-700',
+      style: 'bg-slate-100 text-slate-900 border border-slate-100',
       rule: /^\d{4,6}\.tw$/i
     }
     // {

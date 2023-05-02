@@ -3,21 +3,13 @@
     :class="{
       'border-t': isMultiRows,
       'update-animation': isUpdate && enableUpdate(item.tempTicker),
-      'hover:bg-slate-100': hasRouterLink,
+      'hover:bg-slate-50/70': hasRouterLink,
     }"
     v-for="item in stockLists"
     :key="item.ticker"
   >
     <th
-      class="
-        border-t-0 border-x-0
-        py-3
-        sm:py-3.5
-        px-4
-        lg:pl-8 lg:pr-0
-        text-xs text-left
-        w-5/12
-      "
+      class="border-t-0 border-x-0 py-3 sm:py-3.5 px-4 lg:pl-8 lg:pr-0 text-xs text-left w-5/12"
     >
       <router-link
         v-if="hasRouterLink"
@@ -42,14 +34,7 @@
       <span>{{ new Intl.NumberFormat("en").format(item.price) }}</span>
     </td>
     <td
-      class="
-        watchlistTable-table-cell
-        font-medium
-        w-[30%]
-        md:w-1/6
-        lg:w-1/5
-        xl:w-1/6
-      "
+      class="watchlistTable-table-cell font-medium w-[30%] md:w-1/6 lg:w-1/5 xl:w-1/6"
     >
       <div class="flex m-auto">
         <div
@@ -80,14 +65,7 @@
       </div>
     </td>
     <td
-      class="
-        watchlistTable-table-cell
-        px-3
-        text-right
-        font-medium
-        hidden
-        md:table-cell md:w-[12%]
-      "
+      class="watchlistTable-table-cell px-3 text-right font-medium hidden md:table-cell md:w-[12%]"
     >
       <span
         :class="
@@ -174,7 +152,7 @@ hasRouterLink.value = props.toStockInfo || injectParam;
 
 const routeParam = (ticker) => {
   return {
-    name: hasRouterLink.value ? "StockInfo" : "Holdings1",
+    name: hasRouterLink.value ? "StockInfo" : "Holdings",
     params: { ticker },
   };
 };

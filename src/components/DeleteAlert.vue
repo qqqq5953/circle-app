@@ -12,11 +12,14 @@
     </template>
     <template #footer>
       <div class="text-right">
-        <button class="text-blue-600 px-2 py-1.5 mr-2" @click="closeFunc">
+        <button
+          class="text-indigo-600 px-2 py-1.5 mr-2 rounded hover:bg-slate-100 focus:bg-slate-100 focus:outline-none"
+          @click="closeFunc"
+        >
           Close
         </button>
         <button
-          class="border rounded px-2 py-1.5 bg-blue-600 text-white"
+          class="rounded px-2 py-1.5 bg-indigo-600 text-white hover:bg-indigo-500 focus:outline-none focus:bg-indigo-500"
           @click="confirmFunc"
         >
           Delete

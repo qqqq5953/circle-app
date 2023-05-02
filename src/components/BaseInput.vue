@@ -2,7 +2,7 @@
   <div>
     <input
       type="text"
-      class="border rounded p-2 w-full focus:outline-blue-600"
+      class="border rounded p-2 w-full focus:outline-indigo-300/60"
       :value="listName"
       @input="$emit('update:listName', $event.target.value)"
       :ref="refName"

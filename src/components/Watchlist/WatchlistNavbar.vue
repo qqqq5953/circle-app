@@ -9,7 +9,7 @@
       <button
         class="flex items-center border rounded p-2 min-w-[150px] shrink-0 relative text-slate-700 hover:shadow hover:shadow-slate-300 focus:shadow-none"
         :class="{
-          'after:absolute after:inset-x-0 after:bottom-0 after:h-1 after:bg-blue-500 after:rounded-b-lg':
+          'after:absolute after:inset-x-0 after:bottom-0 after:h-1 after:bg-indigo-500 after:rounded-b-lg':
             currentTab === tab.name,
         }"
         v-for="tab in tabs"
@@ -22,7 +22,10 @@
         <span class="mr-5">{{ tab.name }}</span>
         <span class="ml-auto text-slate-500 text-xs">{{ tab.listLength }}</span>
       </button>
-      <button class="shrink-0 text-blue-600 p-2 ml-3" @click="openCreateModal">
+      <button
+        class="shrink-0 text-indigo-600 p-2 ml-3"
+        @click="openCreateModal"
+      >
         + Create
       </button>
     </div>
@@ -39,7 +42,7 @@
       <button
         class="flex items-center border rounded p-2 min-w-[150px] shrink-0 relative text-slate-700 hover:shadow hover:shadow-slate-300 focus:shadow-none"
         :class="{
-          'after:absolute after:inset-x-0 after:bottom-0 after:h-1 after:bg-blue-500 after:rounded-b-lg':
+          'after:absolute after:inset-x-0 after:bottom-0 after:h-1 after:bg-indigo-500 after:rounded-b-lg':
             currentTab === tab.name,
         }"
         v-for="tab in tabs"
@@ -62,7 +65,7 @@
     </button>
 
     <button
-      class="shrink-0 text-blue-500 py-6 ml-auto"
+      class="shrink-0 text-indigo-500 py-6 ml-auto"
       @click="openCreateModal"
     >
       + Create
@@ -178,7 +181,8 @@ export default {
     // 滾動效果
     watch(
       currentTab,
-      (newTab) => {
+      async (newTab) => {
+        await nextTick();
         scrollWidthLg.value = navLgRef.value.scrollWidth;
         offsetWidthLg.value = navLgRef.value.offsetWidth;
 

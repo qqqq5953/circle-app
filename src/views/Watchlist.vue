@@ -72,7 +72,7 @@
 </template>
 
 <script>
-import { watch, provide, onMounted, computed } from "vue";
+import { watch, provide, onMounted, computed, onBeforeUnmount } from "vue";
 import http from "../api/index";
 import useSearchStore from "@/stores/searchStore.js";
 import useWatchlistStore from "@/stores/watchlistStore.js";
@@ -99,9 +99,14 @@ export default {
     provide("toStockInfo", true);
 
     onMounted(() => {
-      console.log("watchlist onMounted");
       currentTab.value = DEFAULT_TAB.value;
       searchList.value = null;
+      isUnmounted.value = false;
+    });
+
+    onBeforeUnmount(() => {
+      timeoutId.value = null;
+      isUnmounted.value = true;
     });
 
     const $searchStore = useSearchStore();
@@ -119,6 +124,8 @@ export default {
       DEFAULT_TAB,
       updatedTickers,
       isAddingProcess,
+      timeoutId,
+      isUnmounted,
     } = storeToRefs($watchlistStore);
 
     const {

@@ -29,7 +29,13 @@
                 v-if="previousCloseChangePercent > 0"
               ></i>
               <i class="fas fa-arrow-down" v-else></i>
-              <span class="ml-1.5">{{ previousCloseChangePercent }}%</span>
+              <span class="ml-1.5"
+                >{{
+                  previousCloseChangePercent > 0
+                    ? previousCloseChangePercent
+                    : previousCloseChangePercent * -1
+                }}%</span
+              >
             </span>
             <span>{{ stock.price?.previousCloseChange }}</span>
             <span>Today</span>
@@ -97,7 +103,7 @@
 </template>
 
 <script>
-import { ref, nextTick, computed } from "vue";
+import { ref, nextTick, computed, inject } from "vue";
 import http from "../api/index";
 
 import StockInfoSkeleton from "@/components/skeleton/StockInfoSkeleton.vue";
@@ -122,6 +128,7 @@ export default {
     ticker: String,
   },
   setup(props) {
+    const setSnackbarMessage = inject("setSnackbarMessage");
     const summaryProfileRef = ref(null);
     const isSummaryShow = ref(false);
     const isSkeletonLoading = ref(true);
@@ -164,8 +171,7 @@ export default {
 
     const previousCloseChangePercent = computed(() => {
       if (!stock.value.price) return;
-      const close = parseFloat(stock.value.price.previousCloseChangePercent);
-      return close > 0 ? close : close * -1;
+      return parseFloat(stock.value.price.previousCloseChangePercent);
     });
 
     (async function getTickerInfo() {
@@ -209,14 +215,26 @@ export default {
         await nextTick();
         summaryProfileRef.value?.adjustSummaryHeight();
       } catch (error) {
-        console.log("error", error);
+        setSnackbarMessage({
+          success: false,
+          content: "getTickerInfo: " + error.toString(),
+          result: null,
+        });
       }
     })();
 
     async function getFinancialData() {
-      const response = await http.get(`/api/financialData/${props.ticker}`);
-      const financialData = response?.data.result;
-      return financialData;
+      try {
+        const response = await http.get(`/api/financialData/${props.ticker}`);
+        const financialData = response?.data.result;
+        return financialData;
+      } catch (error) {
+        setSnackbarMessage({
+          success: false,
+          content: "getFinancialData: " + error.toString(),
+          result: null,
+        });
+      }
     }
 
     return {

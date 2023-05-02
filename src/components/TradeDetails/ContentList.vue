@@ -28,7 +28,7 @@
         <slot name="totlal-value" :value="item.value"></slot>
       </div>
       <div
-        class="w-[15%] grow text-right flex items-center justify-end sm:gap-x-1"
+        class="w-[15%] grow text-right flex items-center justify-end sm:gap-x-1 group"
       >
         <span
           class="rounded-full w-5 h-5 text-center pt-0.5 mx-auto sm:mx-0"

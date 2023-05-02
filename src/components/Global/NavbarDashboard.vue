@@ -106,7 +106,7 @@ export default {
       },
       {
         name: "Holdings",
-        routeName: "Holdings1",
+        routeName: "Holdings",
       },
       {
         name: "History",

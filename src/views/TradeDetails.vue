@@ -189,7 +189,7 @@ export default {
       const res = await http.get(`/api/tradeDetails/${tempTicker}`);
 
       if (!res.data?.result) {
-        return router.replace({ name: "Holdings1" });
+        return router.replace({ name: "Holdings" });
       }
 
       const { sortedTrade, stats, latestInfo } = res.data.result;

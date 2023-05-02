@@ -49,11 +49,6 @@ const routes = [
         component: () => import('../views/Holdings.vue')
       },
       {
-        path: 'holdings1',
-        name: 'Holdings1',
-        component: () => import('../views/Holdings.vue')
-      },
-      {
         path: 'history',
         name: 'History',
         component: () => import('../views/History.vue')

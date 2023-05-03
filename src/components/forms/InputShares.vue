@@ -3,19 +3,7 @@
     <input
       name="shares"
       type="text"
-      class="
-        border border-slate-300
-        block
-        px-4
-        py-3
-        rounded
-        w-full
-        text-sm text-center
-        lg:text-left
-        focus:outline-0
-        invalid:border-red-400 invalid:border
-        valid:focus:outline-blue-300/60 valid:focus:outline-2
-      "
+      class="border border-slate-300 block px-4 py-3 rounded w-full text-sm text-center focus:outline-0 invalid:border-red-400 invalid:border valid:focus:outline-blue-300/60 valid:focus:outline-2"
       ref="sharesRef"
       placeholder="shares"
       min="0"

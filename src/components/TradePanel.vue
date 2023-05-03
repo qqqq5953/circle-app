@@ -1,6 +1,6 @@
 <template>
-  <div class="flex flex-col gap-8">
-    <div class="relative w-full pb-14 mb-6" v-if="!isBuyMore">
+  <div class="flex flex-col gap-8 sm:gap-6 lg:gap-8">
+    <div class="relative w-full pb-16 md:pb-10 mb-6" v-if="!isBuyMore">
       <SearchBar />
 
       <!-- 搜尋結果 -->

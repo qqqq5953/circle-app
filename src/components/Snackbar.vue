@@ -45,7 +45,7 @@
             v-if="message.errorMessage"
             @click="toAlert(message.errorMessage)"
           >
-            view
+            details
           </button>
         </div>
         <a

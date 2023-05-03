@@ -794,10 +794,21 @@ const addHoldingLimiter = rateLimit({
 })
 
 router.post('/stock', addHoldingLimiter, async (req, res) => {
+  const snapshot = await holdingsTemptickersRef.once('value')
+  const isInHolding = snapshot.val()[req.body.tempTicker]
+
+  if (snapshot.numChildren() >= 5 && !isInHolding) {
+    return res.send({
+      success: false,
+      content: 'Adding stock failed',
+      errorMessage: 'Hire Andy Hsieh to manage more trades! :)',
+      result: null
+    })
+  }
+
   const invalidInput = Object.keys(req.body).filter(
     (key) => req.body[key] == null
   )
-  console.log('invalidInput', invalidInput)
 
   if (invalidInput.length !== 0) {
     const reservedKey = ['ticker', 'cost', 'shares', 'tradeDate']
@@ -806,7 +817,7 @@ router.post('/stock', addHoldingLimiter, async (req, res) => {
       invalidInput.filter((key) => reservedKey.includes(key)).join(', ')
     const message = {
       success: false,
-      content: '標的新增失敗',
+      content: 'Adding stock failed',
       errorMessage,
       result: req.body
     }
@@ -2129,6 +2140,16 @@ router.post('/ticker/:listName', watchlistLimiter, async (req, res) => {
   const list = listName.toLowerCase() === 'watchlist' ? 'default' : listName
 
   try {
+    const snapshot = await watchlistRef.child(list).once('value')
+    if (snapshot.numChildren() >= 5) {
+      return res.send({
+        success: false,
+        content: 'Adding stock failed',
+        errorMessage: 'Hire Andy Hsieh to add more stocks! :)',
+        result: null
+      })
+    }
+
     await watchlistRef.child(list).child(tickerItem.tempTicker).set(tickerItem)
 
     const message = {
@@ -2267,11 +2288,21 @@ router.get('/tickers/:listName', async (req, res) => {
 
 // create watchlist
 router.post('/watchlist/:listName', async (req, res) => {
+  const initTabs = await tabsRef.once('value')
+
+  if (initTabs.numChildren() >= 5) {
+    return res.send({
+      success: false,
+      content: 'Adding watchlist failed',
+      errorMessage: 'Hire Andy Hsieh to add more watchlist! :)',
+      result: null
+    })
+  }
+
   const { listName } = req.params
   const omitName = ['null', 'undefined', '']
   const DEFAULT_TAB = 'Watchlist'
 
-  const initTabs = await tabsRef.once('value')
   const hasTabsArray = initTabs.val()?.length
   const hasSameTab = initTabs.val()?.includes(listName)
   const isOmitName = omitName.includes(listName)

@@ -72,7 +72,14 @@
 </template>
 
 <script>
-import { watch, provide, onMounted, computed, onBeforeUnmount } from "vue";
+import {
+  watch,
+  provide,
+  onMounted,
+  computed,
+  onBeforeUnmount,
+  inject,
+} from "vue";
 import http from "../api/index";
 import useSearchStore from "@/stores/searchStore.js";
 import useWatchlistStore from "@/stores/watchlistStore.js";
@@ -96,6 +103,8 @@ export default {
     WatchlistTable,
   },
   setup() {
+    const setSnackbarMessage = inject("setSnackbarMessage");
+
     provide("toStockInfo", true);
 
     onMounted(() => {
@@ -163,16 +172,30 @@ export default {
           ...searchList.value[0],
           tempTicker,
         };
-        await http.post(`/api/ticker/${currentTab.value}`, {
+        const res = await http.post(`/api/ticker/${currentTab.value}`, {
           tickerItem,
         });
+        const { success, content, errorMessage } = res.data;
 
-        loadWatchlist({
-          status: "addTicker",
-          params: tickerItem,
-        });
+        if (success) {
+          loadWatchlist({
+            status: "addTicker",
+            params: tickerItem,
+          });
+        } else {
+          toggleLoadingEffect(false);
+          setSnackbarMessage({
+            success,
+            content,
+            errorMessage,
+          });
+        }
       } catch (error) {
-        console.log("error", error);
+        setSnackbarMessage({
+          success: false,
+          content: "addToWatchlist error",
+          errorMessage: error.message,
+        });
       }
     }
     // ----------------------

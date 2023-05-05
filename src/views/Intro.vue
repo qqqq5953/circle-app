@@ -28,9 +28,9 @@
         </h1>
       </div>
 
-      <div class="hidden md:rounded-lg md:overflow-hidden md:block lg:w-1/2">
+      <div class="hidden md:overflow-hidden md:block text-center lg:w-1/2">
         <img
-          class="block object-cover h-full"
+          class="inline-block object-cover md:rounded-lg md:w-2/3 lg:w-full"
           src="https://plus.unsplash.com/premium_photo-1663931932646-15ceb9c0033f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80"
           alt=""
         />
@@ -237,11 +237,11 @@
           Why Circle
         </h2>
         <div class="flex flex-col gap-y-10 lg:gap-y-16 xl:flex-row xl:gap-x-16">
-          <div class="rounded-lg overflow-hidden xl:order-2">
+          <div class="overflow-hidden xl:order-2 text-center">
             <img
               src="https://images.unsplash.com/photo-1556155092-490a1ba16284?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80"
               alt=""
-              class="block h-full object-cover"
+              class="rounded-lg inline-block object-cover md:w-2/3 lg:w-1/2 xl:w-full"
             />
           </div>
           <ul class="flex flex-col gap-y-10 lg:gap-y-16 lg:order-1">
@@ -629,7 +629,7 @@ export default {
       });
     }
 
-    getTop5Caps();
+    // getTop5Caps();
 
     function handleGetStarted() {
       if (props.hasLogin) {

@@ -141,7 +141,8 @@ export default {
 
     function setGraphColor(source) {
       const firstClosingPrice = source["Asset Value"][0];
-      const lastClosingPrice = source["Asset Value"].at(-1);
+      const lastClosingPrice =
+        source["Asset Value"][source["Asset Value"].length - 1];
       const isEndedHigher = firstClosingPrice < lastClosingPrice;
 
       const lineColor = {

@@ -43,17 +43,31 @@
             Get started
           </button>
         </div>
+
         <!-- dashboard -->
         <div class="relative mr-3" v-if="hasLogin === true">
-          <button
-            class="rounded px-3 py-1.5 hover:bg-slate-100 focus:bg-slate-100 group"
-          >
-            <span
-              class="text-slate-800 hover:text-indigo-700 group-focus:text-indigo-700 font-medium"
-              >Dashboard <i class="fa-solid fa-caret-down"></i
-            ></span>
+          <template v-if="isSafari">
+            <button
+              ref="dropdownBtn"
+              @click="handleClickOnSafari"
+              class="rounded px-3 py-1.5 hover:bg-slate-100"
+              :class="{
+                'bg-slate-100': isDropdownOpen,
+              }"
+            >
+              <span
+                class="hover:text-indigo-700 font-medium"
+                :class="isDropdownOpen ? 'text-indigo-700' : 'text-slate-800'"
+                >Dashboard <i class="fa-solid fa-caret-down"></i
+              ></span>
+            </button>
             <ul
-              class="absolute inset-x-0 z-30 top-full mt-1 shadow rounded bg-white font-light transition-opacity duration-300 ease-in-out p-0 opacity-0 invisible h-0 group-focus-within:py-2 group-focus-within:opacity-100 group-focus-within:visible group-focus-within:h-auto"
+              ref="dropdownList"
+              class="absolute inset-x-0 z-30 top-full mt-1 shadow rounded bg-white font-light transition-all duration-300 ease-in-out"
+              :class="{
+                '-translate-y-2 opacity-0 invisible pointer-events-none':
+                  !isDropdownOpen,
+              }"
             >
               <li
                 class="flex gap-3 items-center px-3 py-1 cursor-pointer text-sm hover:text-indigo-700 hover:bg-slate-100 last:border-t last:hidden last:md:flex"
@@ -74,7 +88,40 @@
                 </button>
               </li>
             </ul>
-          </button>
+          </template>
+
+          <template v-else>
+            <button
+              class="rounded px-3 py-1.5 hover:bg-slate-100 focus:bg-slate-100 group"
+            >
+              <span
+                class="text-slate-800 hover:text-indigo-700 group-focus:text-indigo-700 font-medium"
+                >Dashboard <i class="fa-solid fa-caret-down"></i
+              ></span>
+              <ul
+                class="absolute inset-x-0 z-30 top-full mt-1 shadow rounded bg-white font-light transition-all duration-300 ease-in-out p-0 opacity-0 invisible group-focus-within:py-2 group-focus-within:opacity-100 group-focus-within:visible group-focus-within:translate-y-0"
+              >
+                <li
+                  class="flex gap-3 items-center px-3 py-1 cursor-pointer text-sm hover:text-indigo-700 hover:bg-slate-100 last:border-t last:hidden last:md:flex"
+                  v-for="list in dashboard"
+                  :key="list.name"
+                >
+                  <router-link
+                    :to="{ name: list.routeName }"
+                    v-if="list.routeName"
+                    >{{ list.name }}</router-link
+                  >
+                  <button
+                    class="font-medium"
+                    v-else-if="list.event && list.name === 'Log out'"
+                    @click="list.event()"
+                  >
+                    {{ list.name }}
+                  </button>
+                </li>
+              </ul>
+            </button>
+          </template>
         </div>
       </div>
 
@@ -206,8 +253,38 @@ export default {
     });
     const { isClickDisabled, preventMultipleClicks } = useClickPrevention(3000);
 
-    onMounted(() => clickOutsideToggle());
+    onMounted(() => {
+      clickOutsideToggle(dropdownBtn, dropdownList, isDropdownOpen);
+      clickOutsideToggle(menuBtn, menuList, isMenuShow);
+    });
 
+    function clickOutsideToggle(btn, list, isShow) {
+      document.addEventListener("click", (e) => {
+        if (!btn.value?.contains(e.target) && !list.value?.contains(e.target)) {
+          isShow.value = false;
+        }
+      });
+    }
+
+    // dashboard
+    const isDropdownOpen = ref(null);
+    const dropdownBtn = ref(null);
+    const dropdownList = ref(null);
+    const isSafari = ref(
+      /constructor/i.test(window.HTMLElement) ||
+        (function (p) {
+          return p.toString() === "[object SafariRemoteNotification]";
+        })(
+          !window["safari"] ||
+            (typeof safari !== "undefined" && window["safari"].pushNotification)
+        )
+    );
+    function handleClickOnSafari() {
+      if (!isSafari.value) return;
+      isDropdownOpen.value = !isDropdownOpen.value;
+    }
+
+    // log in & out
     function toggleLogInAndOut() {
       if (props.hasLogin) {
         logOut();
@@ -248,16 +325,6 @@ export default {
     const isMenuShow = ref(false);
     const menuBtn = ref(false);
     const menuList = ref(false);
-    function clickOutsideToggle() {
-      document.addEventListener("click", (e) => {
-        if (
-          !menuBtn.value?.contains(e.target) &&
-          !menuList.value?.contains(e.target)
-        ) {
-          isMenuShow.value = false;
-        }
-      });
-    }
 
     function handleGetStarted() {
       emit("toggleModal", { open: true });
@@ -272,6 +339,11 @@ export default {
       dashboard,
       clickOutsideToggle,
       handleGetStarted,
+      handleClickOnSafari,
+      isDropdownOpen,
+      isSafari,
+      dropdownBtn,
+      dropdownList,
     };
   },
 };

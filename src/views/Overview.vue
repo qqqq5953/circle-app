@@ -222,7 +222,7 @@
       </section>
     </template>
 
-    <!-- <template v-else>
+    <template v-else>
       <section class="py-[20%] text-center">
         <button
           class="bg-indigo-700 text-white hover:bg-indigo-600 rounded-full px-3 py-1.5 text-xs"
@@ -231,7 +231,7 @@
           <span class="mx-1">Make your first investment</span>
         </button>
       </section>
-    </template> -->
+    </template>
   </main>
 </template>
 

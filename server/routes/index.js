@@ -794,58 +794,60 @@ const addHoldingLimiter = rateLimit({
 })
 
 router.post('/stock', addHoldingLimiter, async (req, res) => {
-  const snapshot = await holdingsTemptickersRef.once('value')
-  const isInHolding = snapshot.val()[req.body.tempTicker]
+  try {
+    const snapshot = await holdingsTemptickersRef.once('value')
+    const isInHolding = snapshot.val()
+      ? snapshot.val()[req.body.tempTicker]
+      : snapshot.val()
 
-  if (snapshot.numChildren() >= 5 && !isInHolding) {
-    return res.send({
-      success: false,
-      content: 'Adding stock failed',
-      errorMessage: 'Hire Andy Hsieh to manage more trades! :)',
-      result: null
-    })
-  }
-
-  const invalidInput = Object.keys(req.body).filter(
-    (key) => req.body[key] == null
-  )
-
-  if (invalidInput.length !== 0) {
-    const reservedKey = ['ticker', 'cost', 'shares', 'tradeDate']
-    const errorMessage =
-      'Invalid input field: ' +
-      invalidInput.filter((key) => reservedKey.includes(key)).join(', ')
-    const message = {
-      success: false,
-      content: 'Adding stock failed',
-      errorMessage,
-      result: req.body
+    if (snapshot.numChildren() >= 5 && !isInHolding) {
+      return res.send({
+        success: false,
+        content: 'Adding stock failed',
+        errorMessage: 'Hire Andy Hsieh to manage more trades! :)',
+        result: null
+      })
     }
 
-    res.send(message)
-    return
-  }
+    const invalidInput = Object.keys(req.body).filter(
+      (key) => req.body[key] == null
+    )
 
-  const {
-    previousCloseChange,
-    previousCloseChangePercent,
-    price: close,
-    // 以上為了 buy 直接帶入不用再打 api
-    ...rest
-  } = req.body
+    if (invalidInput.length !== 0) {
+      const reservedKey = ['ticker', 'cost', 'shares', 'tradeDate']
+      const errorMessage =
+        'Invalid input field: ' +
+        invalidInput.filter((key) => reservedKey.includes(key)).join(', ')
+      const message = {
+        success: false,
+        content: 'Adding stock failed',
+        errorMessage,
+        result: req.body
+      }
 
-  const {
-    style,
-    name,
-    marketState,
-    code,
-    regularMarketTime,
-    tempTicker,
-    ticker,
-    ...tradeInfo
-  } = rest
+      res.send(message)
+      return
+    }
 
-  try {
+    const {
+      previousCloseChange,
+      previousCloseChangePercent,
+      price: close,
+      // 以上為了 buy 直接帶入不用再打 api
+      ...rest
+    } = req.body
+
+    const {
+      style,
+      name,
+      marketState,
+      code,
+      regularMarketTime,
+      tempTicker,
+      ticker,
+      ...tradeInfo
+    } = rest
+
     // set tickers
     holdingsTemptickersRef.child(tempTicker).set(ticker)
 
@@ -959,8 +961,9 @@ router.post('/stock', addHoldingLimiter, async (req, res) => {
 
     res.send(message)
   } catch (error) {
+    console.log('error', error)
     const message = {
-      success: true,
+      success: false,
       content: '標的新增失敗',
       errorMessage: error.message,
       result: null
@@ -2161,7 +2164,7 @@ router.post('/ticker/:listName', watchlistLimiter, async (req, res) => {
     res.send(message)
   } catch (error) {
     const message = {
-      success: true,
+      success: false,
       content: '標的新增失敗',
       errorMessage: error.message,
       result: null
@@ -2248,7 +2251,7 @@ router.put('/ticker/:listName/:ticker', async (req, res) => {
     res.send(msg)
   } catch (error) {
     const msg = {
-      success: true,
+      success: false,
       content: '更新 watchlist 失敗',
       errorMessage: error.message,
       result: null

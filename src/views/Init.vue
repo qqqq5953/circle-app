@@ -85,7 +85,18 @@ export default {
           recordUnix: Date.now(),
         };
         const res = await http.post(`/api/stock`, stockObj);
-        await updateHoldings(res.data);
+        const { success, content, errorMessage } = res.data;
+
+        if (success) {
+          await updateHoldings(res.data);
+        } else {
+          toggleSkeleton(false);
+          setSnackbarMessage({
+            success,
+            content,
+            errorMessage,
+          });
+        }
       } catch (error) {
         setSnackbarMessage({
           success: false,

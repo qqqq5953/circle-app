@@ -614,6 +614,7 @@ export default {
       const usRes = await Promise.allSettled(usPromise);
       console.log("usRes", usRes);
       top5Caps.value.US = usRes.map((item) => {
+        if (!item.value) return "";
         return item.value.data.result;
       });
 
@@ -623,6 +624,7 @@ export default {
       const twRes = await Promise.allSettled(twPromise);
       console.log("twRes", twRes);
       top5Caps.value.TW = twRes.map((item) => {
+        if (!item.value) return "";
         return item.value.data.result;
       });
     }

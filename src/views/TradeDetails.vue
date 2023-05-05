@@ -184,6 +184,13 @@ export default {
     const route = useRoute();
     const setSnackbarMessage = inject("setSnackbarMessage");
 
+    function toISODate(dateObj) {
+      const dd = String(dateObj.getDate()).padStart(2, "0");
+      const mm = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const yyyy = dateObj.getFullYear();
+      return yyyy + "-" + mm + "-" + dd;
+    }
+
     async function getTradeDetails() {
       const tempTicker = route.query.tempTicker;
       const res = await http.get(`/api/tradeDetails/${tempTicker}`);
@@ -202,7 +209,7 @@ export default {
           id: Date.now(),
           price: close,
           shares: totalShares,
-          date: new Date().toLocaleDateString("zh-TW").replace(/\//g, "-"),
+          date: toISODate(new Date()),
           value: (close * totalShares).toFixed(2),
           profitOrLossPercentage,
           profitOrLossValue,

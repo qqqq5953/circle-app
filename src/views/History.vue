@@ -44,7 +44,7 @@
             :open="Object.keys(details)[0] === date"
           >
             <summary
-              class="flex justify-between px-2 py-1.5 md:px-3 font-medium cursor-pointer rounded bg-slate-100 group-open:outline group-open:outline-1 group-open:outline-slate-200"
+              class="flex justify-between px-2 py-1.5 md:px-3 font-medium cursor-pointer rounded bg-slate-100 group-open:border group-open:border-slate-200 focus:outline-none"
             >
               <span class="text-slate-500">{{ date }}</span>
               <span class="hidden group-open:inline">
@@ -144,3 +144,8 @@ export default {
 };
 </script>
 
+<style scoped>
+details > summary::-webkit-details-marker {
+  display: none;
+}
+</style>

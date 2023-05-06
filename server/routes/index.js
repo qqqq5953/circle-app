@@ -829,6 +829,15 @@ router.post('/stock', addHoldingLimiter, async (req, res) => {
       return
     }
 
+    if (new Date(req.body.tradeDate).getFullYear() !== 2023) {
+      return res.send({
+        success: false,
+        content: 'Adding stock failed: Year must be 2023',
+        errorMessage: null,
+        result: null
+      })
+    }
+
     const {
       previousCloseChange,
       previousCloseChangePercent,

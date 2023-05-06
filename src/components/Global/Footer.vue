@@ -31,10 +31,12 @@
           <div class="w-1/2">
             <h5 class="font-semibold pb-3">Company</h5>
             <ul class="space-y-3 text-gray-600">
-              <li>About</li>
-              <li>Solution</li>
-              <li>Sign up</li>
-              <li>Log in</li>
+              <li>
+                <router-link :to="{ name: 'About' }">About</router-link>
+              </li>
+              <li>
+                <router-link :to="{ name: 'Solution' }">Solution</router-link>
+              </li>
             </ul>
           </div>
 

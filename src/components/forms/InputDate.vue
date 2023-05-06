@@ -4,15 +4,15 @@
       name="date"
       type="date"
       class="appearance-none border border-slate-300 block px-4 py-3 rounded w-full text-sm text-center focus:outline-0 invalid:border-red-400 invalid:border valid:focus:outline-blue-300/60 valid:focus:outline-2"
+      :class="{
+        'min-h-[46px]': inputValue === null,
+      }"
       min="2022-01-01"
       ref="dateRef"
       disabled
       v-model="inputValue"
     />
     <ErrorDisplay :errors="inputError" v-if="hasError" />
-    inputValue null:{{ inputValue === null }}
-    <br />
-    inputValue string :{{ inputValue === "" }}
   </div>
 </template>
 

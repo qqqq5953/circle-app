@@ -46,7 +46,7 @@
 
         <!-- dashboard -->
         <div class="relative mr-3" v-if="hasLogin === true">
-          <template v-if="isSafari">
+          <template v-if="isSafari || mobileOperatingSystem === 'iOS'">
             <button
               ref="dropdownBtn"
               @click="handleClickOnSafari"
@@ -279,8 +279,17 @@ export default {
             (typeof safari !== "undefined" && window["safari"].pushNotification)
         )
     );
+    const mobileOperatingSystem = computed(() => {
+      var userAgent = navigator.userAgent || navigator.platform;
+      if (/android/i.test(userAgent)) return "Android";
+      if (/iPad|iPhone/.test(userAgent) || isiOS13.value) return "iOS";
+      return null;
+    });
+    const isiOS13 = computed(() => {
+      return navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+    });
+
     function handleClickOnSafari() {
-      if (!isSafari.value) return;
       isDropdownOpen.value = !isDropdownOpen.value;
     }
 
@@ -342,6 +351,7 @@ export default {
       handleClickOnSafari,
       isDropdownOpen,
       isSafari,
+      mobileOperatingSystem,
       dropdownBtn,
       dropdownList,
     };

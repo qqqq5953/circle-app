@@ -4,7 +4,7 @@
       ><i class="fas fa-search"></i
     ></span>
     <input
-      class="pr-3 pl-10 py-3 placeholder-blueGray-300 text-sm bg-white rounded-l shadow focus:ring-blue-300/60 focus:ring-inset focus:ring-2 focus:outline-0 grow"
+      class="w-full pr-3 pl-10 py-3 text-sm bg-white rounded-l shadow focus:ring-blue-300/60 focus:ring-inset focus:ring-2 focus:outline-0"
       type="search"
       :maxlength="selectedCountry.maxLength"
       :placeholder="selectedCountry.placeholder"
@@ -14,7 +14,7 @@
       ref="searchTickerRef"
     />
     <button
-      class="w-1/3 max-w-[150px] flex items-center justify-between bg-zinc-50 rounded-r border py-2 px-3 text-xs font-medium shadow"
+      class="max-w-[150px] flex items-center justify-between bg-zinc-50 rounded-r border py-2 px-3 text-xs font-medium shadow"
       @click="toggleDropdown"
     >
       <span>{{ selectedCountry.name }}</span>

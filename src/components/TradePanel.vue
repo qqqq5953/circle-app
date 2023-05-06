@@ -5,7 +5,7 @@
 
       <!-- 搜尋結果 -->
       <Transition>
-        <div v-show="isFocus" class="absolute top-12 w-full bg-white">
+        <div v-show="isFocus" class="absolute top-14 w-full bg-white">
           <ListSkeleton v-show="isSearchListLoading" />
           <SearchList
             v-show="!isSearchListLoading"

@@ -3,26 +3,18 @@
     <h2 class="text-2xl mb-2">Profile</h2>
     <ul>
       <li class="relative pb-3">
-        <div class="flex justify-between items-center text-slate-600">
+        <input class="hidden peer" id="Summary" type="checkbox" />
+        <label
+          class="flex justify-between items-center text-slate-600 cursor-pointer peer-checked:[&>i]:rotate-180"
+          for="Summary"
+          @click="toggleProfileSummary"
+        >
           <h3>Summary</h3>
-          <span v-if="isChevronShow">
-            <input class="hidden peer" id="Summary" type="checkbox" />
-            <label
-              class="cursor-pointer peer-checked:[&>i]:rotate-180"
-              for="Summary"
-              @click="toggleProfileSummary"
-            >
-              <i
-                class="
-                  fa-solid fa-chevron-down
-                  transition-transform
-                  duration-200
-                  ease-in-out
-                "
-              ></i>
-            </label>
-          </span>
-        </div>
+          <i
+            v-if="isChevronShow"
+            class="fa-solid fa-chevron-down transition-transform duration-200 ease-in-out"
+          ></i>
+        </label>
 
         <div
           class="pt-2 font-light"

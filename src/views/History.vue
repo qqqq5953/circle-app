@@ -24,9 +24,6 @@
     </section>
 
     <template v-else>
-      <!-- <button class="border border-black p-2" @click="deleteAll">
-        delete all
-      </button> -->
       <section v-if="source">
         <h2 class="font-semibold text-lg">History</h2>
         <MultiLineChart :source="source" />

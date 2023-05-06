@@ -3,7 +3,7 @@
     <input
       name="date"
       type="date"
-      class="border border-slate-300 block px-4 py-3 rounded w-full text-sm text-center focus:outline-0 invalid:border-red-400 invalid:border valid:focus:outline-blue-300/60 valid:focus:outline-2"
+      class="appearance-none border border-slate-300 block px-4 py-3 rounded w-full text-sm text-center focus:outline-0 invalid:border-red-400 invalid:border valid:focus:outline-blue-300/60 valid:focus:outline-2"
       min="2022-01-01"
       ref="dateRef"
       disabled
@@ -132,5 +132,9 @@ export default {
 };
 </script>
 
-<style>
+<style scoped>
+input[type="date"] {
+  appearance: none;
+  -webkit-appearance: none;
+}
 </style>

@@ -1,27 +1,44 @@
-# ⚡ Vite ✔ Vue 3 🌻 Tailwind CSS
+# Circle - Investment Management Platform
 
-![Vite, Vue, Tailwind CSS](https://user-images.githubusercontent.com/11320080/111277027-a9384c00-8640-11eb-8323-21889bd7c609.png)
+Circle is an investment management platform that allows users to manage their portfolio and track their investments.
 
-This starter template includes:
+# Features
 
-- [Vite](https://vitejs.dev/guide/)
-- [Vue 3](https://vuejs.org/guide/introduction.html)
-- [Tailwind CSS v3](https://tailwindcss.com/docs/configuration)
-- [Vue Router v4](https://github.com/vuejs/router)
-- [prettier-plugin-tailwindcss](https://tailwindcss.com/blog/automatic-class-sorting-with-prettier) - Automatic Class Sorting with Prettier
+Circle has the following pages:
 
-First-party plugins needed for Tailwind UI:
+## Before Log In
 
-- [tailwindcss/forms](https://github.com/tailwindlabs/tailwindcss-forms)
-- [tailwindcss/typography](https://tailwindcss.com/docs/typography-plugin)
-- [tailwindcss/line-clamp](https://github.com/tailwindlabs/tailwindcss-line-clamp)
-- [tailwindcss/aspect-ratio](https://github.com/tailwindlabs/tailwindcss-aspect-ratio)
+    1. Landing Page
+    2. About Page
+    3. Solutions Page
 
-### Getting Started
+## After Log In
+
+    1. Overview - An overview of the user's portfolio, including total value, performance, and asset allocation.
+    2. Watchlist - Add stocks to be tracked later.
+    3. Company description: View detailed stock performance data for each company by clicking on the ticker symbol.
+        a. Avaliable for Overview and Watchlist page
+        b. Stock price is available for periods ranging from 5 days to 5 years.
+        c. Financial data is also is available
+    4. Holdings - Displays the user's current holdings, including the quantity, value, and performance of each holding.
+    5. History - Shows the user's historical performance over time.
+
+# Stack Used
+
+Circle is built using the following technologies:
+
+    1. Vite
+    2. Vue 3
+    3. Tailwind
+    4. Apache Ecahrts
+    5. Express.js
+    6. Firebase: Functions, Realtime database, Hosting
+
+# Getting Started
 
 ```sh
 npm i
-npm run dev
-npm run build
 npm run serve
+npm run preview
+npm run build
 ```

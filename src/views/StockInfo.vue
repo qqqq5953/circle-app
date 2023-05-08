@@ -1,7 +1,10 @@
 <template>
   <main>
     <StockInfoSkeleton v-if="isSkeletonLoading" />
-    <div class="flex flex-col gap-2" v-if="!isSkeletonLoading">
+    <div
+      class="flex flex-col gap-2"
+      v-if="!isSkeletonLoading && stock.hasOwnProperty('price')"
+    >
       <header>
         <h2 class="text-xl md:text-2xl pb-2 md:pb-3 max-w-fit">
           <span>{{ stock.price?.name }} </span>

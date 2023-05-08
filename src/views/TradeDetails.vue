@@ -337,7 +337,11 @@ export default {
         setSnackbarMessage(res.data);
         await getTradeDetails();
       } catch (error) {
-        console.log("error", error);
+        setSnackbarMessage({
+          success: false,
+          content: error.message,
+          result: null,
+        });
       } finally {
         isDeleting.value = false;
       }

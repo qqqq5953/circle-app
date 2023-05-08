@@ -123,9 +123,9 @@ export default {
       }
     }
 
-    watch(loading, (newVal) => {
+    watch([loading, error], ([newVal, newError]) => {
       if (newVal) return;
-      if (!data.value?.result) router.replace({ name: "Init" });
+      if (!data.value?.result && !newError) router.replace({ name: "Init" });
     });
 
     return {

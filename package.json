@@ -7,7 +7,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@egjs/vue3-flicking": "^4.10.7",
     "@fortawesome/fontawesome-free": "^6.1.1",
     "axios": "^0.27.2",
     "chart.js": "^3.8.0",

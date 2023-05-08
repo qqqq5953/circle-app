@@ -63,7 +63,17 @@
       @setInputValidity="setInputValidity"
       :code="code"
       ref="inputDateRef"
+      v-show="stock.tradeDate"
     />
+    <div
+      class="relative border border-slate-300 rounded py-3 w-full text-center bg-gray-200 text-gray-400 cursor-not-allowed"
+      v-show="!stock.tradeDate"
+    >
+      yyyy / mm / dd
+      <i
+        class="fa-regular fa-calendar fa-sm absolute right-5 top-1/2 -translate-y-1/2"
+      ></i>
+    </div>
   </div>
 </template>
 

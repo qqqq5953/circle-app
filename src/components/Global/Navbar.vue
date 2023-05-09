@@ -34,6 +34,11 @@
                 {{ item.name }}
               </button>
             </li>
+            <li v-if="hasLogin === false" @click="logInAsRecruiter">
+              <button class="block px-4 text-indigo-600 font-medium">
+                Log In With One Click
+              </button>
+            </li>
           </ul>
           <button
             class="inline-block rounded px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white"
@@ -180,6 +185,11 @@
               {{ item.name }}
             </button>
           </li>
+          <li v-if="hasLogin === false" @click="logInAsRecruiter">
+            <button class="block px-4 py-3 w-full text-indigo-600 font-medium">
+              Log In With One Click (Recruiters only)
+            </button>
+          </li>
         </ul>
       </div>
     </div>
@@ -293,6 +303,49 @@ export default {
       isDropdownOpen.value = !isDropdownOpen.value;
     }
 
+    const stoplogInAsRecruiter = useClickPrevention(3000);
+    async function logInAsRecruiter() {
+      const { isClickDisabled, preventMultipleClicks } = stoplogInAsRecruiter;
+      if (isClickDisabled.value || props.hasLogin) return;
+      preventMultipleClicks();
+
+      http
+        .post(`/api/logIn`, {
+          email: "qwe@gmail.com",
+          password: "123123",
+        })
+        .then((res) => {
+          console.log("confirm res", res);
+          const { success, errorMessage, result, content } = res.data;
+          const isEmailError = errorMessage?.includes("email");
+          const isUserError = errorMessage?.includes("user");
+          const isPasswordError = errorMessage
+            ?.toLowerCase()
+            .includes("password");
+
+          if (success) {
+            emit("checkLogin", result.hasLogin);
+            emit("setSnackbarMessage", {
+              success,
+              content,
+              result: null,
+            });
+          } else if (isEmailError || (isUserError && !isPasswordError)) {
+            console.log("errorMessage", errorMessage);
+          } else if (isPasswordError) {
+            console.log("errorMessage", errorMessage);
+          }
+        })
+        .catch((error) => {
+          console.log("login error", error);
+          emit("setSnackbarMessage", {
+            success: false,
+            content: error.message,
+            result: null,
+          });
+        });
+    }
+
     // log in & out
     function toggleLogInAndOut() {
       if (props.hasLogin) {
@@ -307,7 +360,9 @@ export default {
       emit("toggleSignUp", true);
     }
 
+    const stopLogout = useClickPrevention(3000);
     function logOut() {
+      const { isClickDisabled, preventMultipleClicks } = stopLogout;
       if (isClickDisabled.value) return;
       preventMultipleClicks();
 
@@ -354,6 +409,7 @@ export default {
       mobileOperatingSystem,
       dropdownBtn,
       dropdownList,
+      logInAsRecruiter,
     };
   },
 };

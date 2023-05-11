@@ -4,11 +4,18 @@ Circle is an investment management platform that allows users to manage their po
 
 # Project snapshot
 
+## Web
+
 <img src="/snapshot/snapshot.png" title="snapshot">
+
+## Mobile
+
+<img src="/snapshot/snapshot-mobile.png" title="snapshot">
 
 # Project link
 
 [View project](https://cloud-func-test-256db.web.app/#/)
+<br>
 Please note that for demonstration purpose, there is a "Log in with 1 click" button that allows recruiters to view the dashboard without signing up!
 
 # Features

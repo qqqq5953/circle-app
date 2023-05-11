@@ -2,6 +2,21 @@
 
 Circle is an investment management platform that allows users to manage their portfolio and track their investments.
 
+**Overview**
+[Overview](/snapshot/overview.png)
+
+**Holdings**
+[Overview](/snapshot/holgins.png)
+
+**Watchlist**
+[Overview](/snapshot/watchlist.png)
+
+**History**
+[Overview](/snapshot/history.png)
+
+**Company Description**
+[Overview](/snapshot/info.png)
+
 # Project link
 
 [View project](https://cloud-func-test-256db.web.app/#/)

@@ -4,20 +4,7 @@ Circle is an investment management platform that allows users to manage their po
 
 # Project snapshot
 
-**Overview**
-<img src="/snapshot/overview.png" title="Optional title">
-
-**Holdings**
-<img src="/snapshot/holgins.png" title="Holdings">
-
-**Watchlist**
-<img src="/snapshot/watchlist.png" title="Watchlist">
-
-**History**
-<img src="/snapshot/history.png" title="History">
-
-**Company Description**
-<img src="/snapshot/info.png" title="Company Description">
+<img src="/snapshot/snapshot.png" title="snapshot">
 
 # Project link
 

@@ -45,11 +45,10 @@
       >
         <h2
           class="transition duration-700 font-semibold text-center text-2xl md:text-4xl md:pb-4"
-          :class="
-            isIntersecting.marketMakerSection
-              ? 'translate-y-0 opacity-100'
-              : 'translate-y-12 opacity-0'
-          "
+          :class="isIntersecting.marketMakerSection
+                    ? 'translate-y-0 opacity-100'
+                    : 'translate-y-12 opacity-0'
+                  "
         >
           Market movers
           <p class="text-base font-normal text-slate-600">
@@ -67,10 +66,9 @@
               >
                 <button
                   class="px-2 py-1 text-sm"
-                  :class="
-                    selectedTab === tab.value
-                      ? 'text-indigo-600'
-                      : ' font-light'
+                  :class="selectedTab === tab.value
+                    ? 'text-indigo-600'
+                    : ' font-light'
                   "
                   @click="selectedTab = tab.value"
                 >
@@ -171,13 +169,12 @@
                     <div class="sm:hidden">
                       <span
                         class=""
-                        :class="
-                          item.previousCloseChangePercent > 0
-                            ? 'text-red-600'
-                            : item.previousCloseChangePercent < 0
-                            ? 'text-green-700'
-                            : 'text-slate-500'
-                        "
+                        :class="item.previousCloseChangePercent > 0
+                    ? 'text-red-600'
+                    : item.previousCloseChangePercent < 0
+                      ? 'text-green-700'
+                      : 'text-slate-500'
+                  "
                         >{{ item.previousCloseChangePercent }}%</span
                       >
                     </div>
@@ -188,13 +185,12 @@
                   <div class="text-end font-medium">
                     <span
                       class=""
-                      :class="
-                        item.previousCloseChangePercent > 0
-                          ? 'text-red-600'
-                          : item.previousCloseChangePercent < 0
-                          ? 'text-green-700'
-                          : 'text-slate-500'
-                      "
+                      :class="item.previousCloseChangePercent > 0
+                    ? 'text-red-600'
+                    : item.previousCloseChangePercent < 0
+                      ? 'text-green-700'
+                      : 'text-slate-500'
+                  "
                       >{{ item.previousCloseChangePercent }}%</span
                     >
                   </div>
@@ -204,13 +200,12 @@
                   <div class="text-end font-light">
                     <span
                       class=""
-                      :class="
-                        item.previousCloseChange > 0
-                          ? 'text-red-600'
-                          : item.previousCloseChange < 0
-                          ? 'text-green-700'
-                          : 'text-slate-500'
-                      "
+                      :class="item.previousCloseChange > 0
+                    ? 'text-red-600'
+                    : item.previousCloseChange < 0
+                      ? 'text-green-700'
+                      : 'text-slate-500'
+                  "
                       >{{ item.previousCloseChange }}</span
                     >
                   </div>
@@ -228,11 +223,10 @@
       >
         <h2
           class="transition duration-700 font-semibold text-center text-2xl md:text-4xl md:pb-4"
-          :class="
-            isIntersecting.whyCircleSection
-              ? 'translate-y-0 opacity-100'
-              : 'translate-y-12 opacity-0'
-          "
+          :class="isIntersecting.whyCircleSection
+                    ? 'translate-y-0 opacity-100'
+                    : 'translate-y-12 opacity-0'
+                  "
         >
           Why Circle
         </h2>
@@ -271,11 +265,10 @@
       >
         <h2
           class="transition duration-700 font-semibold text-center text-2xl md:text-4xl md:pb-4"
-          :class="
-            isIntersecting.portfolioSection
-              ? 'translate-y-0 opacity-100'
-              : 'translate-y-12 opacity-0'
-          "
+          :class="isIntersecting.portfolioSection
+                    ? 'translate-y-0 opacity-100'
+                    : 'translate-y-12 opacity-0'
+                  "
         >
           Create your portfolio today
         </h2>
@@ -305,11 +298,10 @@
       >
         <h2
           class="transition duration-700 font-semibold text-center text-2xl md:text-4xl md:pb-4"
-          :class="
-            isIntersecting.marketFeelSection
-              ? 'translate-y-0 opacity-100'
-              : 'translate-y-12 opacity-0'
-          "
+          :class="isIntersecting.marketFeelSection
+                    ? 'translate-y-0 opacity-100'
+                    : 'translate-y-12 opacity-0'
+                  "
         >
           How market feels about Circle?
         </h2>
@@ -341,11 +333,10 @@
       >
         <h2
           class="transition duration-700 font-semibold pb-4 text-center text-2xl md:text-4xl md:pb-8"
-          :class="
-            isIntersecting.feedbackSection
-              ? 'translate-y-0 opacity-100'
-              : 'translate-y-12 opacity-0'
-          "
+          :class="isIntersecting.feedbackSection
+                    ? 'translate-y-0 opacity-100'
+                    : 'translate-y-12 opacity-0'
+                  "
         >
           Feedback from our users
         </h2>
@@ -629,7 +620,7 @@ export default {
       });
     }
 
-    // getTop5Caps();
+    getTop5Caps();
 
     function handleGetStarted() {
       if (props.hasLogin) {
@@ -667,6 +658,7 @@ export default {
   opacity: 0;
   transition: 150ms;
 }
+
 .title.show {
   transform: translateY(0);
   opacity: 1;
@@ -695,6 +687,7 @@ export default {
   0% {
     transform: translateX(0%);
   }
+
   100% {
     transform: translateX(-900%);
   }
@@ -705,6 +698,7 @@ export default {
     0% {
       transform: translateX(0%);
     }
+
     100% {
       transform: translateX(-600%);
     }
@@ -716,6 +710,7 @@ export default {
     0% {
       transform: translateX(0%);
     }
+
     100% {
       transform: translateX(-400%);
     }

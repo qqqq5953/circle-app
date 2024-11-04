@@ -13,6 +13,12 @@ import '@fortawesome/fontawesome-free/css/all.min.css'
 import Footer from '@/components/Global/Footer.vue'
 
 const pinia = createPinia()
+
+if (import.meta.env.DEV) {
+  const { worker } = await import('./mocks/browser');
+  worker.start();
+}
+
 const app = createApp(App)
 app.component('Footer', Footer)
 app.use(VueAxios, axios).use(router).use(pinia)

@@ -12,11 +12,16 @@ Circle is an investment management platform that allows users to manage their po
 
 <img src="/snapshot/snapshot-mobile.png" title="snapshot">
 
+# If I rebuilt this today
+The API grew into a single 2,800-line route file. I'd split it into route / controller / service layers, move the cache-scheduling logic behind an interface so the market-hours rules are testable in isolation, and replace the client-side Firebase auth check on the server with a proper token verification.
+
 # Project link
 
 [View project](https://cloud-func-test-256db.web.app/#/)
 <br>
 Please note that for demonstration purpose, there is a "Log in with 1 click" button that allows recruiters to view the dashboard without signing up!
+
+> **Live demo unavailable**. The upstream `yahoo-finance` v1 package was deprecated; quote and historical endpoints stopped resolving. Migration to `yahoo-finance2` is in progress — 10 call sites, mainly response-shape mapping.
 
 # Features
 
